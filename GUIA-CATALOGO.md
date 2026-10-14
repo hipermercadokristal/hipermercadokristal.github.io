@@ -2,19 +2,31 @@
 
 ## Abrir y probar la tienda
 
-No necesitas subir la página a la nube. Abre con doble clic `index.html` desde el Explorador de archivos, o abre una terminal en la carpeta del proyecto y ejecuta en PowerShell:
+El sitio consulta los productos en Supabase y por eso debe abrirse desde un servidor web, no con doble clic sobre `index.html`. En desarrollo puedes usar **Live Server** de VS Code. Para publicarlo, el workflow existente de GitHub Pages despliega el sitio estático; los productos se actualizan desde Supabase sin volver a desplegarlo.
 
-```powershell
-Start-Process .\index.html
-```
+## Configurar Supabase (una sola vez)
 
-También puedes abrir la carpeta en VS Code y usar **Live Server** si ya tienes esa extensión instalada.
+1. Crea un proyecto en Supabase y abre **SQL Editor**. Ejecuta `supabase-schema.sql` para crear las tablas `productos` y `categorias`, el bucket público `product-images`, las políticas RLS y la publicación Realtime.
+2. Ejecuta `supabase-seed.sql` una sola vez si deseas importar el catálogo de 53 productos que ya mostraba la versión estática. El seed conserva sus rutas de fotos locales en `assets/products/`; verifica precios y disponibilidad antes de publicar. Las nuevas fotos agregadas desde el panel sí se suben al bucket de Supabase.
+3. En **Project Settings → API**, copia la **Project URL** y la clave pública **anon/publishable** en `supabase-config.js`. Esas credenciales públicas pueden estar en el frontend; **nunca** pegues una clave `service_role` o secret en este repositorio.
+4. En **Authentication → Users**, crea/invita al propietario. En **Authentication → Settings**, desactiva el registro público para que nadie pueda crear cuentas administrativas. Luego asigna al usuario propietario el rol `admin` en `app_metadata` desde el SQL Editor (sustituye el correo):
 
-El logo del encabezado y del pie utiliza el mismo archivo `assets/kristal-logo.png`. El catálogo incluye 53 productos asociados a fotos compartidas por el usuario. Las tarjetas muestran sus precios en USD y permiten agregarlos al carrito; al procesar el pedido, el sitio abre WhatsApp con el resumen para coordinar disponibilidad y entrega.
+   ```sql
+   update auth.users
+   set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
+   where email = 'propietario@ejemplo.com';
+   ```
+
+   Cierra y vuelve a iniciar sesión después de asignar el rol para renovar el token.
+5. Abre `/admin/` para administrar el inventario. En GitHub Pages de proyecto, la dirección tendrá el formato `https://<usuario>.github.io/<repositorio>/admin/`; en un dominio propio será `https://<dominio>/admin/`.
+
+El panel requiere correo y contraseña de Supabase. RLS valida `app_metadata.role = admin` tanto en tablas como en Storage; ocultar el panel en el navegador no sustituye esas políticas. El catálogo público solo puede leer artículos disponibles; una tabla Realtime separada publica únicamente una señal de cambio para mantener privada la información de los productos agotados.
+
+El logo del encabezado y del pie utiliza el mismo archivo `assets/kristal-logo.png`. El seed opcional carga los 53 productos asociados a fotos compartidas previamente; las tarjetas muestran precios en USD y permiten agregarlos al carrito. Al procesar el pedido, el sitio abre WhatsApp con el resumen para coordinar disponibilidad y entrega.
 
 ## 1. Navegación, vistas y enlaces
 
-La página principal funciona como una aplicación de vistas independientes: **Inicio** muestra el panel de presentación y la selección destacada; **Catálogo** y cada categoría presentan el inventario publicado cuando se confirme; **Nuestra tienda** presenta las instalaciones y **Sobre nosotros** tiene una página institucional separada. **Cambios y devoluciones** y **Opiniones y preguntas frecuentes** también cuentan con vistas propias. La navegación cambia de vista sin giros de página y actualiza la URL y el historial; el botón para volver desde una categoría regresa al catálogo.
+La página principal funciona como una aplicación de vistas independientes: **Inicio** muestra el panel de presentación y la selección destacada; **Catálogo** y cada categoría presentan el inventario disponible consultado en Supabase; **Nuestra tienda** presenta las instalaciones y **Sobre nosotros** tiene una página institucional separada. **Cambios y devoluciones** y **Opiniones y preguntas frecuentes** también cuentan con vistas propias. La navegación cambia de vista sin giros de página y actualiza la URL y el historial; el botón para volver desde una categoría regresa al catálogo.
 
 El buscador, el carrito y los accesos por WhatsApp permanecen disponibles en todas las vistas. Los enlaces **Política de privacidad** y **Términos y condiciones** del pie abren `politicas.html` directamente en su sección correspondiente. Esta página explica el uso de datos para pedidos por WhatsApp, la disponibilidad de productos y el proceso de confirmación y pago.
 
@@ -28,10 +40,10 @@ Para cambiar el enlace telefónico que aparece en el pie, actualiza el atributo 
 
 ## 2. Número de WhatsApp para recibir pedidos
 
-En `app.js`, busca la constante `WHATSAPP_NUMBER`, que está justo después del arreglo `products`:
+En `app.js`, busca la constante `WHATSAPP_NUMBER`:
 
 ```js
-const WHATSAPP_NUMBER = "584245104430";
+const WHATSAPP_NUMBER = "584128867088";
 ```
 
 Reemplaza el valor por el número de la caja en formato internacional, con el código del país y **solo dígitos**: sin `+`, espacios, guiones ni paréntesis. Por ejemplo, un número venezolano comienza por `58`.
@@ -61,56 +73,18 @@ Las imágenes del carrusel de promociones son fotografías ilustrativas de Unspl
 
 Estas imágenes se usan solo como ambientación de cada categoría. La galería de **Nuestra tienda** continúa mostrando las fotos reales compartidas por el negocio.
 
-## 4. Imágenes PNG transparentes de productos
+## 4. Fotos de productos
 
-Guarda las imágenes en:
+Las fotos que ya estaban en el catálogo de demostración se conservan en:
 
 ```text
 assets/products/
 ```
 
-Usa nombres sencillos y únicos, por ejemplo `harina-maiz.png`. Procura que sean PNG con fondo transparente, bien recortados y con el producto centrado.
-
-En `app.js`, cambia la propiedad `image` del producto por la ruta relativa desde la carpeta principal del sitio:
-
-```js
-image: "assets/products/harina-maiz.png",
-```
-
-La propiedad `alt` debe describir la imagen para personas que usan lectores de pantalla:
-
-```js
-alt: "Bolsa de harina de maíz precocida",
-```
-
-No hace falta cambiar el HTML de la tarjeta: el catálogo usa automáticamente esta ruta tanto en la tarjeta como en el carrito.
-
-Las 53 imágenes de producto proporcionadas por el usuario están en `assets/products/` y se conectan con las tarjetas del catálogo: 4 harinas, 6 arroces, 4 aceites, 6 leches en polvo, 6 pastas, 11 bebidas, 8 papeles higiénicos, 7 detergentes/suavizante y 1 presentación de huevos. Las otras imágenes del lote —iconos y capturas de interfaz— no se trataron como productos. Confirma con Kristal la disponibilidad, presentación y precio real antes de publicar cualquier artículo como inventario.
+Para nuevos productos, no edites el código ni guardes fotos manualmente allí: usa el formulario de `/admin/`. La foto se cargará en el bucket `product-images` y el enlace quedará asociado al producto.
 
 ## 5. Agregar o cambiar productos, precios y ofertas
 
-El arreglo `products` al inicio de `app.js` contiene 53 artículos con fotos de los empaques y productos compartidos. Cada campo `price` determina el precio mostrado en USD y el subtotal del carrito. Puedes corregirlo directamente en el artículo; `oldPrice` y las insignias de oferta solo deben usarse para descuentos confirmados.
+El inventario se administra desde `/admin/`; `app.js` ya no contiene una lista de productos. En el formulario puedes asignar nombre, categoría, presentación, precio regular, precio de oferta, foto, disponibilidad y si aparece en **Lo Más Destacado**. Edita una fila para corregir sus datos; **Ocultar** marca el producto como agotado sin borrarlo, y **Eliminar** lo retira junto con su foto del bucket cuando corresponda.
 
-### Mostrar “Consultar por WhatsApp” en un producto
-
-Normalmente, los productos con precio se pueden agregar al carrito. Para que un artículo muestre el botón **Consultar por WhatsApp**, agrega `consultarWhatsApp: true` dentro de su objeto en `app.js`:
-
-```js
-{
-  id: "harina-pan",
-  name: "Harina de maíz P.A.N.",
-  price: 2.00,
-  consultarWhatsApp: true,
-  // Los demás campos del producto se mantienen igual.
-}
-```
-
-El enlace abre el chat de Kristal con un mensaje que nombra ese producto. Para volver a mostrar **Agregar al carrito**, cambia el valor a `false` o elimina la propiedad. También se consulta por WhatsApp automáticamente cuando un producto no tiene un `price` numérico.
-
-Para incluir un producto en **Lo Más Destacado** del inicio, agrega `esDestacado: true` al objeto. El carrusel se genera automáticamente con los productos marcados de esa manera.
-
-- Mantén `id` único: se usa para identificar el producto en el carrito.
-- `group` debe coincidir exactamente con un departamento del menú y del filtro: `Víveres y Alacena`, `Frutas y Verduras`, `Carnes, Aves y Charcutería`, `Bebidas y Licores`, `Snacks, Golosinas y Confitería`, `Cuidado Personal e Higiene`, `Cuidado del Hogar y Limpieza`, `Mascotas` o `Congelados`. `category` es el nombre más específico que se muestra en la tarjeta.
-- El catálogo muestra hasta 15 productos por página (tres filas de cinco en computadora); cuando un departamento no tenga productos publicados, invita a consultar disponibilidad por WhatsApp.
-
-El arreglo está en JavaScript (no es un archivo JSON separado), porque así la tienda puede usar los datos directamente sin un servidor adicional. No hace falta editar `index.html` para añadir tarjetas.
+Las ofertas deben ser menores que el precio regular. El catálogo muestra hasta 15 productos por página y se actualiza inmediatamente al guardar cambios en el panel, sin reconstruir el sitio.

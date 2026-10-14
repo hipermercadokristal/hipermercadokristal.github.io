@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f3822" />
+    <title>Administración | Hipermercado Kristal</title>
+    <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
+    <link rel="stylesheet" href="admin.css" />
+    <script src="../supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../supabase-client.js"></script>
+    <script src="admin.js" defer></script>
+  </head>
+  <body>
+    <main class="admin-shell">
+      <a class="back-link" href="../index.html">← Volver a la tienda</a>
+      <section class="auth-card" id="auth-section" aria-labelledby="login-heading">
+        <img src="../assets/kristal-logo.png" alt="Hipermercado Kristal" />
+        <p class="eyebrow">ACCESO PRIVADO</p>
+        <h1 id="login-heading">Administración</h1>
+        <p class="intro">Inicia sesión para gestionar el inventario de la tienda.</p>
+        <form id="login-form">
+          <label for="login-email">Correo electrónico</label>
+          <input id="login-email" name="email" type="email" autocomplete="username" required />
+          <label for="login-password">Contraseña</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+          <button class="primary-button" type="submit">Iniciar sesión</button>
+        </form>
+        <p class="status-message" id="auth-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="dashboard" id="dashboard-section" hidden aria-labelledby="dashboard-heading">
+        <header class="dashboard-header">
+          <div>
+            <p class="eyebrow">HIPERMERCADO KRISTAL</p>
+            <h1 id="dashboard-heading">Inventario de productos</h1>
+            <p class="intro">Los cambios se publican en la tienda al guardarlos.</p>
+          </div>
+          <button class="secondary-button" id="sign-out-button" type="button">Cerrar sesión</button>
+        </header>
+        <p class="status-message" id="dashboard-status" role="status" aria-live="polite"></p>
+
+        <section class="panel product-form-panel" aria-labelledby="product-form-heading">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">GESTIÓN</p>
+              <h2 id="product-form-heading">Agregar producto</h2>
+            </div>
+            <button class="text-button" id="cancel-edit-button" type="button" hidden>Cancelar edición</button>
+          </div>
+          <form id="product-form">
+            <div class="form-grid">
+              <label class="field field-wide" for="product-name">Nombre del producto
+                <input id="product-name" name="nombre" type="text" maxlength="140" required />
+              </label>
+              <label class="field" for="product-category">Categoría
+                <select id="product-category" name="categoria_id" required></select>
+              </label>
+              <label class="field" for="product-presentation">Presentación (opcional)
+                <input id="product-presentation" name="presentacion" type="text" maxlength="80" placeholder="Ej.: 1 kg" />
+              </label>
+              <label class="field" for="product-price">Precio regular (USD)
+                <input id="product-price" name="precio" type="number" min="0.01" step="0.01" required />
+              </label>
+              <label class="field" for="product-sale-price">Precio de oferta (opcional)
+                <input id="product-sale-price" name="precio_oferta" type="number" min="0.01" step="0.01" />
+              </label>
+              <label class="field field-wide" for="product-image">Foto del producto
+                <input id="product-image" name="imagen" type="file" accept="image/png,image/jpeg,image/webp" />
+                <small>PNG, JPG o WebP; máximo 5 MB. Al editar, deja vacío para conservar la foto actual.</small>
+              </label>
+              <label class="checkbox-field" for="product-featured">
+                <input id="product-featured" name="es_destacado" type="checkbox" />
+                Mostrar en “Lo Más Destacado”
+              </label>
+              <label class="checkbox-field" for="product-available">
+                <input id="product-available" name="disponible" type="checkbox" checked />
+                Disponible para la venta
+              </label>
+            </div>
+            <button class="primary-button submit-button" id="save-product-button" type="submit">Guardar producto</button>
+          </form>
+        </section>
+
+        <section class="panel inventory-panel" aria-labelledby="inventory-heading">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">CATÁLOGO</p>
+              <h2 id="inventory-heading">Inventario</h2>
+            </div>
+            <button class="secondary-button" id="refresh-button" type="button">Actualizar lista</button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Categoría</th>
+                  <th>Precio</th>
+                  <th>Oferta</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="inventory-rows"></tbody>
+            </table>
+          </div>
+          <p class="empty-inventory" id="empty-inventory" hidden>Aún no hay productos en el inventario.</p>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

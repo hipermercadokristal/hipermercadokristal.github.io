@@ -1,0 +1,70 @@
+:root {
+  color: #18352a;
+  background: #f4f7f4;
+  font-family: "DM Sans", Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* { box-sizing: border-box; }
+body { min-width: 320px; margin: 0; }
+button, input, select { font: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+.admin-shell { width: min(1080px, calc(100% - 36px)); margin: 0 auto; padding: 32px 0 70px; }
+.back-link { display: inline-block; margin-bottom: 20px; color: #315c40; font-size: 14px; font-weight: 700; }
+.auth-card, .panel { border: 1px solid #e3eae4; border-radius: 14px; background: #fff; box-shadow: 0 8px 28px #1736260b; }
+.auth-card { width: min(430px, 100%); margin: 8vh auto 0; padding: 34px; }
+.auth-card > img { display: block; width: 112px; height: 78px; margin: 0 auto 15px; object-fit: contain; }
+.eyebrow { margin: 0 0 8px; color: #67816d; font-size: 10px; font-weight: 800; letter-spacing: 1.3px; }
+h1, h2, p { margin-top: 0; }
+h1 { margin-bottom: 8px; color: #153b25; font-size: clamp(25px, 4vw, 34px); }
+h2 { margin-bottom: 0; color: #1c3d2a; font-size: 20px; }
+.intro { margin-bottom: 23px; color: #718078; font-size: 14px; line-height: 1.6; }
+form label:not(.checkbox-field) { display: grid; gap: 7px; margin-bottom: 16px; color: #344b3c; font-size: 13px; font-weight: 700; }
+input, select { width: 100%; min-height: 43px; padding: 10px 12px; border: 1px solid #dbe4dd; border-radius: 7px; background: white; color: #20382a; }
+input:focus, select:focus { outline: 3px solid #3ca7602b; border-color: #4c9e63; }
+input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
+.primary-button, .secondary-button { min-height: 42px; padding: 0 16px; border: 0; border-radius: 7px; font-weight: 800; }
+.primary-button { background: #14552e; color: #fff; }
+.primary-button:hover { background: #0f4324; }
+.secondary-button { border: 1px solid #dce6dd; background: #fff; color: #31543b; }
+.auth-card .primary-button { width: 100%; margin-top: 4px; }
+.status-message { min-height: 19px; margin: 12px 0 0; color: #a1382c; font-size: 13px; line-height: 1.5; }
+.status-message.success { color: #246738; }
+.status-message:empty { display: none; }
+.dashboard-header, .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+.dashboard-header { margin-bottom: 20px; }
+.dashboard-header .intro { margin-bottom: 0; }
+.dashboard > .status-message { margin: 0 0 14px; }
+.panel { margin-top: 18px; padding: 24px; }
+.panel-heading { margin-bottom: 22px; }
+.text-button { padding: 8px 0; border: 0; background: transparent; color: #27633b; font-size: 13px; font-weight: 800; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
+.field { display: grid; align-content: start; gap: 7px; margin-bottom: 16px; color: #344b3c; font-size: 13px; font-weight: 700; }
+.field-wide { grid-column: 1 / -1; }
+.field small { color: #748179; font-size: 11px; font-weight: 400; }
+.checkbox-field { display: flex; align-items: center; gap: 9px; margin: 2px 0 16px; color: #405548; font-size: 13px; }
+.submit-button { min-width: 185px; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th, td { padding: 12px 10px; border-bottom: 1px solid #edf1ed; vertical-align: middle; font-size: 12px; }
+th { color: #728078; font-size: 10px; letter-spacing: .6px; text-transform: uppercase; }
+td:first-child { min-width: 210px; font-weight: 700; }
+.inventory-product { display: flex; align-items: center; gap: 10px; }
+.inventory-product img { width: 44px; height: 44px; border: 1px solid #edf0ed; border-radius: 6px; object-fit: contain; }
+.stock-label { display: inline-block; padding: 5px 8px; border-radius: 20px; background: #e6f4e9; color: #27663a; font-size: 10px; font-weight: 800; }
+.stock-label.unavailable { background: #fff0ee; color: #a13d34; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 210px; }
+.row-actions button { padding: 7px 9px; border: 1px solid #dce6dd; border-radius: 6px; background: #fff; color: #345441; font-size: 11px; font-weight: 700; }
+.row-actions .delete-button { border-color: #f0d9d6; color: #a13d34; }
+.empty-inventory { margin: 18px 0 0; color: #748179; font-size: 13px; }
+@media (max-width: 640px) {
+  .admin-shell { width: min(100% - 24px, 1080px); padding-top: 20px; }
+  .auth-card, .panel { padding: 20px; }
+  .dashboard-header { align-items: flex-start; }
+  .dashboard-header .secondary-button { flex: none; }
+  .form-grid { grid-template-columns: 1fr; }
+  .field-wide { grid-column: auto; }
+  th, td { padding: 10px 8px; }
+}

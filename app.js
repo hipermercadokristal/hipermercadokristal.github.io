@@ -1,594 +1,4 @@
-const products = [
-  {
-    id: "harina-pan",
-    name: "Harina de maíz P.A.N.",
-    category: "Harinas",
-    group: "Víveres y Alacena",
-    detail: "1 Kg",
-    price: 2.00,
-    oldPrice: null,
-    image: "assets/products/harina-pan.png",
-    alt: "Empaque amarillo de harina de maíz blanco precocida P.A.N.",
-    esDestacado: true,
-  },
-  {
-    id: "arroz-mimasa",
-    name: "Arroz Mimasa Master Diamante",
-    category: "Arroz",
-    group: "Víveres y Alacena",
-    detail: "900 g",
-    price: 1.10,
-    oldPrice: null,
-    image: "assets/products/arroz-mimasa.png",
-    alt: "Empaque azul y morado de arroz blanco Mimasa Master Diamante",
-    esDestacado: true,
-  },
-  {
-    id: "pasta-primor",
-    name: "Pasta Primor Dedales",
-    category: "Pastas",
-    group: "Víveres y Alacena",
-    detail: "500 g",
-    price: 1.09,
-    oldPrice: null,
-    image: "assets/products/pasta-primor.png",
-    alt: "Empaque de pasta corta Primor Dedales",
-    esDestacado: true,
-  },
-  {
-    id: "aceite-vatel",
-    name: "Aceite vegetal Vatel",
-    category: "Aceites",
-    group: "Víveres y Alacena",
-    detail: "1 L",
-    price: 3.65,
-    oldPrice: null,
-    image: "assets/products/aceite-vatel.png",
-    alt: "Botella de aceite vegetal Vatel",
-    esDestacado: true,
-  },
-  {
-    id: "leche-campina",
-    name: "Leche en polvo La Campiña",
-    category: "Lácteos",
-    group: "Carnes, Aves y Charcutería",
-    detail: "900 g",
-    price: 7.00,
-    oldPrice: null,
-    image: "assets/products/leche-campina.png",
-    alt: "Bolsa de leche en polvo completa La Campiña",
-    esDestacado: true,
-  },
-  {
-    id: "harina-kaly-blanca",
-    name: "Harina de maíz blanco Kaly",
-    category: "Harinas",
-    group: "Víveres y Alacena",
-    detail: "1 Kg",
-    price: 1.25,
-    oldPrice: null,
-    image: "assets/products/kaly-harina-blanca.png",
-    alt: "Empaque verde de harina de maíz blanco Kaly",
-  },
-  {
-    id: "harina-kaly-amarilla",
-    name: "Harina de maíz amarillo Kaly",
-    category: "Harinas",
-    group: "Víveres y Alacena",
-    detail: "1 Kg",
-    price: 1.25,
-    oldPrice: null,
-    image: "assets/products/kaly-harina-amarilla.png",
-    alt: "Empaque naranja de harina de maíz amarillo Kaly",
-  },
-  {
-    id: "harina-mimasa",
-    name: "Harina de maíz blanco Mimasa",
-    category: "Harinas",
-    group: "Víveres y Alacena",
-    detail: "1 Kg",
-    price: 1.20,
-    oldPrice: null,
-    image: "assets/products/mimasa-harina-blanca.png",
-    alt: "Empaque blanco y verde de harina de maíz Mimasa",
-  },
-  {
-    id: "arroz-mimasa-tradicional",
-    name: "Arroz Mimasa tradicional",
-    category: "Arroz",
-    group: "Víveres y Alacena",
-    detail: "900 g",
-    price: 1.05,
-    oldPrice: null,
-    image: "assets/products/mimasa-arroz-tradicional.png",
-    alt: "Empaque verde y rojo de arroz Mimasa tradicional",
-  },
-  {
-    id: "arroz-kaly-tradicional",
-    name: "Arroz Kaly tradicional",
-    category: "Arroz",
-    group: "Víveres y Alacena",
-    detail: "900 g",
-    price: 0.95,
-    oldPrice: null,
-    image: "assets/products/kaly-arroz-tradicional.png",
-    alt: "Empaque rojo de arroz Kaly tradicional",
-  },
-  {
-    id: "arroz-kaly-superior",
-    name: "Arroz Kaly superior",
-    category: "Arroz",
-    group: "Víveres y Alacena",
-    detail: "900 g",
-    price: 1.05,
-    oldPrice: null,
-    image: "assets/products/kaly-arroz-superior.png",
-    alt: "Empaque naranja de arroz Kaly superior",
-  },
-  {
-    id: "arroz-kaly-turmalina",
-    name: "Arroz Kaly Turmalina",
-    category: "Arroz",
-    group: "Víveres y Alacena",
-    detail: "900 g",
-    price: 1.10,
-    oldPrice: null,
-    image: "assets/products/kaly-arroz-turmalina.png",
-    alt: "Empaque verde azulado de arroz Kaly Turmalina",
-  },
-  {
-    id: "arroz-kaly-premium",
-    name: "Arroz Kaly premium",
-    category: "Arroz",
-    group: "Víveres y Alacena",
-    detail: "900 g",
-    price: 1.15,
-    oldPrice: null,
-    image: "assets/products/kaly-arroz-premium.png",
-    alt: "Empaque verde de arroz Kaly premium",
-  },
-  {
-    id: "aceite-mazeite",
-    name: "Aceite vegetal Mazeite",
-    category: "Aceites",
-    group: "Víveres y Alacena",
-    detail: "1 L",
-    price: 3.50,
-    oldPrice: null,
-    image: "assets/products/mazeite-aceite.png",
-    alt: "Botella amarilla de aceite vegetal Mazeite",
-  },
-  {
-    id: "aceite-portumesa",
-    name: "Aceite comestible Portumesa",
-    category: "Aceites",
-    group: "Víveres y Alacena",
-    detail: "Botella",
-    price: 3.30,
-    oldPrice: null,
-    image: "assets/products/fortunato-aceite.png",
-    alt: "Botella de aceite comestible de soya Fortunato",
-  },
-  {
-    id: "aceite-coposa",
-    name: "Aceite vegetal Coposa",
-    category: "Aceites",
-    group: "Víveres y Alacena",
-    detail: "Botella",
-    price: 3.40,
-    oldPrice: null,
-    image: "assets/products/coposa-aceite.png",
-    alt: "Botella de aceite vegetal Coposa",
-  },
-  {
-    id: "leche-dobon",
-    name: "Leche en polvo DoBon",
-    category: "Lácteos",
-    group: "Carnes, Aves y Charcutería",
-    detail: "400 g",
-    price: 3.75,
-    oldPrice: null,
-    image: "assets/products/dobon-leche-polvo.png",
-    alt: "Empaque de leche en polvo DoBon de 400 g",
-  },
-  {
-    id: "leche-los-andes",
-    name: "Leche en polvo completa Los Andes",
-    category: "Lácteos",
-    group: "Carnes, Aves y Charcutería",
-    detail: "Presentación en la foto",
-    price: 3.50,
-    oldPrice: null,
-    image: "assets/products/los-andes-leche-polvo.png",
-    alt: "Empaque de leche en polvo completa Los Andes",
-  },
-  {
-    id: "leche-campestre",
-    name: "Leche en polvo Campestre",
-    category: "Lácteos",
-    group: "Carnes, Aves y Charcutería",
-    detail: "1 Kg",
-    price: 7.50,
-    oldPrice: null,
-    image: "assets/products/campestre-leche-polvo.png",
-    alt: "Empaque amarillo de leche en polvo Campestre de 1 kg",
-  },
-  {
-    id: "leche-los-andes-250g",
-    name: "Leche en polvo Los Andes",
-    category: "Lácteos",
-    group: "Carnes, Aves y Charcutería",
-    detail: "250 g",
-    price: 2.25,
-    oldPrice: null,
-    image: "assets/products/los-andes-leche-polvo-250g.png",
-    alt: "Empaque azul y blanco de leche en polvo Los Andes de 250 g",
-  },
-  {
-    id: "leche-kaly",
-    name: "Leche en polvo completa Kaly",
-    category: "Lácteos",
-    group: "Carnes, Aves y Charcutería",
-    detail: "900 g",
-    price: 7.00,
-    oldPrice: null,
-    image: "assets/products/kaly-leche-polvo.png",
-    alt: "Empaque amarillo y verde de leche en polvo completa Kaly de 900 g",
-  },
-  {
-    id: "pasta-especial-dedalito",
-    name: "Pasta La Especial Dedalito",
-    category: "Pastas",
-    group: "Víveres y Alacena",
-    detail: "1 Kg",
-    price: 2.00,
-    oldPrice: null,
-    image: "assets/products/la-especial-dedalito-1kg.png",
-    alt: "Empaque de pasta La Especial Premium Dedalito de 1 kg",
-  },
-  {
-    id: "pasta-especial-codo",
-    name: "Pasta La Especial Codo",
-    category: "Pastas",
-    group: "Víveres y Alacena",
-    detail: "1 Kg",
-    price: 2.00,
-    oldPrice: null,
-    image: "assets/products/la-especial-codo-1kg.png",
-    alt: "Empaque de pasta La Especial Premium Codo de 1 kg",
-  },
-  {
-    id: "pasta-especial-plumas",
-    name: "Pasta La Especial Plumas",
-    category: "Pastas",
-    group: "Víveres y Alacena",
-    detail: "1 Kg",
-    price: 2.00,
-    oldPrice: null,
-    image: "assets/products/la-especial-plumas-1kg.png",
-    alt: "Empaque de pasta La Especial Premium Plumas de 1 kg",
-  },
-  {
-    id: "pasta-capri-vermicelli",
-    name: "Pasta Capri Vermicelli",
-    category: "Pastas",
-    group: "Víveres y Alacena",
-    detail: "Presentación en la foto",
-    price: 1.25,
-    oldPrice: null,
-    image: "assets/products/capri-vermicelli.png",
-    alt: "Empaque verde de pasta Capri Vermicelli",
-  },
-  {
-    id: "pasta-especial-vermicelli",
-    name: "Pasta La Especial Vermicelli",
-    category: "Pastas",
-    group: "Víveres y Alacena",
-    detail: "1 Kg",
-    price: 2.00,
-    oldPrice: null,
-    image: "assets/products/la-especial-vermicelli-1kg.png",
-    alt: "Empaque de pasta La Especial Premium Vermicelli de 1 kg",
-  },
-  {
-    id: "maltin-polar",
-    name: "Malta Maltín Polar",
-    category: "Maltas",
-    group: "Bebidas y Licores",
-    detail: "Botella",
-    price: 1.75,
-    oldPrice: null,
-    image: "assets/products/maltin-polar.png",
-    alt: "Botella de malta Maltín Polar",
-  },
-  {
-    id: "refresco-golden-cola",
-    name: "Refresco Golden sabor cola",
-    category: "Refrescos",
-    group: "Bebidas y Licores",
-    detail: "Botella",
-    price: 1.40,
-    oldPrice: null,
-    image: "assets/products/golden-cola.png",
-    alt: "Botella de refresco Golden sabor cola",
-  },
-  {
-    id: "coca-cola",
-    name: "Refresco Coca-Cola",
-    category: "Refrescos",
-    group: "Bebidas y Licores",
-    detail: "2 L",
-    price: 2.75,
-    oldPrice: null,
-    image: "assets/products/coca-cola.png",
-    alt: "Botella de refresco Coca-Cola de 2 litros",
-  },
-  {
-    id: "pepsi",
-    name: "Refresco Pepsi",
-    category: "Refrescos",
-    group: "Bebidas y Licores",
-    detail: "1 L",
-    price: 1.65,
-    oldPrice: null,
-    image: "assets/products/pepsi-cola.png",
-    alt: "Botella de refresco Pepsi de 1 litro",
-  },
-  {
-    id: "refresco-golden-naranja",
-    name: "Refresco Golden sabor naranja",
-    category: "Refrescos",
-    group: "Bebidas y Licores",
-    detail: "Botella",
-    price: 1.40,
-    oldPrice: null,
-    image: "assets/products/golden-naranja.png",
-    alt: "Botella de refresco Golden sabor naranja",
-  },
-  {
-    id: "frescolita",
-    name: "Refresco Frescolita",
-    category: "Refrescos",
-    group: "Bebidas y Licores",
-    detail: "2 L",
-    price: 2.60,
-    oldPrice: null,
-    image: "assets/products/frescolita.png",
-    alt: "Botella de refresco Frescolita de 2 litros",
-  },
-  {
-    id: "fanta-naranja",
-    name: "Refresco Fanta Naranja",
-    category: "Refrescos",
-    group: "Bebidas y Licores",
-    detail: "Botella",
-    price: 2.50,
-    oldPrice: null,
-    image: "assets/products/fanta-naranja.png",
-    alt: "Botella de refresco Fanta sabor naranja",
-  },
-  {
-    id: "glup-cola",
-    name: "Refresco Glup Cola",
-    category: "Refrescos",
-    group: "Bebidas y Licores",
-    detail: "2 L",
-    price: 1.70,
-    oldPrice: null,
-    image: "assets/products/glup-cola.png",
-    alt: "Botella de refresco Glup Cola de 2 litros",
-  },
-  {
-    id: "glup-uva",
-    name: "Refresco Glup Uva",
-    category: "Refrescos",
-    group: "Bebidas y Licores",
-    detail: "2 L",
-    price: 1.70,
-    oldPrice: null,
-    image: "assets/products/glup-uva.png",
-    alt: "Botella de refresco Glup sabor uva de 2 litros",
-  },
-  {
-    id: "glup-kolita",
-    name: "Refresco Glup Kolita",
-    category: "Refrescos",
-    group: "Bebidas y Licores",
-    detail: "1.5 L",
-    price: 1.40,
-    oldPrice: null,
-    image: "assets/products/glup-kolita.png",
-    alt: "Botella de refresco Glup sabor kolita de 1.5 litros",
-    consultarWhatsApp: false,
-  },
-  {
-    id: "glup-fresh",
-    name: "Refresco Glup Fresh",
-    category: "Refrescos",
-    group: "Bebidas y Licores",
-    detail: "1.5 L",
-    price: 1.40,
-    oldPrice: null,
-    image: "assets/products/glup-fresh.png",
-    alt: "Botella de refresco Glup Fresh de 1.5 litros",
-  },
-  {
-    id: "papel-rosal-plus-amarillo",
-    name: "Papel higiénico Rosal Plus",
-    category: "Papel higiénico",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "4 rollos",
-    price: 2.50,
-    oldPrice: null,
-    image: "assets/products/papel-rosal-plus-amarillo.png",
-    alt: "Paquete amarillo de papel higiénico Rosal Plus",
-  },
-  {
-    id: "papel-sutil-doble-hoja",
-    name: "Papel higiénico Sutil doble hoja",
-    category: "Papel higiénico",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "Presentación en la foto",
-    price: 2.25,
-    oldPrice: null,
-    image: "assets/products/papel-sutil-doble-hoja.png",
-    alt: "Paquete de papel higiénico Sutil doble hoja",
-  },
-  {
-    id: "papel-rosal-plus-vino",
-    name: "Papel higiénico Rosal Plus vino",
-    category: "Papel higiénico",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "4 rollos",
-    price: 2.50,
-    oldPrice: null,
-    image: "assets/products/papel-rosal-plus-vino.png",
-    alt: "Paquete color vino de papel higiénico Rosal Plus",
-  },
-  {
-    id: "papel-rosal-plus-verde",
-    name: "Papel higiénico Rosal Plus doble hoja",
-    category: "Papel higiénico",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "4 rollos",
-    price: 2.50,
-    oldPrice: null,
-    image: "assets/products/papel-rosal-plus-verde.png",
-    alt: "Paquete verde de papel higiénico Rosal Plus doble hoja",
-  },
-  {
-    id: "papel-caricias-xg",
-    name: "Papel higiénico Caricias XG",
-    category: "Papel higiénico",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "4 rollos",
-    price: 2.00,
-    oldPrice: null,
-    image: "assets/products/papel-caricias-xg.png",
-    alt: "Paquete amarillo de papel higiénico Caricias XG",
-  },
-  {
-    id: "papel-caricias-verde",
-    name: "Papel higiénico Caricias doble hoja",
-    category: "Papel higiénico",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "4 rollos",
-    price: 2.00,
-    oldPrice: null,
-    image: "assets/products/papel-caricias-verde.png",
-    alt: "Paquete verde de papel higiénico Caricias",
-  },
-  {
-    id: "papel-caricias-vino",
-    name: "Papel higiénico Caricias suave",
-    category: "Papel higiénico",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "Presentación en la foto",
-    price: 2.00,
-    oldPrice: null,
-    image: "assets/products/papel-caricias-vino.png",
-    alt: "Paquete color vino de papel higiénico Caricias",
-  },
-  {
-    id: "papel-caricias-azul",
-    name: "Papel higiénico Caricias cuidado completo",
-    category: "Papel higiénico",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "4 rollos",
-    price: 2.00,
-    oldPrice: null,
-    image: "assets/products/papel-caricias-azul.png",
-    alt: "Paquete azul y fucsia de papel higiénico Caricias",
-  },
-  {
-    id: "detergente-las-llaves-citrico",
-    name: "Detergente en polvo Las Llaves cítrico",
-    category: "Detergentes",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "900 g",
-    price: 2.75,
-    oldPrice: null,
-    image: "assets/products/detergente-las-llaves-citrico.png",
-    alt: "Bolsa verde de detergente en polvo Las Llaves cítrico de 900 gramos",
-  },
-  {
-    id: "detergente-las-llaves-bebe",
-    name: "Detergente Las Llaves Bebé",
-    category: "Detergentes",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "1 kg",
-    price: 3.00,
-    oldPrice: null,
-    image: "assets/products/detergente-las-llaves-bebe.png",
-    alt: "Bolsa azul de detergente Las Llaves Bebé de 1 kilogramo",
-  },
-  {
-    id: "suavizante-alive",
-    name: "Detergente Alive con suavizante",
-    category: "Detergentes",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "1 kg",
-    price: 2.75,
-    oldPrice: null,
-    image: "assets/products/suavizante-alive.png",
-    alt: "Bolsa rosada de detergente Alive con suavizante de 1 kilogramo",
-  },
-  {
-    id: "detergente-alive-limon",
-    name: "Detergente Alive limón",
-    category: "Detergentes",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "1 kg",
-    price: 2.75,
-    oldPrice: null,
-    image: "assets/products/detergente-alive-limon.png",
-    alt: "Bolsa verde de detergente Alive limón de 1 kilogramo",
-  },
-  {
-    id: "detergente-alive-perlas",
-    name: "Detergente Alive perlas blanqueadoras",
-    category: "Detergentes",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "1 kg",
-    price: 2.75,
-    oldPrice: null,
-    image: "assets/products/detergente-alive-perlas.png",
-    alt: "Bolsa celeste de detergente Alive perlas blanqueadoras de 1 kilogramo",
-  },
-  {
-    id: "detergente-alive-azul",
-    name: "Detergente Alive todo tipo de ropa",
-    category: "Detergentes",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "1 kg",
-    price: 2.75,
-    oldPrice: null,
-    image: "assets/products/detergente-alive-azul.png",
-    alt: "Bolsa azul de detergente Alive para todo tipo de ropa de 1 kilogramo",
-  },
-  {
-    id: "detergente-alive-floral",
-    name: "Detergente Alive floral",
-    category: "Detergentes",
-    group: "Cuidado del Hogar y Limpieza",
-    detail: "1 kg",
-    price: 2.75,
-    oldPrice: null,
-    image: "assets/products/detergente-alive-floral.png",
-    alt: "Bolsa morada de detergente Alive floral de 1 kilogramo",
-  },
-  {
-    id: "huevos-frescos",
-    name: "Huevos frescos",
-    category: "Huevos",
-    group: "Carnes, Aves y Charcutería",
-    detail: "Presentación en la foto",
-    price: 4.50,
-    oldPrice: null,
-    image: "assets/products/huevos-frescos.png",
-    alt: "Huevos marrones frescos en cartón",
-  },
-];
+let products = [];
 
 const WHATSAPP_NUMBER = "584128867088";
 const FREE_SHIPPING_THRESHOLD = 50;
@@ -633,6 +43,83 @@ const productPages = new Map();
 let revealObserver = null;
 let toastTimeout;
 let lastFocusedElement = null;
+let catalogLoadError = "";
+
+function escapeHtml(value) {
+  return String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
+}
+
+function mapDatabaseProduct(row) {
+  const category = Array.isArray(row.categorias) ? row.categorias[0] : row.categorias;
+  if (!category) throw new Error(`El producto ${row.id} no tiene una categoría válida.`);
+  return {
+    id: row.id,
+    name: row.nombre,
+    category: category.nombre,
+    group: category.departamento,
+    detail: row.presentacion || "Presentación por confirmar",
+    price: Number(row.precio_oferta ?? row.precio),
+    oldPrice: row.precio_oferta === null ? null : Number(row.precio),
+    image: row.imagen_url,
+    alt: `Imagen de ${row.nombre}`,
+    esDestacado: row.es_destacado,
+    consultarWhatsApp: false,
+    disponible: row.disponible,
+  };
+}
+
+async function refreshProducts() {
+  const { data, error } = await window.kristalSupabase
+    .from("productos")
+    .select("id,nombre,precio,precio_oferta,es_destacado,disponible,imagen_url,presentacion,categorias(nombre,departamento)")
+    .eq("disponible", true)
+    .order("nombre");
+  if (error) throw error;
+
+  products = data.map(mapDatabaseProduct);
+  const productIds = new Set(products.map((product) => product.id));
+  for (const productId of cartItems.keys()) {
+    if (!productIds.has(productId)) cartItems.delete(productId);
+  }
+  catalogLoadError = "";
+  updateCart();
+  renderActiveProducts();
+}
+
+function initializeCatalog() {
+  if (!window.kristalSupabase) {
+    catalogLoadError = "Configura la URL y la clave pública de Supabase en supabase-config.js para cargar el catálogo.";
+    renderActiveProducts();
+    return;
+  }
+
+  refreshProducts().catch((error) => {
+    console.error("No se pudo cargar el catálogo desde Supabase.", error);
+    catalogLoadError = "No se pudo conectar con el catálogo. Intenta recargar la página más tarde.";
+    renderActiveProducts();
+  });
+
+  window.kristalSupabase
+    .channel("productos-en-tiempo-real")
+    .on("postgres_changes", { event: "*", schema: "public", table: "producto_eventos" }, () => {
+      refreshProducts().catch((error) => {
+        console.error("No se pudo actualizar el catálogo en tiempo real.", error);
+        catalogLoadError = "No se pudo actualizar el catálogo. Revisa tu conexión e inténtalo de nuevo.";
+        renderActiveProducts();
+      });
+    })
+    .subscribe((status, error) => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.error("Falló la suscripción en tiempo real de productos.", error);
+      }
+    });
+}
 
 function normalizeText(value) {
   return value
@@ -685,6 +172,14 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
   const query = normalizeText(searchInput.value);
   const normalizedFilter = normalizeText(filter);
   const pagination = document.querySelector(`[data-pagination-for="${targetGrid.id}"]`);
+  if (catalogLoadError) {
+    targetGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
+    if (pagination) {
+      pagination.innerHTML = "";
+      pagination.hidden = true;
+    }
+    return;
+  }
   const visibleProducts = products.filter((product) => {
     const matchesFilter =
       normalizedFilter === "todos" ||
@@ -728,7 +223,7 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
     .map((product) => {
       const hasOffer = Number.isFinite(product.oldPrice) && product.oldPrice > product.price;
       const badgeClass = hasOffer ? "product-badge sale" : "product-badge popular";
-      const badge = hasOffer ? product.badge : product.esDestacado ? "DESTACADO" : "";
+      const badge = hasOffer ? "OFERTA" : product.esDestacado ? "DESTACADO" : "";
       const regularPrice = hasOffer
         ? `<span class="regular-price">${currency.format(product.oldPrice)}</span>`
         : "";
@@ -739,20 +234,20 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
       const isFavorite = favoriteItems.has(product.id);
       const canPurchase = Number.isFinite(product.price) && !product.consultarWhatsApp;
       const cartControl = canPurchase && quantity
-        ? `<span class="quantity-control" aria-label="Cantidad en carrito: ${quantity}"><button class="quantity-button" type="button" data-action="decrease" data-product="${product.id}" aria-label="Quitar uno de ${product.name}">−</button><span>${quantity}</span><button class="quantity-button" type="button" data-action="increase" data-product="${product.id}" aria-label="Agregar uno de ${product.name}">+</button></span>`
+        ? `<span class="quantity-control" aria-label="Cantidad en carrito: ${quantity}"><button class="quantity-button" type="button" data-action="decrease" data-product="${product.id}" aria-label="Quitar uno de ${escapeHtml(product.name)}">−</button><span>${quantity}</span><button class="quantity-button" type="button" data-action="increase" data-product="${product.id}" aria-label="Agregar uno de ${escapeHtml(product.name)}">+</button></span>`
         : canPurchase
           ? `<button class="add-button" type="button" data-action="increase" data-product="${product.id}"><span aria-hidden="true">+</span> Agregar al carrito</button>`
           : `<a class="add-button" href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola, quisiera consultar el precio vigente y la disponibilidad de ${product.name}.`)}" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>`;
       return `
         <article class="product-card" data-reveal>
           ${badge ? `<span class="${badgeClass}">${badge}</span>` : ""}
-          <button class="favorite-button${isFavorite ? " active" : ""}" type="button" aria-label="${isFavorite ? "Quitar" : "Añadir"} ${product.name} ${isFavorite ? "de" : "a"} favoritos" aria-pressed="${isFavorite}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.8c0 5.3-8.8 10-8.8 10s-8.8-4.7-8.8-10A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z" /></svg></button>
+          <button class="favorite-button${isFavorite ? " active" : ""}" type="button" aria-label="${isFavorite ? "Quitar" : "Añadir"} ${escapeHtml(product.name)} ${isFavorite ? "de" : "a"} favoritos" aria-pressed="${isFavorite}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.8c0 5.3-8.8 10-8.8 10s-8.8-4.7-8.8-10A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z" /></svg></button>
           <div class="product-image-wrap">
-            <img class="product-image" src="${product.image}" alt="${product.alt}" loading="lazy" />
+            <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.alt)}" loading="lazy" />
           </div>
-          <span class="product-category">${product.category}</span>
-          <h3 class="product-name">${product.name}</h3>
-          <span class="product-presentation">${product.detail}</span>
+          <span class="product-category">${escapeHtml(product.category)}</span>
+          <h3 class="product-name">${escapeHtml(product.name)}</h3>
+          <span class="product-presentation">${escapeHtml(product.detail)}</span>
           <div class="product-prices">${regularPrice}${currentPrice}</div>
           ${cartControl}
         </article>`;
@@ -778,6 +273,11 @@ function renderFeaturedProducts() {
   const featuredProducts = products.filter((product) => product.esDestacado);
   const carouselControls = document.querySelector(".featured-heading .carousel-controls");
   carouselControls.hidden = !featuredProducts.length;
+  if (catalogLoadError) {
+    featuredProductGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
+    updateCarouselControls();
+    return;
+  }
   if (!featuredProducts.length) {
     featuredProductGrid.innerHTML = `<p class="empty-state">Estamos actualizando la selección de productos. <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener noreferrer">Consulta productos y ofertas vigentes por WhatsApp.</a></p>`;
     updateCarouselControls();
@@ -790,7 +290,7 @@ function renderFeaturedProducts() {
       const discount = hasOffer ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
       const canPurchase = Number.isFinite(product.price) && !product.consultarWhatsApp;
       const cartControl = canPurchase && quantity
-        ? `<span class="quantity-control" aria-label="Cantidad en carrito: ${quantity}"><button class="quantity-button" type="button" data-action="decrease" data-product="${product.id}" aria-label="Quitar uno de ${product.name}">−</button><span>${quantity}</span><button class="quantity-button" type="button" data-action="increase" data-product="${product.id}" aria-label="Agregar uno de ${product.name}">+</button></span>`
+        ? `<span class="quantity-control" aria-label="Cantidad en carrito: ${quantity}"><button class="quantity-button" type="button" data-action="decrease" data-product="${product.id}" aria-label="Quitar uno de ${escapeHtml(product.name)}">−</button><span>${quantity}</span><button class="quantity-button" type="button" data-action="increase" data-product="${product.id}" aria-label="Agregar uno de ${escapeHtml(product.name)}">+</button></span>`
         : canPurchase
           ? `<button class="add-button" type="button" data-action="increase" data-product="${product.id}"><span aria-hidden="true">+</span> Compra rápida</button>`
           : `<a class="add-button" href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola, quisiera consultar el precio vigente y la disponibilidad de ${product.name}.`)}" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>`;
@@ -798,11 +298,11 @@ function renderFeaturedProducts() {
         <article class="product-card featured-product-card" data-reveal>
           <span class="product-badge ${hasOffer ? "sale" : "popular"}">${hasOffer ? `OFERTA ${discount}%` : "DESTACADO"}</span>
           <div class="product-image-wrap">
-            <img class="product-image" src="${product.image}" alt="${product.alt}" loading="lazy" />
+            <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.alt)}" loading="lazy" />
           </div>
-          <span class="product-category">${product.category}</span>
-          <h3 class="product-name">${product.name}</h3>
-          <span class="product-presentation">${product.detail}</span>
+          <span class="product-category">${escapeHtml(product.category)}</span>
+          <h3 class="product-name">${escapeHtml(product.name)}</h3>
+          <span class="product-presentation">${escapeHtml(product.detail)}</span>
           <div class="product-prices">${hasOffer
             ? `<span class="regular-price">Regular: ${currency.format(product.oldPrice)}</span><span class="current-price">Oferta: ${currency.format(product.price)}</span>`
             : `<span class="current-price">${currency.format(product.price)}</span>`}
@@ -1043,21 +543,21 @@ function renderCart() {
       const lineTotal = product.price * quantity;
       return `
         <article class="cart-item">
-          <div class="cart-item-image"><img src="${product.image}" alt="" /></div>
+          <div class="cart-item-image"><img src="${escapeHtml(product.image)}" alt="" /></div>
           <div class="cart-item-details">
-            <h3>${product.name}</h3>
-            <span class="cart-item-presentation">${product.detail}</span>
+            <h3>${escapeHtml(product.name)}</h3>
+            <span class="cart-item-presentation">${escapeHtml(product.detail)}</span>
             <span class="cart-item-unit-price">${currency.format(product.price)} c/u</span>
             <div class="cart-item-bottom">
               <span class="cart-quantity-control">
-                <button type="button" data-cart-action="decrease" data-product="${product.id}" aria-label="Disminuir ${product.name}">−</button>
+                <button type="button" data-cart-action="decrease" data-product="${product.id}" aria-label="Disminuir ${escapeHtml(product.name)}">−</button>
                 <span>${quantity}</span>
-                <button type="button" data-cart-action="increase" data-product="${product.id}" aria-label="Aumentar ${product.name}">+</button>
+                <button type="button" data-cart-action="increase" data-product="${product.id}" aria-label="Aumentar ${escapeHtml(product.name)}">+</button>
               </span>
               <strong class="cart-line-total">${currency.format(lineTotal)}</strong>
             </div>
           </div>
-          <button class="cart-remove" type="button" data-cart-action="remove" data-product="${product.id}" aria-label="Eliminar ${product.name} del carrito">×</button>
+          <button class="cart-remove" type="button" data-cart-action="remove" data-product="${product.id}" aria-label="Eliminar ${escapeHtml(product.name)} del carrito">×</button>
         </article>`;
     })
     .join("");
@@ -1601,3 +1101,4 @@ window.addEventListener("resize", updateCarouselControls, { passive: true });
 renderFeaturedProducts();
 restoreRoute();
 renderCart();
+initializeCatalog();
