@@ -22,6 +22,8 @@ El sitio consulta los productos en Supabase y por eso debe abrirse desde un serv
 
 El panel requiere correo y contraseña de Supabase. RLS valida `app_metadata.role = admin` tanto en tablas como en Storage; ocultar el panel en el navegador no sustituye esas políticas. El catálogo público solo puede leer artículos disponibles; una tabla Realtime separada publica únicamente una señal de cambio para mantener privada la información de los productos agotados.
 
+El panel `/admin/` adapta el formulario y el inventario a pantallas pequeñas: en móvil, cada fila de inventario se presenta como una tarjeta con sus datos y acciones.
+
 El logo del encabezado y del pie utiliza el mismo archivo `assets/kristal-logo.png`. El seed opcional carga los 53 productos asociados a fotos compartidas previamente; las tarjetas muestran precios en USD y permiten agregarlos al carrito. Al procesar el pedido, el sitio abre WhatsApp con el resumen para coordinar disponibilidad y entrega.
 
 Si ya configuraste el proyecto y el panel muestra nombres de productos como “Arroz” en el menú de categoría, ejecuta `supabase-departamentos.sql` desde **SQL Editor**. El selector del panel mostrará solamente departamentos, como “Víveres y Alacena”. Este script también corrige el departamento de “Lácteos” a “Víveres y Alacena” para la leche en polvo ya cargada. Es seguro volver a ejecutarlo; no vuelvas a ejecutar el seed.
@@ -32,13 +34,15 @@ La página principal funciona como una aplicación de vistas independientes: **I
 
 El buscador, el carrito y los accesos por WhatsApp permanecen disponibles en todas las vistas. Los enlaces **Política de privacidad** y **Términos y condiciones** del pie abren `politicas.html` directamente en su sección correspondiente. Esta página explica el uso de datos para pedidos por WhatsApp, la disponibilidad de productos y el proceso de confirmación y pago.
 
+En el pie se agrupan la política de privacidad y los términos en un solo enlace; las preguntas frecuentes aparecen una sola vez dentro de **Opiniones y preguntas frecuentes**, y se eliminó el acceso duplicado de **Contacto y ubicación**.
+
 Los botones de redes sociales muestran un aviso hasta que se conozcan las cuentas oficiales. Cuando las tengas, reemplaza cada `<button data-info="redes">` del bloque `.social-links` en `index.html` por un enlace `<a href="URL_OFICIAL">` con la dirección real de cada perfil.
 
 La página de **Sobre nosotros** presenta la ubicación, el surtido y el compromiso con la comunidad. No incluye fecha de fundación porque aún no se ha confirmado; actualízala cuando el negocio proporcione el dato oficial. La política de cambios y devoluciones está publicada en su propia vista.
 
 La vista **Opiniones y preguntas frecuentes** permite filtrar las respuestas y preparar una pregunta u opinión para enviarla por WhatsApp. El indicador 4.9/5 y las tarjetas de reseña están marcados como contenido ficticio de demostración; no representan clientes ni valoraciones reales o verificadas. Los mensajes del formulario no se almacenan ni se publican en la página.
 
-Para cambiar el enlace telefónico que aparece en el pie, actualiza el atributo `href="tel:+584245104430"` en `index.html`. Para cambiar el número que recibe los mensajes de WhatsApp, sigue las instrucciones de la sección siguiente.
+Para cambiar el enlace telefónico que aparece en el pie, actualiza el atributo `href="tel:+584128867088"` en `index.html`. Para cambiar el número que recibe los mensajes de WhatsApp, sigue las instrucciones de la sección siguiente.
 
 ## 2. Número de WhatsApp para recibir pedidos
 

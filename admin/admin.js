@@ -72,12 +72,12 @@ async function loadInventory() {
   inventoryRows.innerHTML = data.map((product) => {
     const category = Array.isArray(product.categorias) ? product.categorias[0] : product.categorias;
     return `<tr>
-      <td><div class="inventory-product"><img src="${escapeHtml(getInventoryImageUrl(product.imagen_url))}" alt="" loading="lazy" /><span>${escapeHtml(product.nombre)}${product.es_destacado ? " · Destacado" : ""}</span></div></td>
-      <td>${escapeHtml(category?.departamento || "Sin departamento")}</td>
-      <td>${currency.format(Number(product.precio))}</td>
-      <td>${product.precio_oferta === null ? "—" : currency.format(Number(product.precio_oferta))}</td>
-      <td><span class="stock-label${product.disponible ? "" : " unavailable"}">${product.disponible ? "Disponible" : "Agotado"}</span></td>
-      <td><div class="row-actions">
+      <td data-label="Producto"><div class="inventory-product"><img src="${escapeHtml(getInventoryImageUrl(product.imagen_url))}" alt="" loading="lazy" /><span>${escapeHtml(product.nombre)}${product.es_destacado ? " · Destacado" : ""}</span></div></td>
+      <td data-label="Departamento">${escapeHtml(category?.departamento || "Sin departamento")}</td>
+      <td data-label="Precio">${currency.format(Number(product.precio))}</td>
+      <td data-label="Oferta">${product.precio_oferta === null ? "—" : currency.format(Number(product.precio_oferta))}</td>
+      <td data-label="Estado"><span class="stock-label${product.disponible ? "" : " unavailable"}">${product.disponible ? "Disponible" : "Agotado"}</span></td>
+      <td data-label="Acciones"><div class="row-actions">
         <button type="button" data-action="edit" data-id="${escapeHtml(product.id)}">Editar</button>
         <button type="button" data-action="toggle" data-id="${escapeHtml(product.id)}">${product.disponible ? "Ocultar" : "Publicar"}</button>
         <button class="delete-button" type="button" data-action="delete" data-id="${escapeHtml(product.id)}">Eliminar</button>

@@ -60,11 +60,41 @@ td:first-child { min-width: 210px; font-weight: 700; }
 .row-actions .delete-button { border-color: #f0d9d6; color: #a13d34; }
 .empty-inventory { margin: 18px 0 0; color: #748179; font-size: 13px; }
 @media (max-width: 640px) {
-  .admin-shell { width: min(100% - 24px, 1080px); padding-top: 20px; }
+  .admin-shell { width: calc(100% - 24px); padding-top: 16px; }
+  .back-link { margin-bottom: 14px; font-size: 13px; }
   .auth-card, .panel { padding: 20px; }
-  .dashboard-header { align-items: flex-start; }
-  .dashboard-header .secondary-button { flex: none; }
+  .auth-card { margin-top: 5vh; }
+  .dashboard-header, .panel-heading { align-items: flex-start; }
+  .dashboard-header { flex-wrap: wrap; gap: 10px; }
+  .dashboard-header .secondary-button { min-height: 40px; }
+  .dashboard-header h1 { font-size: 26px; }
+  .panel { margin-top: 14px; padding: 17px; }
+  .panel-heading { gap: 10px; margin-bottom: 17px; }
+  .panel-heading h2 { font-size: 18px; }
   .form-grid { grid-template-columns: 1fr; }
   .field-wide { grid-column: auto; }
-  th, td { padding: 10px 8px; }
+  .field input[type="file"] { min-width: 0; padding-inline: 8px; font-size: 12px; }
+  .submit-button { width: 100%; }
+  .table-scroll { overflow: visible; }
+  table, tbody { display: block; width: 100%; }
+  thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  tbody tr { display: grid; gap: 0; margin-bottom: 12px; padding: 8px 12px; border: 1px solid #e6ece7; border-radius: 9px; background: #fff; }
+  tbody td, tbody td:first-child { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 8px; align-items: center; min-width: 0; padding: 9px 0; border-bottom: 1px solid #edf1ed; font-size: 12px; overflow-wrap: anywhere; }
+  tbody td::before { content: attr(data-label); color: #728078; font-size: 10px; font-weight: 800; letter-spacing: .3px; text-transform: uppercase; }
+  tbody td:first-child { display: block; padding: 5px 0 10px; font-size: 13px; }
+  tbody td:first-child::before { content: none; }
+  tbody td:last-child { display: block; padding-bottom: 5px; border-bottom: 0; }
+  tbody td:last-child::before { display: block; margin: 2px 0 8px; }
+  .inventory-product { gap: 9px; }
+  .inventory-product img { width: 42px; height: 42px; }
+  .row-actions { min-width: 0; gap: 7px; }
+  .row-actions button { flex: 1 1 auto; min-height: 38px; }
+}
+@media (max-width: 380px) {
+  .admin-shell { width: calc(100% - 18px); }
+  .panel, .auth-card { padding: 15px; }
+  .dashboard-header .secondary-button { width: 100%; }
+  tbody tr { padding-inline: 9px; }
+  tbody td, tbody td:first-child { grid-template-columns: 78px minmax(0, 1fr); }
+  .row-actions button { flex-basis: calc(50% - 7px); }
 }
