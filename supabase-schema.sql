@@ -29,16 +29,19 @@ create table if not exists public.producto_eventos (
 );
 
 insert into public.categorias (nombre, departamento) values
+  ('Víveres y Alacena', 'Víveres y Alacena'),
   ('Harinas', 'Víveres y Alacena'),
   ('Arroz', 'Víveres y Alacena'),
   ('Pastas', 'Víveres y Alacena'),
   ('Aceites', 'Víveres y Alacena'),
   ('Lácteos', 'Carnes, Aves y Charcutería'),
   ('Huevos', 'Carnes, Aves y Charcutería'),
+  ('Bebidas y Licores', 'Bebidas y Licores'),
   ('Maltas', 'Bebidas y Licores'),
   ('Refrescos', 'Bebidas y Licores'),
   ('Papel higiénico', 'Cuidado del Hogar y Limpieza'),
   ('Detergentes', 'Cuidado del Hogar y Limpieza'),
+  ('Cuidado del Hogar y Limpieza', 'Cuidado del Hogar y Limpieza'),
   ('Frutas y Verduras', 'Frutas y Verduras'),
   ('Carnes, Aves y Charcutería', 'Carnes, Aves y Charcutería'),
   ('Snacks, Golosinas y Confitería', 'Snacks, Golosinas y Confitería'),

@@ -52,9 +52,12 @@ async function requireAdmin(session) {
 async function loadCategories() {
   const { data, error } = await supabaseClient.from("categorias").select("id,nombre,departamento").order("nombre");
   if (error) throw error;
-  categories = data;
+  categories = data.filter((category) => category.nombre === category.departamento);
+  if (!categories.length) {
+    throw new Error("No hay departamentos principales en Supabase. Ejecuta supabase-departamentos.sql desde SQL Editor.");
+  }
   categorySelect.innerHTML = categories
-    .map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.nombre)} — ${escapeHtml(category.departamento)}</option>`)
+    .map((category) => `<option value="${escapeHtml(category.id)}">${escapeHtml(category.nombre)}</option>`)
     .join("");
 }
 
@@ -62,7 +65,7 @@ async function loadInventory() {
   setMessage(dashboardStatus, "Cargando inventario…");
   const { data, error } = await supabaseClient
     .from("productos")
-    .select("id,nombre,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre)")
+    .select("id,nombre,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
     .order("updated_at", { ascending: false });
   if (error) throw error;
 
@@ -70,7 +73,7 @@ async function loadInventory() {
     const category = Array.isArray(product.categorias) ? product.categorias[0] : product.categorias;
     return `<tr>
       <td><div class="inventory-product"><img src="${escapeHtml(getInventoryImageUrl(product.imagen_url))}" alt="" loading="lazy" /><span>${escapeHtml(product.nombre)}${product.es_destacado ? " · Destacado" : ""}</span></div></td>
-      <td>${escapeHtml(category?.nombre || "Sin categoría")}</td>
+      <td>${escapeHtml(category?.departamento || "Sin departamento")}</td>
       <td>${currency.format(Number(product.precio))}</td>
       <td>${product.precio_oferta === null ? "—" : currency.format(Number(product.precio_oferta))}</td>
       <td><span class="stock-label${product.disponible ? "" : " unavailable"}">${product.disponible ? "Disponible" : "Agotado"}</span></td>
@@ -99,7 +102,9 @@ function resetProductForm() {
 function beginEditing(product) {
   editingProduct = product;
   productForm.elements.nombre.value = product.nombre;
-  productForm.elements.categoria_id.value = product.categoria_id;
+  const productCategory = Array.isArray(product.categorias) ? product.categorias[0] : product.categorias;
+  const department = categories.find((category) => category.nombre === productCategory?.departamento);
+  productForm.elements.categoria_id.value = department?.id || "";
   productForm.elements.presentacion.value = product.presentacion || "";
   productForm.elements.precio.value = product.precio;
   productForm.elements.precio_oferta.value = product.precio_oferta ?? "";
@@ -227,7 +232,7 @@ async function handleInventoryAction(event) {
   try {
     const { data, error } = await supabaseClient
       .from("productos")
-      .select("id,nombre,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre)")
+      .select("id,nombre,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
       .eq("id", productId)
       .single();
     if (error) throw error;
