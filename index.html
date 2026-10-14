@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f3822" />
+    <meta
+      name="description"
+      content="Compra víveres, productos frescos y mucho más en Hipermercado Kristal. Calidad y ofertas para tu hogar."
+    />
+    <title>Hipermercado Kristal | Todo para tu hogar</title>
+    <link rel="icon" type="image/png" sizes="64x64" href="assets/kristal-favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <script src="app.js" defer></script>
+  </head>
+  <body id="inicio">
+    <header class="site-header">
+      <div class="announcement">
+        <p><strong>¡Envío gratis en compras desde USD 50!</strong></p>
+      </div>
+      <div class="header-main page-container">
+        <a class="brand" href="#inicio" aria-label="Hipermercado Kristal, inicio">
+          <img class="brand-image" src="assets/kristal-logo.png" alt="" />
+        </a>
+
+        <form class="search-form" id="search-form" role="search">
+          <label class="sr-only" for="search-input">Buscar productos</label>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16 16 4 4" /></svg>
+          <input id="search-input" type="search" placeholder="¿Qué estás buscando hoy?" autocomplete="off" />
+          <button type="submit">Buscar</button>
+        </form>
+
+        <a class="header-instagram" href="https://www.instagram.com/hipermercadokristal/" target="_blank" rel="noopener noreferrer" aria-label="Visita nuestro Instagram">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="instagram-gradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#ffdc80" /><stop offset="35%" stop-color="#fcaf45" /><stop offset="65%" stop-color="#f77737" /><stop offset="82%" stop-color="#e1306c" /><stop offset="100%" stop-color="#833ab4" /></linearGradient></defs><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="url(#instagram-gradient)" /><rect x="6.5" y="6.5" width="11" height="11" rx="3.5" fill="none" stroke="#fff" stroke-width="1.8" /><circle cx="12" cy="12" r="2.7" fill="none" stroke="#fff" stroke-width="1.8" /><circle cx="16.2" cy="7.9" r="1" fill="#fff" /></svg>
+        </a>
+        <a class="header-tiktok" href="https://www.tiktok.com/@hipermercadokristal" target="_blank" rel="noopener noreferrer" aria-label="Visita nuestro TikTok">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="12" fill="#000" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" transform="translate(-1.4 1.2)" fill="#25f4ee" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" transform="translate(1.4 -.6)" fill="#fe2c55" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" fill="#fff" /></svg>
+        </a>
+
+        <div class="header-tools">
+          <button class="icon-action cart-action" id="cart-button" type="button" aria-label="Carrito, 0 artículos">
+            <span class="cart-icon-wrap">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="21" r="1" /><circle cx="18" cy="21" r="1" /></svg>
+              <span class="cart-count" id="cart-count">0</span>
+            </span>
+            <span>Mi carrito</span>
+          </button>
+        </div>
+      </div>
+
+      <nav class="category-nav" aria-label="Navegación principal">
+        <div class="page-container nav-inner">
+          <button class="mobile-menu-button" id="mobile-menu-button" type="button" aria-expanded="false" aria-controls="category-links">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg> Menú
+          </button>
+          <div class="category-links" id="category-links">
+            <a href="#inicio" data-page-home>Inicio</a>
+            <details class="departments-menu">
+              <summary>Departamentos <span aria-hidden="true">⌄</span></summary>
+              <div class="department-menu-panel">
+                <a href="#categoria/viveres-y-alacena" data-category="Víveres y Alacena"><strong>Víveres y Alacena</strong><small>Granos, aceites, harinas y enlatados</small></a>
+                <a href="#categoria/frutas-y-verduras" data-category="Frutas y Verduras"><strong>Frutas y Verduras</strong><small>Frescos del campo</small></a>
+                <a href="#categoria/carnes-aves-y-charcuteria" data-category="Carnes, Aves y Charcutería"><strong>Carnes, Aves y Charcutería</strong><small>Cortes, embutidos y lácteos</small></a>
+                <a href="#categoria/bebidas-y-licores" data-category="Bebidas y Licores"><strong>Bebidas y Licores</strong><small>Jugos, gaseosas, aguas y maltas</small></a>
+                <a href="#categoria/snacks-golosinas-y-confiteria" data-category="Snacks, Golosinas y Confitería"><strong>Snacks, Golosinas y Confitería</strong><small>Galletas, chocolates, papitas y frutos secos</small></a>
+                <a href="#categoria/cuidado-personal-e-higiene" data-category="Cuidado Personal e Higiene"><strong>Cuidado Personal e Higiene</strong><small>Cuidado capilar, jabones, crema dental y desodorantes</small></a>
+                <a href="#categoria/cuidado-del-hogar-y-limpieza" data-category="Cuidado del Hogar y Limpieza"><strong>Cuidado del Hogar y Limpieza</strong><small>Detergentes, desinfectantes, lavaplatos y utensilios</small></a>
+                <a href="#categoria/mascotas" data-category="Mascotas"><strong>Mascotas</strong><small>Alimentos y productos para el cuidado de tus mascotas</small></a>
+                <a href="#categoria/congelados" data-category="Congelados"><strong>Congelados</strong><small>Alimentos congelados listos para tu hogar</small></a>
+              </div>
+            </details>
+            <a href="#tienda" data-page-store>Nuestra Tienda</a>
+            <a href="#cambios" data-page-returns>Atención al Cliente</a>
+            <a href="#opiniones" data-page-reviews>Reseñas</a>
+            <a href="politicas.html#privacidad">Políticas</a>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="category-view page-container" id="category-view" aria-labelledby="category-view-title" hidden>
+        <button class="category-back-button" id="category-back-button" type="button">← Volver al catálogo</button>
+        <header class="category-view-heading">
+          <span class="eyebrow" id="category-view-eyebrow">CATÁLOGO KRISTAL</span>
+          <h1 id="category-view-title"></h1>
+          <p id="category-view-description"></p>
+        </header>
+        <div class="category-product-grid" id="category-product-grid" aria-live="polite"></div>
+        <nav class="product-pagination" data-pagination-for="category-product-grid" aria-label="Paginación de la categoría"></nav>
+      </section>
+      <div class="home-view" id="home-view">
+      <section class="welcome-hero" aria-labelledby="welcome-title">
+        <div class="welcome-background welcome-background-facade" aria-hidden="true">
+          <img class="welcome-background-photo" src="assets/hipermercado-fachada.png" alt="" />
+        </div>
+        <div class="welcome-background welcome-background-aisles" aria-hidden="true">
+          <img class="welcome-background-photo" src="assets/hipermercado-pasillos.png" alt="" />
+        </div>
+        <div class="welcome-background welcome-background-drinks" aria-hidden="true">
+          <img class="welcome-background-photo" src="assets/area-bebidas.png" alt="" />
+        </div>
+        <div class="welcome-content">
+          <span class="welcome-eyebrow">VISÍTANOS EN VILLA BRUZUAL</span>
+          <h1 id="welcome-title">Bienvenidos a Hipermercado Kristal</h1>
+          <p>Tu hipermercado de confianza en Villa Bruzual. Todo para tu hogar, frescos y despensa al mejor estilo.</p>
+          <div class="welcome-actions">
+            <a class="welcome-button welcome-button-primary" id="welcome-catalog-cta" href="#productos">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="21" r="1" /><circle cx="18" cy="21" r="1" /></svg> Explorar Catálogo
+            </a>
+            <a class="welcome-button welcome-button-secondary" href="#instalaciones">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg> Conoce Nuestras Instalaciones
+            </a>
+          </div>
+        </div>
+        <a class="welcome-scroll-cue" href="#destacados">
+          <span>Desliza para conocer más</span>
+          <span class="welcome-scroll-arrow" aria-hidden="true">↓</span>
+        </a>
+      </section>
+
+      <section class="featured-section" id="destacados" aria-labelledby="featured-heading" data-reveal>
+        <div class="page-container">
+          <header class="featured-heading">
+            <div>
+              <span class="eyebrow">SELECCIÓN KRISTAL</span>
+              <h2 id="featured-heading">Lo Más Destacado</h2>
+              <p>Selección de productos para descubrir y agregar al carrito</p>
+              <small class="price-reference-note">Agrega tus productos y envía el pedido por WhatsApp.</small>
+            </div>
+            <div class="carousel-controls" aria-label="Controles de Lo Más Destacado" hidden>
+              <button class="carousel-arrow" type="button" data-scroll-target="featured-products" data-scroll-direction="-1" aria-label="Ver productos destacados anteriores">←</button>
+              <button class="carousel-arrow" type="button" data-scroll-target="featured-products" data-scroll-direction="1" aria-label="Ver más productos destacados">→</button>
+            </div>
+          </header>
+          <div class="product-grid featured-product-grid" id="featured-products" role="region" aria-roledescription="carrusel" aria-label="Lo Más Destacado" tabindex="0"></div>
+        </div>
+      </section>
+
+      <section class="dashboard-overview page-container" aria-label="Panel de accesos rápidos" data-reveal>
+        <header class="dashboard-section-heading">
+          <div><span class="eyebrow">HIPERMERCADO KRISTAL</span><h2>Todo para tu hogar, en un solo lugar</h2></div>
+          <span class="dashboard-location"><span class="dashboard-status-dot"></span> Villa Bruzual, Turén</span>
+        </header>
+        <div class="dashboard-widgets">
+          <article class="dashboard-widget dashboard-service">
+            <span class="dashboard-widget-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5 8 8 0 0 1-3.2-.7L4 20l1.7-4.3a7.5 7.5 0 1 1 14.3-4.2Z" /></svg></span>
+            <span class="eyebrow">ATENCIÓN PERSONALIZADA</span>
+            <h3>Tu pedido, directo por WhatsApp</h3>
+            <p>Consulta por WhatsApp precios vigentes, disponibilidad y opciones de entrega.</p>
+            <a class="dashboard-widget-link" href="https://wa.me/584245104430" target="_blank" rel="noopener noreferrer">Escríbenos <span aria-hidden="true">↗</span></a>
+          </article>
+          <article class="dashboard-widget dashboard-store-preview">
+            <img src="assets/hipermercado-fachada.png" alt="Fachada de Hipermercado Kristal en Villa Bruzual" />
+            <div>
+              <span class="eyebrow">VILLA BRUZUAL, TURÉN</span>
+              <h3>Conoce nuestras instalaciones</h3>
+              <a class="dashboard-widget-link" href="#tienda" data-page-store>Visitar la tienda <span aria-hidden="true">→</span></a>
+            </div>
+          </article>
+          <article class="dashboard-widget dashboard-status">
+            <span class="dashboard-status-dot" aria-hidden="true"></span>
+            <div><span class="eyebrow">SERVICIO</span><h3>Estamos para ayudarte</h3><p>Consulta disponibilidad y horario por WhatsApp.</p></div>
+            <a href="https://wa.me/584245104430" target="_blank" rel="noopener noreferrer" aria-label="Consultar servicio por WhatsApp">↗</a>
+          </article>
+        </div>
+      </section>
+      </div>
+
+      <section class="catalog-view" id="catalog-view" aria-label="Catálogo digital" hidden>
+      <header class="catalog-page-heading page-container">
+        <div><span class="eyebrow">CATÁLOGO DIGITAL</span><h1>Explora nuestros productos</h1><p>Agrega tus productos al carrito y envía tu pedido por WhatsApp.</p></div>
+        <span class="catalog-heading-badge">KRISTAL</span>
+      </header>
+      <section class="hero page-container" aria-label="Promociones destacadas" data-reveal data-slide="0">
+        <div class="hero-content">
+          <span class="eyebrow" id="hero-eyebrow">FRUTAS Y VERDURAS FRESCAS</span>
+          <h2 id="hero-title">Tu fin de semana rinde mucho más en Frutas y Verduras</h2>
+          <p id="hero-description">Color, sabor y frescura para llenar tu mesa.</p>
+          <a class="button button-yellow" id="hero-cta" href="#categoria/frutas-y-verduras" data-category="Frutas y Verduras">Ver frescos <span aria-hidden="true">→</span></a>
+          <div class="hero-pagination" aria-label="Seleccionar promoción">
+            <button class="hero-dot active" type="button" aria-label="Promoción 1" aria-pressed="true" data-slide="0"></button>
+            <button class="hero-dot" type="button" aria-label="Promoción 2" aria-pressed="false" data-slide="1"></button>
+            <button class="hero-dot" type="button" aria-label="Promoción 3" aria-pressed="false" data-slide="2"></button>
+          </div>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="hero-halo"></div>
+          <img class="hero-image" id="hero-image" src="assets/promo-verduras.jpg" alt="" />
+          <div class="hero-sticker"><strong id="hero-sticker-title">FRESCO</strong><span id="hero-sticker-copy">como<br />debe ser</span></div>
+        </div>
+        <div class="hero-side-note"><span></span> CALIDAD QUE SE NOTA</div>
+      </section>
+
+      <section class="products-section page-container" id="productos" data-reveal>
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow section-eyebrow">CATÁLOGO KRISTAL</span>
+            <h2 id="products-heading">Explora nuestros productos</h2>
+            <p>Precios en USD. Agrega tus productos al carrito y envía el pedido por WhatsApp.</p>
+          </div>
+          <a class="text-link filter-link" href="https://wa.me/584245104430" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="product-filters">
+          <label class="department-filter-label" for="product-department-filter">Departamento</label>
+          <select id="product-department-filter" class="department-filter">
+            <option value="Todos">Todos los departamentos</option>
+            <option value="Víveres y Alacena">Víveres y Alacena</option>
+            <option value="Frutas y Verduras">Frutas y Verduras</option>
+            <option value="Carnes, Aves y Charcutería">Carnes, Aves y Charcutería</option>
+            <option value="Bebidas y Licores">Bebidas y Licores</option>
+            <option value="Snacks, Golosinas y Confitería">Snacks, Golosinas y Confitería</option>
+            <option value="Cuidado Personal e Higiene">Cuidado Personal e Higiene</option>
+            <option value="Cuidado del Hogar y Limpieza">Cuidado del Hogar y Limpieza</option>
+            <option value="Mascotas">Mascotas</option>
+            <option value="Congelados">Congelados</option>
+          </select>
+          <button class="filter-chip" type="button" data-filter="Favoritos">Mis favoritos</button>
+        </div>
+        <div class="product-catalog">
+          <div class="product-grid" id="product-grid" role="region" aria-live="polite" aria-label="Productos"></div>
+          <nav class="product-pagination" data-pagination-for="product-grid" aria-label="Paginación del catálogo"></nav>
+        </div>
+      </section>
+
+      </section>
+      <section class="store-view" id="store-view" aria-label="Nuestra tienda" hidden>
+      <section class="benefits page-container" id="beneficios" aria-label="Beneficios de comprar en Kristal" data-reveal>
+        <div class="benefit-item">
+          <span class="benefit-icon">01</span><span><strong>Compra segura</strong><small>Tus datos siempre protegidos</small></span>
+        </div>
+        <div class="benefit-item">
+          <span class="benefit-icon">02</span><span><strong>Delivery a domicilio</strong><small>Tu compra llega hasta ti</small></span>
+        </div>
+        <div class="benefit-item">
+          <span class="benefit-icon">03</span><span><strong>Garantía de frescura</strong><small>Lo mejor para tu familia</small></span>
+        </div>
+        <a class="benefit-item" href="https://wa.me/584245104430" aria-label="Contactar atención por WhatsApp">
+          <span class="benefit-icon whatsapp-icon">04</span><span><strong>Estamos para ayudarte</strong><small>Atención por WhatsApp</small></span>
+        </a>
+      </section>
+
+      <section class="hypermarket-section page-container" id="instalaciones" aria-labelledby="hypermarket-heading" data-reveal>
+        <header class="hypermarket-heading">
+          <span class="eyebrow">VISÍTANOS EN VILLA BRUZUAL</span>
+          <h2 id="hypermarket-heading">Hipermercado Kristal: <span>Tu Destino de Compras</span></h2>
+          <p>Instalaciones modernas y el mejor surtido</p>
+        </header>
+        <div class="gallery-carousel">
+          <div class="carousel-controls" aria-label="Controles de la galería de instalaciones">
+            <button class="carousel-arrow" type="button" data-scroll-target="hypermarket-gallery" data-scroll-direction="-1" aria-label="Ver fotos anteriores">←</button>
+            <button class="carousel-arrow" type="button" data-scroll-target="hypermarket-gallery" data-scroll-direction="1" aria-label="Ver más fotos">→</button>
+          </div>
+          <div class="hypermarket-gallery" id="hypermarket-gallery" role="region" aria-roledescription="carrusel" aria-label="Fotos de las instalaciones" tabindex="0">
+            <article class="hypermarket-card" data-reveal>
+              <h3>Pasillos, frescura y nuestra fachada</h3>
+              <div class="hypermarket-photo-stage">
+                <img src="assets/hipermercado-instalaciones.png" alt="Pasillos organizados, área de frutas y verduras y fachada de Hipermercado Kristal" loading="lazy" />
+              </div>
+            </article>
+            <article class="hypermarket-card" data-reveal>
+              <h3>Área de bebidas</h3>
+              <div class="hypermarket-photo-stage">
+                <img src="assets/area-bebidas.png" alt="Neveras modernas con bebidas en Hipermercado Kristal" loading="lazy" />
+              </div>
+            </article>
+            <article class="hypermarket-card" data-reveal>
+              <h3>Logo en nuestras instalaciones</h3>
+              <div class="hypermarket-photo-stage hypermarket-photo-stage--logo">
+                <img src="assets/hipermercado-logo-interior.png" alt="Logo iluminado de Hipermercado Kristal en el interior de la tienda" loading="lazy" />
+              </div>
+            </article>
+            <article class="hypermarket-card" data-reveal>
+              <h3>Entrada y área de cajas</h3>
+              <div class="hypermarket-photo-stage">
+                <img src="assets/hipermercado-entrada-cajas.png" alt="Entrada interior y cajas de pago del hipermercado" loading="lazy" />
+              </div>
+            </article>
+            <article class="hypermarket-card" data-reveal>
+              <h3>Pasillos de víveres</h3>
+              <div class="hypermarket-photo-stage">
+                <img src="assets/hipermercado-pasillos.png" alt="Pasillos amplios con productos organizados en estanterías" loading="lazy" />
+              </div>
+            </article>
+            <article class="hypermarket-card" data-reveal>
+              <h3>Hogar y cuidado personal</h3>
+              <div class="hypermarket-photo-stage">
+                <img src="assets/hipermercado-cuidado-hogar.png" alt="Estanterías de productos de limpieza y cuidado personal" loading="lazy" />
+              </div>
+            </article>
+            <article class="hypermarket-card" data-reveal>
+              <h3>Frescos y lácteos</h3>
+              <div class="hypermarket-photo-stage">
+                <img src="assets/hipermercado-frescos-lacteos.png" alt="Sección de verduras y productos lácteos frescos" loading="lazy" />
+              </div>
+            </article>
+            <article class="hypermarket-card" data-reveal>
+              <h3>Fachada de Hipermercado Kristal</h3>
+              <div class="hypermarket-photo-stage">
+                <img src="assets/hipermercado-fachada.png" alt="Fachada exterior con el letrero de Hipermercado Kristal" loading="lazy" />
+              </div>
+            </article>
+          </div>
+        </div>
+        <p class="hypermarket-trust">Fotos reales de nuestras instalaciones. <strong>Registro Fiscal (RIF): J-50556790-0</strong></p>
+      </section>
+      </section>
+
+      <section class="institutional-view page-container" id="about-view" aria-labelledby="about-heading" hidden>
+        <header class="institutional-heading">
+          <span class="eyebrow">IDENTIDAD Y COMPROMISO</span>
+          <h1 id="about-heading">Sobre Hipermercado Kristal</h1>
+          <p>Un espacio de compras para las familias de Villa Bruzual y el municipio Turén.</p>
+        </header>
+        <article class="institutional-card about-section">
+          <h2>Quiénes somos</h2>
+          <p>Hipermercado Kristal, C.A. es un establecimiento ubicado en Villa Bruzual, municipio Turén, estado Portuguesa. Reunimos productos de despensa, víveres, frescos, bebidas y artículos para el hogar, con atención presencial y orientación a través de WhatsApp.</p>
+          <p>Nuestra historia se construye junto a la comunidad a la que atendemos. Como no contamos con una fecha de fundación confirmada para publicar, evitamos atribuir al negocio datos históricos que no hayan sido verificados.</p>
+          <h2>Compromiso con la comunidad</h2>
+          <p>Trabajamos para ofrecer una experiencia de compra práctica, una atención cercana y opciones para resolver las compras cotidianas de los hogares de Villa Bruzual y Turén. La disponibilidad, los precios y las condiciones de entrega se confirman directamente con nuestro equipo.</p>
+          <div class="institutional-facts">
+            <p><strong>Razón social:</strong> Hipermercado Kristal, C.A.</p>
+            <p><strong>RIF:</strong> J-50556790-0</p>
+            <p><strong>Ubicación:</strong> Villa Bruzual (Turén), estado Portuguesa.</p>
+          </div>
+          <a class="institutional-action" href="https://wa.me/584245104430" target="_blank" rel="noopener noreferrer">Contactar por WhatsApp</a>
+        </article>
+      </section>
+
+      <section class="institutional-view page-container" id="returns-view" aria-labelledby="returns-heading" hidden>
+        <header class="institutional-heading">
+          <span class="eyebrow">ATENCIÓN AL CLIENTE</span>
+          <h1 id="returns-heading">Cambios y devoluciones</h1>
+          <p>Condiciones para reportar un producto y solicitar atención.</p>
+        </header>
+        <article class="institutional-card returns-card">
+          <h2>Política de Cambios y Garantía de Frescura</h2>
+          <p>En <strong>Hipermercado Kristal</strong>, garantizamos la calidad de todos nuestros productos. Si deseas solicitar un cambio o reporte de un producto, considera las siguientes condiciones:</p>
+          <ol>
+            <li><strong>Productos Perecederos (Frescos, Charcutería, Carnes y Lácteos):</strong> Se dispone de un plazo de <strong>24 horas</strong> a partir del momento de la compra para notificar cualquier inconveniente con la calidad del producto.</li>
+            <li><strong>Víveres y Artículos de Hogar:</strong> Dispones de un plazo máximo de <strong>3 días continuos</strong> para solicitar el cambio presentando la factura o comprobante de compra.</li>
+            <li><strong>Estado del Producto:</strong> El producto debe conservar su empaque original y estar en condiciones óptimas.</li>
+            <li><strong>Procedimiento:</strong> Puedes iniciar tu gestión comunicándote directamente a nuestro canal de atención por WhatsApp con la foto del producto y comprobante de compra, o acudiendo a nuestro módulo de Atención al Cliente en nuestra tienda física.</li>
+          </ol>
+          <a class="institutional-action" href="https://wa.me/584245104430?text=Hola%2C%20deseo%20consultar%20por%20un%20cambio%20o%20reporte%20de%20producto." target="_blank" rel="noopener noreferrer">Iniciar consulta por WhatsApp</a>
+        </article>
+      </section>
+
+      <section class="institutional-view page-container" id="reviews-view" aria-labelledby="reviews-heading" hidden>
+        <header class="institutional-heading">
+          <span class="eyebrow">CENTRO DE AYUDA</span>
+          <h1 id="reviews-heading">Opiniones y preguntas frecuentes</h1>
+          <p>Consulta información útil o comparte una opinión con nuestro equipo.</p>
+        </header>
+        <section class="institutional-card faq-section" aria-labelledby="faq-heading">
+          <h2 id="faq-heading">Preguntas frecuentes</h2>
+          <label class="faq-search-label" for="faq-search">Buscar una respuesta</label>
+          <input id="faq-search" class="faq-search" type="search" placeholder="Escribe sobre pagos, delivery u horario" />
+          <p id="faq-empty" class="faq-empty" role="status" hidden>No encontramos preguntas que coincidan con tu búsqueda.</p>
+          <div class="faq-list">
+            <details data-faq-item>
+              <summary>¿Cuáles son los métodos de pago aceptados?</summary>
+              <p>Aceptamos efectivo, Pago Móvil, transferencia, Zelle y tarjetas internacionales. Confirma los métodos disponibles al coordinar tu compra.</p>
+            </details>
+            <details data-faq-item>
+              <summary>¿Cómo funciona el envío a domicilio / delivery?</summary>
+              <p>La disponibilidad, cobertura, costo y tiempo estimado se coordinan en tiempo real con nuestro equipo por WhatsApp.</p>
+            </details>
+            <details data-faq-item>
+              <summary>¿Cuál es el horario de atención?</summary>
+              <p>La atención es de lunes a domingo en horario corrido. Para confirmar el horario vigente, consulta por WhatsApp antes de visitarnos.</p>
+            </details>
+          </div>
+        </section>
+        <section class="institutional-card review-section" aria-labelledby="review-score-heading">
+          <div class="review-score">
+            <span class="eyebrow">INDICADOR DE DEMOSTRACIÓN</span>
+            <h2 id="review-score-heading"><span>4.9</span> / 5</h2>
+            <p aria-label="Cinco estrellas de demostración">★★★★★</p>
+            <small>Ejemplo visual solicitado; no representa una calificación real ni verificada.</small>
+          </div>
+          <div class="review-wall">
+            <h2>Así se mostrarían las opiniones</h2>
+            <article class="review-example">
+              <span class="review-stars" aria-label="Ejemplo de cinco estrellas">★★★★★</span>
+              <p>“Ejemplo de comentario sobre la atención recibida.”</p>
+              <small>Contenido ficticio de demostración; no corresponde a un cliente real.</small>
+            </article>
+            <article class="review-example">
+              <span class="review-stars" aria-label="Ejemplo de cinco estrellas">★★★★★</span>
+              <p>“Ejemplo de opinión sobre la experiencia de compra.”</p>
+              <small>Contenido ficticio de demostración; no corresponde a un cliente real.</small>
+            </article>
+          </div>
+        </section>
+        <section class="institutional-card review-form-card" aria-labelledby="review-form-heading">
+          <h2 id="review-form-heading">Enviar una reseña o pregunta</h2>
+          <p>Tu mensaje se enviará por WhatsApp para que nuestro equipo lo revise. No se publicará automáticamente ni se mostrará como verificado.</p>
+          <form id="review-form">
+            <label for="review-name">Nombre</label>
+            <input id="review-name" name="name" type="text" autocomplete="name" maxlength="80" required />
+            <label for="review-kind">¿Qué deseas enviar?</label>
+            <select id="review-kind" name="kind">
+              <option value="opinion">Opinión</option>
+              <option value="pregunta">Pregunta</option>
+            </select>
+            <fieldset id="review-rating-field">
+              <legend>Calificación</legend>
+              <div class="star-rating" role="radiogroup" aria-label="Calificación de 1 a 5 estrellas">
+                <label aria-label="5 estrellas"><input type="radio" name="rating" value="5" required /><span>★★★★★</span></label>
+                <label aria-label="4 estrellas"><input type="radio" name="rating" value="4" /><span>★★★★</span></label>
+                <label aria-label="3 estrellas"><input type="radio" name="rating" value="3" /><span>★★★</span></label>
+                <label aria-label="2 estrellas"><input type="radio" name="rating" value="2" /><span>★★</span></label>
+                <label aria-label="1 estrella"><input type="radio" name="rating" value="1" /><span>★</span></label>
+              </div>
+            </fieldset>
+            <label for="review-message">Comentario o pregunta</label>
+            <textarea id="review-message" name="message" rows="4" maxlength="1200" required></textarea>
+            <button class="institutional-action" type="submit">Enviar reseña / pregunta</button>
+            <a class="review-whatsapp-fallback" id="review-whatsapp-fallback" href="#" target="_blank" rel="noopener noreferrer" hidden>Continuar el envío por WhatsApp</a>
+            <p id="review-form-status" class="review-form-status" role="status" aria-live="polite"></p>
+          </form>
+        </section>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-main page-container">
+        <div class="footer-brand-column">
+          <a class="brand footer-brand" href="#inicio" aria-label="Hipermercado Kristal, inicio">
+            <img class="brand-image" src="assets/kristal-logo.png" alt="" />
+          </a>
+          <p>Todo lo que tu hogar necesita,<br />con la calidad que merece.</p>
+          <div class="social-links" aria-label="Redes sociales">
+            <a href="https://www.instagram.com/hipermercadokristal/" target="_blank" rel="noopener noreferrer" aria-label="Síguenos en Instagram">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="footer-instagram-gradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#ffdc80" /><stop offset="35%" stop-color="#fcaf45" /><stop offset="65%" stop-color="#f77737" /><stop offset="82%" stop-color="#e1306c" /><stop offset="100%" stop-color="#833ab4" /></linearGradient></defs><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="url(#footer-instagram-gradient)" /><rect x="6.5" y="6.5" width="11" height="11" rx="3.5" fill="none" stroke="#fff" stroke-width="1.8" /><circle cx="12" cy="12" r="2.7" fill="none" stroke="#fff" stroke-width="1.8" /><circle cx="16.2" cy="7.9" r="1" fill="#fff" /></svg>
+            </a>
+            <a href="https://www.tiktok.com/@hipermercadokristal" target="_blank" rel="noopener noreferrer" aria-label="Síguenos en TikTok">
+              <svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="12" fill="#000" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" transform="translate(-1.4 1.2)" fill="#25f4ee" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" transform="translate(1.4 -.6)" fill="#fe2c55" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" fill="#fff" /></svg>
+            </a>
+          </div>
+        </div>
+        <div class="footer-column">
+          <h3>Enlaces de interés</h3>
+          <a href="#nosotros" data-page-about>Sobre nosotros</a>
+          <a href="#opiniones" data-page-reviews>Opiniones y preguntas frecuentes</a>
+          <a href="#sucursales">Contacto y ubicación</a>
+          <a href="#opiniones" data-page-reviews>Preguntas frecuentes</a>
+          <a href="politicas.html#privacidad">Política de privacidad</a>
+        </div>
+        <div class="footer-column">
+          <h3>Atención al cliente</h3>
+          <a href="https://wa.me/584245104430" target="_blank" rel="noopener noreferrer">Contáctanos por WhatsApp</a>
+          <a href="#cambios" data-page-returns>Cambios y devoluciones</a>
+          <a href="politicas.html#terminos">Términos y condiciones</a>
+          <a href="#opiniones" data-page-reviews>Ayuda con mi pedido</a>
+        </div>
+        <div class="footer-column footer-contact" id="sucursales">
+          <h3>Estamos cerca de ti</h3>
+          <a class="contact-link" href="https://www.google.com/maps/place/Hipermercado+Kristal,+C.A./@9.3273659,-69.1198186,17z/data=!3m1!4b1!4m6!3m5!1s0x8e7dcd740f18557b:0x748040754d5b3875!8m2!3d9.3273659!4d-69.1198186!16s%2Fg%2F11y9nxj3rt?entry=ttu&amp;g_ep=EgoyMDI2MTAxMS4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noopener noreferrer"><span>⌖</span> Ver ubicación en Google Maps</a>
+          <p><span>◷</span> Consulta el horario de tu sucursal por WhatsApp</p>
+          <a class="contact-link" href="tel:+584245104430"><span aria-hidden="true">Tel.</span> +58 (424) 510-4430</a>
+          <div class="payment-methods"><span>VISA</span><span>MC</span><span>Pago móvil</span></div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="page-container"><span>© 2026 Hipermercado Kristal. Todos los derechos reservados.</span><span>Atención a las familias de Villa Bruzual y Turén</span></div>
+      </div>
+    </footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <button class="mobile-cart-fab" id="mobile-cart-button" type="button" aria-label="Abrir carrito" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="21" r="1" /><circle cx="18" cy="21" r="1" /></svg>
+      <span>Ver carrito</span>
+      <span class="mobile-cart-fab-count" id="mobile-cart-count">0</span>
+    </button>
+    <div class="cart-backdrop" id="cart-backdrop" hidden></div>
+    <aside class="cart-drawer" id="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title" aria-hidden="true">
+      <div class="cart-drawer-header">
+        <div>
+          <span class="eyebrow section-eyebrow">TU COMPRA</span>
+          <h2 id="cart-title">Mi carrito <span id="cart-item-summary">(0 productos)</span></h2>
+        </div>
+        <button class="cart-close" id="cart-close" type="button" aria-label="Cerrar carrito">×</button>
+      </div>
+      <div class="cart-drawer-content">
+        <section class="shipping-progress" aria-labelledby="shipping-progress-message">
+          <p id="shipping-progress-message" aria-live="polite">Confirma disponibilidad y condiciones de entrega con nuestro equipo.</p>
+          <div
+            class="shipping-progress-track"
+            id="shipping-progress-track"
+            role="progressbar"
+            aria-label="Progreso para obtener envío gratis"
+            aria-valuemin="0"
+            aria-valuemax="50"
+            aria-valuenow="0"
+          >
+            <span class="shipping-progress-fill" id="shipping-progress-fill"></span>
+          </div>
+        </section>
+        <div id="cart-items" aria-live="polite"></div>
+      </div>
+      <div class="cart-drawer-footer">
+        <div class="cart-total-row"><span>Total de tu compra</span><strong id="cart-total">—</strong></div>
+        <p class="cart-checkout-note">El pedido se abrirá en WhatsApp para que lo confirmes con nuestra caja.</p>
+        <button class="checkout-button" id="checkout-button" type="button" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.8a8.4 8.4 0 0 1-12.4 7.4L4 20l.9-4a8.4 8.4 0 1 1 15.6-4.2Z" /><path d="M9 8.5c.4 2.6 2 4.2 4.6 5" /></svg>
+          Procesar compra por WhatsApp
+        </button>
+      </div>
+    </aside>
+    <dialog class="info-dialog" id="info-dialog" aria-labelledby="info-dialog-title">
+      <div class="info-dialog-header">
+        <h2 id="info-dialog-title"></h2>
+        <button class="cart-close" id="info-dialog-close" type="button" aria-label="Cerrar ventana">×</button>
+      </div>
+      <div class="info-dialog-content">
+        <p id="info-dialog-message"></p>
+        <a class="checkout-button info-whatsapp" id="info-whatsapp" href="https://wa.me/584245104430" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>
+      </div>
+    </dialog>
+  </body>
+</html>
