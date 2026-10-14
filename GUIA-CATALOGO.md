@@ -24,7 +24,7 @@ El panel requiere correo y contraseña de Supabase. RLS valida `app_metadata.rol
 
 El logo del encabezado y del pie utiliza el mismo archivo `assets/kristal-logo.png`. El seed opcional carga los 53 productos asociados a fotos compartidas previamente; las tarjetas muestran precios en USD y permiten agregarlos al carrito. Al procesar el pedido, el sitio abre WhatsApp con el resumen para coordinar disponibilidad y entrega.
 
-Si ya configuraste el proyecto y el panel muestra nombres de productos como “Arroz” en el menú de categoría, ejecuta una sola vez `supabase-departamentos.sql` desde **SQL Editor**. El selector del panel mostrará solamente departamentos, como “Víveres y Alacena”; no vuelvas a ejecutar el seed. Al editar productos anteriores, estos quedarán asignados al departamento que corresponda.
+Si ya configuraste el proyecto y el panel muestra nombres de productos como “Arroz” en el menú de categoría, ejecuta `supabase-departamentos.sql` desde **SQL Editor**. El selector del panel mostrará solamente departamentos, como “Víveres y Alacena”. Este script también corrige el departamento de “Lácteos” a “Víveres y Alacena” para la leche en polvo ya cargada. Es seguro volver a ejecutarlo; no vuelvas a ejecutar el seed.
 
 ## 1. Navegación, vistas y enlaces
 

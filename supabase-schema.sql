@@ -34,7 +34,7 @@ insert into public.categorias (nombre, departamento) values
   ('Arroz', 'Víveres y Alacena'),
   ('Pastas', 'Víveres y Alacena'),
   ('Aceites', 'Víveres y Alacena'),
-  ('Lácteos', 'Carnes, Aves y Charcutería'),
+  ('Lácteos', 'Víveres y Alacena'),
   ('Huevos', 'Carnes, Aves y Charcutería'),
   ('Bebidas y Licores', 'Bebidas y Licores'),
   ('Maltas', 'Bebidas y Licores'),
