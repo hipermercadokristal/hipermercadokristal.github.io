@@ -26,7 +26,9 @@ El panel `/admin/` adapta el formulario y el inventario a pantallas pequeñas: e
 
 El logo del encabezado y del pie utiliza el mismo archivo `assets/kristal-logo.png`. El seed opcional carga los 53 productos asociados a fotos compartidas previamente; las tarjetas muestran precios en USD y permiten agregarlos al carrito. Al procesar el pedido, el sitio abre WhatsApp con el resumen para coordinar disponibilidad y entrega.
 
-Si ya configuraste el proyecto y el panel muestra nombres de productos como “Arroz” en el menú de categoría, ejecuta `supabase-departamentos.sql` desde **SQL Editor**. El selector del panel mostrará solamente departamentos, como “Víveres y Alacena”. Este script también corrige el departamento de “Lácteos” a “Víveres y Alacena” para la leche en polvo ya cargada. Es seguro volver a ejecutarlo; no vuelvas a ejecutar el seed.
+Si ya configuraste el proyecto, ejecuta `supabase-departamentos.sql` desde **SQL Editor** para asegurar los 11 departamentos del menú y del formulario de `/admin/`: Víveres y Alacena; Frutas y Verduras; Carnes, Aves y Charcutería; Bebidas, Licores y Tabaco; Snacks, Golosinas y Confitería; Cuidado Personal e Higiene; Cuidado del Hogar y Limpieza; Hogar, Bazar y Utensilios; Electrodomésticos y Ferretería; Mascotas; y Congelados. La migración también asigna los productos existentes de bebidas al nuevo departamento y conserva “Lácteos” en “Víveres y Alacena” para los productos de leche en polvo ya cargados. Es seguro volver a ejecutarla; no vuelvas a ejecutar el seed.
+
+Para una instalación nueva, `supabase-schema.sql` ya crea los mismos 11 departamentos. El filtro del catálogo usa el departamento guardado en cada producto, por lo que las opciones “Hogar, Bazar y Utensilios” y “Bebidas, Licores y Tabaco” solo muestran sus productos correspondientes.
 
 ## 1. Navegación, vistas y enlaces
 

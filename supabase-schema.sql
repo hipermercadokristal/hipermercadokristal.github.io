@@ -36,9 +36,10 @@ insert into public.categorias (nombre, departamento) values
   ('Aceites', 'Víveres y Alacena'),
   ('Lácteos', 'Víveres y Alacena'),
   ('Huevos', 'Carnes, Aves y Charcutería'),
-  ('Bebidas y Licores', 'Bebidas y Licores'),
-  ('Maltas', 'Bebidas y Licores'),
-  ('Refrescos', 'Bebidas y Licores'),
+  ('Bebidas, Licores y Tabaco', 'Bebidas, Licores y Tabaco'),
+  ('Bebidas y Licores', 'Bebidas, Licores y Tabaco'),
+  ('Maltas', 'Bebidas, Licores y Tabaco'),
+  ('Refrescos', 'Bebidas, Licores y Tabaco'),
   ('Papel higiénico', 'Cuidado del Hogar y Limpieza'),
   ('Detergentes', 'Cuidado del Hogar y Limpieza'),
   ('Cuidado del Hogar y Limpieza', 'Cuidado del Hogar y Limpieza'),
@@ -46,6 +47,8 @@ insert into public.categorias (nombre, departamento) values
   ('Carnes, Aves y Charcutería', 'Carnes, Aves y Charcutería'),
   ('Snacks, Golosinas y Confitería', 'Snacks, Golosinas y Confitería'),
   ('Cuidado Personal e Higiene', 'Cuidado Personal e Higiene'),
+  ('Hogar, Bazar y Utensilios', 'Hogar, Bazar y Utensilios'),
+  ('Electrodomésticos y Ferretería', 'Electrodomésticos y Ferretería'),
   ('Mascotas', 'Mascotas'),
   ('Congelados', 'Congelados')
 on conflict (nombre) do update set departamento = excluded.departamento;

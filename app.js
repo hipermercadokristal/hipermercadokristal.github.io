@@ -171,6 +171,9 @@ function setCurrentNavigation(view, category = "") {
 function renderProducts(targetGrid = productGrid, filter = activeFilter) {
   const query = normalizeText(searchInput.value);
   const normalizedFilter = normalizeText(filter);
+  const isDepartmentFilter = Object.keys(categoryDescriptions).some((category) =>
+    normalizeText(category) === normalizedFilter,
+  );
   const pagination = document.querySelector(`[data-pagination-for="${targetGrid.id}"]`);
   if (catalogLoadError) {
     targetGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
@@ -187,7 +190,9 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
         ? favoriteItems.has(product.id)
         : normalizedFilter === "ofertas"
           ? Number.isFinite(product.oldPrice) && Number.isFinite(product.price)
-          : normalizeText(product.group) === normalizedFilter || normalizeText(product.category) === normalizedFilter);
+          : isDepartmentFilter
+            ? normalizeText(product.group) === normalizedFilter
+            : normalizeText(product.group) === normalizedFilter || normalizeText(product.category) === normalizedFilter);
     const searchableText = normalizeText(
       `${product.name} ${product.category} ${product.group} ${product.detail}`,
     );
@@ -196,9 +201,7 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
   });
 
   if (!visibleProducts.length) {
-    const isDepartment =
-      targetGrid === categoryProductGrid ||
-      Object.keys(categoryDescriptions).some((category) => normalizeText(category) === normalizedFilter);
+    const isDepartment = targetGrid === categoryProductGrid || isDepartmentFilter;
     targetGrid.innerHTML =
       normalizedFilter === "favoritos"
         ? '<p class="empty-state">Aún no tienes favoritos. Guarda productos con el icono de corazón.</p>'
@@ -317,15 +320,20 @@ function renderFeaturedProducts() {
 }
 
 const categoryDescriptions = {
-  "Víveres y Alacena": "Granos, aceites, harinas y enlatados para tu despensa.",
-  "Frutas y Verduras": "Frescos del campo para acompañar tus comidas.",
-  "Carnes, Aves y Charcutería": "Cortes, embutidos y lácteos para cada ocasión.",
-  "Bebidas y Licores": "Jugos, gaseosas, aguas, maltas y más.",
-  "Snacks, Golosinas y Confitería": "Galletas, chocolates, papitas y frutos secos.",
-  "Cuidado Personal e Higiene": "Cuidado capilar, jabones, crema dental y desodorantes.",
-  "Cuidado del Hogar y Limpieza": "Detergentes, desinfectantes, lavaplatos y utensilios de limpieza.",
-  Mascotas: "Alimentos y productos para el cuidado de tus mascotas.",
-  Congelados: "Alimentos congelados listos para tu hogar.",
+  "Víveres y Alacena": "Granos, aceites, harinas, pastas, enlatados y condimentos.",
+  "Frutas y Verduras": "Hortalizas, tubérculos y frutas frescas del campo.",
+  "Carnes, Aves y Charcutería": "Cortes de carne, pollo, embutidos, quesos y lácteos.",
+  "Bebidas, Licores y Tabaco": "Jugos, gaseosas, maltas, licores, vinos, cerveza, cigarrillos y encendedores.",
+  "Snacks, Golosinas y Confitería": "Galletas, chocolates, papitas, frutos secos y golosinas.",
+  "Cuidado Personal e Higiene": "Cuidado capilar, jabones, crema dental, desodorantes y cuidado femenino.",
+  "Cuidado del Hogar y Limpieza": "Detergentes, desinfectantes, lavaplatos, tobos y colectores.",
+  "Hogar, Bazar y Utensilios": "Platos, cubiertos, ollas, plásticos, envases, organización, sillas, mesas y accesorios del hogar.",
+  "Electrodomésticos y Ferretería": "Licuadoras, ventiladores, herramientas manuales, bombillos, extensiones y artículos eléctricos básicos.",
+  Mascotas: "Alimentos balanceados y artículos de cuidado para mascotas.",
+  Congelados: "Alimentos congelados listos para cocinar.",
+};
+const legacyCategoryAliases = {
+  "Bebidas y Licores": "Bebidas, Licores y Tabaco",
 };
 
 function categoryHash(category) {
@@ -465,8 +473,9 @@ function restoreRoute(state = history.state) {
     showReviewsView({ pushHistory: false });
     return;
   }
-  if (state?.view === "category" && categoryDescriptions[state.category]) {
-    showCategoryView(state.category, { pushHistory: false });
+  const stateCategory = legacyCategoryAliases[state?.category] || state?.category;
+  if (state?.view === "category" && categoryDescriptions[stateCategory]) {
+    showCategoryView(stateCategory, { pushHistory: false });
     return;
   }
   if (state?.view === "catalog" || location.hash === "#catalogo") {
@@ -486,8 +495,12 @@ function restoreRoute(state = history.state) {
     const category = Object.keys(categoryDescriptions).find((item) =>
       categoryHash(item) === `#categoria/${route[1]}`,
     );
-    if (category) {
-      showCategoryView(category, { pushHistory: false });
+    const legacyCategory = Object.entries(legacyCategoryAliases).find(([item]) =>
+      categoryHash(item) === `#categoria/${route[1]}`,
+    );
+    const resolvedCategory = category || legacyCategory?.[1];
+    if (resolvedCategory) {
+      showCategoryView(resolvedCategory, { pushHistory: false });
       return;
     }
   }
