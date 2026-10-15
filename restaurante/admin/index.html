@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#74251e" />
+    <title>Administración del restaurante | Hipermercado Kristal</title>
+    <link rel="icon" type="image/png" href="../../assets/kristal-favicon.png" />
+    <link rel="stylesheet" href="../../admin/admin.css?v=restaurant-admin-20261014" />
+    <link rel="stylesheet" href="restaurant-admin.css" />
+    <script src="../../supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../../supabase-client.js"></script>
+    <script src="restaurant-admin.js" defer></script>
+  </head>
+  <body class="restaurant-admin">
+    <main class="admin-shell">
+      <a class="back-link" href="../">← Volver al menú del restaurante</a>
+      <section class="auth-card" id="auth-section" aria-labelledby="login-heading">
+        <img src="../../assets/kristal-logo.png" alt="Hipermercado Kristal" />
+        <p class="eyebrow">ACCESO PRIVADO</p>
+        <h1 id="login-heading">Restaurante Kristal</h1>
+        <p class="intro">Inicia sesión para gestionar los platos del menú.</p>
+        <form id="login-form">
+          <label for="login-email">Correo electrónico<input id="login-email" name="email" type="email" autocomplete="username" required /></label>
+          <label for="login-password">Contraseña<input id="login-password" name="password" type="password" autocomplete="current-password" required /></label>
+          <button class="primary-button" type="submit">Iniciar sesión</button>
+        </form>
+        <p class="status-message" id="auth-status" role="status" aria-live="polite"></p>
+      </section>
+      <section class="dashboard" id="dashboard-section" hidden aria-labelledby="dashboard-heading">
+        <header class="dashboard-header">
+          <div><p class="eyebrow">RESTAURANTE KRISTAL</p><h1 id="dashboard-heading">Gestión del menú</h1><p class="intro">Los cambios se reflejan en el menú público.</p></div>
+          <button class="secondary-button" id="sign-out-button" type="button">Cerrar sesión</button>
+        </header>
+        <p class="status-message" id="dashboard-status" role="status" aria-live="polite"></p>
+        <section class="panel" aria-labelledby="dish-form-heading">
+          <div class="panel-heading"><div><p class="eyebrow">MENÚ</p><h2 id="dish-form-heading">Agregar plato</h2></div><button class="text-button" id="cancel-edit-button" type="button" hidden>Cancelar edición</button></div>
+          <form id="dish-form">
+            <div class="form-grid">
+              <label class="field field-wide" for="dish-name">Nombre del plato<input id="dish-name" name="nombre" type="text" maxlength="140" required /></label>
+              <label class="field" for="dish-category">Categoría<select id="dish-category" name="categoria_id" required></select></label>
+              <label class="field" for="dish-price">Precio (USD)<input id="dish-price" name="precio" type="number" min="0.01" step="0.01" required /></label>
+              <label class="field field-wide" for="dish-description">Descripción<input id="dish-description" name="descripcion" type="text" maxlength="300" placeholder="Ingredientes o detalles del plato" /></label>
+              <label class="field field-wide" for="dish-image">Foto del plato<input id="dish-image" name="imagen" type="file" accept="image/png,image/jpeg,image/webp" /><small>PNG, JPG o WebP; máximo 5 MB. Al editar, déjala vacía para conservar la foto.</small></label>
+              <label class="checkbox-field" for="dish-available"><input id="dish-available" name="disponible" type="checkbox" checked /> Disponible para pedir</label>
+            </div>
+            <button class="primary-button submit-button" id="save-dish-button" type="submit">Guardar plato</button>
+          </form>
+        </section>
+        <section class="panel inventory-panel" aria-labelledby="inventory-heading">
+          <div class="panel-heading"><div><p class="eyebrow">RESTAURANTE</p><h2 id="inventory-heading">Platos del menú</h2></div><button class="secondary-button" id="refresh-button" type="button">Actualizar lista</button></div>
+          <div class="table-scroll"><table><thead><tr><th>Plato</th><th>Categoría</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr></thead><tbody id="inventory-rows"></tbody></table></div>
+          <p class="empty-inventory" id="empty-inventory" hidden>Aún no hay platos. Agrega el primero arriba.</p>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>

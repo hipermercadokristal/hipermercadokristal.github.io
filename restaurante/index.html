@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#74251e" />
+    <meta name="description" content="Explora el menú de comida china de Hipermercado Kristal y prepara tu pedido por WhatsApp." />
+    <title>Restaurante Kristal | Comida china</title>
+    <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
+    <link rel="stylesheet" href="restaurante.css" />
+    <script src="../supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../supabase-client.js"></script>
+    <script src="restaurante.js" defer></script>
+  </head>
+  <body>
+    <header class="restaurant-header">
+      <a class="restaurant-brand" href="./" aria-label="Restaurante Kristal, inicio">
+        <img src="../assets/kristal-logo.png" alt="" />
+        <span><strong>Restaurante Kristal</strong><small>Comida china en Villa Bruzual</small></span>
+      </a>
+      <nav aria-label="Navegación principal">
+        <a href="../">Hipermercado</a>
+        <a class="admin-link" href="admin/">Administración</a>
+      </nav>
+    </header>
+    <main>
+      <section class="restaurant-hero">
+        <div class="hero-copy">
+          <span class="eyebrow">SABOR PARA COMPARTIR</span>
+          <h1>Disfruta la comida china de Kristal</h1>
+          <p>Explora el menú, elige tus favoritos y coordina tu pedido directamente con nuestro equipo.</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <span class="hero-stamp">KRISTAL<br />食</span>
+          <span class="hero-orbit hero-orbit-one"></span>
+          <span class="hero-orbit hero-orbit-two"></span>
+          <span class="hero-chopsticks"></span>
+        </div>
+      </section>
+      <section class="menu-section" id="menu">
+        <header class="menu-heading">
+          <div><span class="eyebrow">RESTAURANTE KRISTAL</span><h2>Nuestro menú</h2><p>Consulta disponibilidad y coordina tu pedido por WhatsApp.</p></div>
+          <label class="search-label" for="dish-search">Buscar en el menú
+            <input id="dish-search" type="search" placeholder="Ej.: arroz, pollo..." />
+          </label>
+        </header>
+        <nav class="category-filter" id="category-filter" aria-label="Filtrar por categoría"></nav>
+        <p class="catalog-status" id="catalog-status" role="status" aria-live="polite">Cargando el menú…</p>
+        <div class="dish-grid" id="dish-grid" aria-live="polite"></div>
+      </section>
+      <section class="order-banner">
+        <div><span class="eyebrow">¿LISTO PARA PEDIR?</span><h2>Tu pedido, directo por WhatsApp</h2><p>El equipo confirmará disponibilidad, precio final y forma de entrega.</p></div>
+        <button id="order-button" type="button" disabled>Preparar pedido <span id="order-count">0</span></button>
+      </section>
+    </main>
+    <footer class="restaurant-footer">
+      <a href="../">← Volver a Hipermercado Kristal</a>
+      <span>Villa Bruzual (Turén), Estado Portuguesa</span>
+      <span>Los precios y la disponibilidad se confirman al coordinar el pedido.</span>
+    </footer>
+    <div class="toast" id="restaurant-toast" role="status" aria-live="polite"></div>
+  </body>
+</html>

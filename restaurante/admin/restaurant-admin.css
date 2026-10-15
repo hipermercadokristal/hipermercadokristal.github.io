@@ -1,0 +1,5 @@
+:root { --restaurant-wine: #74251e; }
+.restaurant-admin { background: #f8f5f1; }
+.restaurant-admin .primary-button { background: var(--restaurant-wine); }
+.restaurant-admin .primary-button:hover { background: #4d1915; }
+.restaurant-admin .back-link, .restaurant-admin .text-button { color: var(--restaurant-wine); }

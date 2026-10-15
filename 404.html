@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>Cargando Hipermercado Kristal</title>
+  </head>
+  <body>
+    <p>Abriendo la página solicitada…</p>
+    <script>
+      const requestedPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.replace(`/?route=${encodeURIComponent(requestedPath)}`);
+    </script>
+  </body>
+</html>

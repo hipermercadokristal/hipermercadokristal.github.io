@@ -13,8 +13,22 @@ const saveButton = document.querySelector("#save-product-button");
 const formHeading = document.querySelector("#product-form-heading");
 const cancelEditButton = document.querySelector("#cancel-edit-button");
 const currency = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
+const departmentNames = [
+  "Víveres y Alacena",
+  "Frutas y Verduras",
+  "Carnes, Aves y Charcutería",
+  "Bebidas, Licores y Tabaco",
+  "Snacks, Golosinas y Confitería",
+  "Cuidado Personal e Higiene",
+  "Cuidado del Hogar y Limpieza",
+  "Hogar, Bazar y Utensilios",
+  "Electrodomésticos y Ferretería",
+  "Mascotas",
+  "Congelados",
+];
 let editingProduct = null;
 let categories = [];
+let missingDepartments = [];
 imageInput.required = true;
 
 function escapeHtml(value) {
@@ -52,7 +66,13 @@ async function requireAdmin(session) {
 async function loadCategories() {
   const { data, error } = await supabaseClient.from("categorias").select("id,nombre,departamento").order("nombre");
   if (error) throw error;
-  categories = data.filter((category) => category.nombre === category.departamento);
+  const departmentsByName = new Map(
+    data
+      .filter((category) => category.nombre === category.departamento)
+      .map((category) => [category.nombre, category]),
+  );
+  categories = departmentNames.map((name) => departmentsByName.get(name)).filter(Boolean);
+  missingDepartments = departmentNames.filter((name) => !departmentsByName.has(name));
   if (!categories.length) {
     throw new Error("No hay departamentos principales en Supabase. Ejecuta supabase-departamentos.sql desde SQL Editor.");
   }
@@ -85,7 +105,14 @@ async function loadInventory() {
     </tr>`;
   }).join("");
   emptyInventory.hidden = data.length > 0;
-  setMessage(dashboardStatus, `${data.length} ${data.length === 1 ? "producto" : "productos"} en inventario.`, true);
+  const inventoryMessage = `${data.length} ${data.length === 1 ? "producto" : "productos"} en inventario.`;
+  setMessage(
+    dashboardStatus,
+    missingDepartments.length
+      ? `Faltan departamentos en Supabase: ${missingDepartments.join(", ")}. Ejecuta supabase-departamentos.sql desde SQL Editor. ${inventoryMessage}`
+      : inventoryMessage,
+    missingDepartments.length === 0,
+  );
   return data;
 }
 

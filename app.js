@@ -19,6 +19,7 @@ const categoryView = document.querySelector("#category-view");
 const aboutView = document.querySelector("#about-view");
 const returnsView = document.querySelector("#returns-view");
 const reviewsView = document.querySelector("#reviews-view");
+const policiesView = document.querySelector("#policies-view");
 const categoryViewTitle = document.querySelector("#category-view-title");
 const categoryViewDescription = document.querySelector("#category-view-description");
 const cartCount = document.querySelector("#cart-count");
@@ -158,7 +159,7 @@ function setCurrentNavigation(view, category = "") {
     const current =
       (view === "home" && link.hasAttribute("data-page-home")) ||
       (view === "catalog" && link.hasAttribute("data-page-catalog")) ||
-      (view === "store" && link.hasAttribute("data-page-store")) ||
+      ((view === "about" || view === "store") && link.hasAttribute("data-page-store")) ||
       (view === "about" && link.hasAttribute("data-page-about")) ||
       (view === "returns" && link.hasAttribute("data-page-returns")) ||
       (view === "reviews" && link.hasAttribute("data-page-reviews")) ||
@@ -336,8 +337,12 @@ const legacyCategoryAliases = {
   "Bebidas y Licores": "Bebidas, Licores y Tabaco",
 };
 
-function categoryHash(category) {
-  return `#categoria/${normalizeText(category).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+function categorySlug(category) {
+  return normalizeText(category).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+function categoryPath(category) {
+  return `/departamento/${categorySlug(category)}`;
 }
 
 function closeMobileCategoryMenu() {
@@ -355,6 +360,7 @@ function showCategoryView(category, { pushHistory = true } = {}) {
   aboutView.hidden = true;
   returnsView.hidden = true;
   reviewsView.hidden = true;
+  policiesView.hidden = true;
   categoryView.hidden = false;
   setActiveFilter(category, { clearSearch: true });
   setCurrentNavigation("category", category);
@@ -364,7 +370,7 @@ function showCategoryView(category, { pushHistory = true } = {}) {
   renderProducts(categoryProductGrid, category);
   closeMobileCategoryMenu();
   document.title = `${categoryViewTitle.textContent} | Hipermercado Kristal`;
-  if (pushHistory) history.pushState({ view: "category", category }, "", categoryHash(category));
+  if (pushHistory) history.pushState({ view: "category", category }, "", categoryPath(category));
   window.scrollTo(0, 0);
 }
 
@@ -377,16 +383,17 @@ function showHomeView({ pushHistory = true } = {}) {
   aboutView.hidden = true;
   returnsView.hidden = true;
   reviewsView.hidden = true;
+  policiesView.hidden = true;
   homeView.hidden = false;
   setActiveFilter("Todos", { clearSearch: true });
   setCurrentNavigation("home");
   closeMobileCategoryMenu();
   document.title = "Inicio | Hipermercado Kristal";
-  if (pushHistory) history.pushState({ view: "home" }, "", "#inicio");
+  if (pushHistory) history.pushState({ view: "home" }, "", "/");
   window.scrollTo(0, 0);
 }
 
-function showCatalogView({ filter = "Todos", pushHistory = true, scrollTarget = null, clearSearch = false } = {}) {
+function showCatalogView({ filter = "Todos", pushHistory = true, clearSearch = false } = {}) {
   activeView = "catalog";
   activeCategory = "";
   homeView.hidden = true;
@@ -395,6 +402,7 @@ function showCatalogView({ filter = "Todos", pushHistory = true, scrollTarget = 
   aboutView.hidden = true;
   returnsView.hidden = true;
   reviewsView.hidden = true;
+  policiesView.hidden = true;
   catalogView.hidden = false;
   productPages.set(productGrid.id, 1);
   setActiveFilter(filter, { clearSearch });
@@ -402,34 +410,11 @@ function showCatalogView({ filter = "Todos", pushHistory = true, scrollTarget = 
   renderProducts(productGrid, filter);
   closeMobileCategoryMenu();
   document.title = filter === "Ofertas" ? "Ofertas | Hipermercado Kristal" : "Catálogo | Hipermercado Kristal";
-  if (pushHistory) {
-    const hash = filter === "Ofertas" ? "#ofertas" : "#catalogo";
-    history.pushState({ view: "catalog", filter }, "", hash);
-  }
-  if (scrollTarget) document.querySelector(scrollTarget)?.scrollIntoView({ behavior: "auto", block: "start" });
-  else window.scrollTo(0, 0);
+  if (pushHistory) history.pushState({ view: "catalog", filter }, "", filter === "Ofertas" ? "/catalogo?filtro=ofertas" : "/catalogo");
+  window.scrollTo(0, 0);
 }
 
-function showStoreView({ pushHistory = true, scrollTarget = null } = {}) {
-  activeView = "store";
-  activeCategory = "";
-  homeView.hidden = true;
-  categoryView.hidden = true;
-  catalogView.hidden = true;
-  aboutView.hidden = true;
-  returnsView.hidden = true;
-  reviewsView.hidden = true;
-  storeView.hidden = false;
-  setActiveFilter("Todos", { clearSearch: true });
-  setCurrentNavigation("store");
-  closeMobileCategoryMenu();
-  document.title = "Nuestra tienda | Hipermercado Kristal";
-  if (pushHistory) history.pushState({ view: "store" }, "", "#tienda");
-  if (scrollTarget) document.querySelector(scrollTarget)?.scrollIntoView({ behavior: "auto", block: "start" });
-  else window.scrollTo(0, 0);
-}
-
-function showInstitutionalView(viewName, viewElement, title, hash, { pushHistory = true } = {}) {
+function showInstitutionalView(viewName, viewElement, title, route, { pushHistory = true } = {}) {
   activeView = viewName;
   activeCategory = "";
   homeView.hidden = true;
@@ -439,76 +424,123 @@ function showInstitutionalView(viewName, viewElement, title, hash, { pushHistory
   aboutView.hidden = true;
   returnsView.hidden = true;
   reviewsView.hidden = true;
+  policiesView.hidden = viewElement !== policiesView;
   viewElement.hidden = false;
   setActiveFilter("Todos", { clearSearch: true });
   setCurrentNavigation(viewName);
   closeMobileCategoryMenu();
   document.title = `${title} | Hipermercado Kristal`;
-  if (pushHistory) history.pushState({ view: viewName }, "", hash);
+  if (pushHistory) history.pushState({ view: viewName }, "", route);
   window.scrollTo(0, 0);
 }
 
 function showAboutView(options) {
-  showInstitutionalView("about", aboutView, "Sobre nosotros", "#nosotros", options);
+  showInstitutionalView("about", aboutView, "Sobre nosotros", "/nosotros", options);
+  storeView.hidden = false;
 }
 
-function showReturnsView(options) {
-  showInstitutionalView("returns", returnsView, "Cambios y devoluciones", "#cambios", options);
+let policiesLoaded = false;
+
+async function loadPolicies() {
+  if (policiesLoaded) return;
+  const response = await fetch("/politicas.html");
+  if (!response.ok) throw new Error(`No se pudo cargar politicas.html (${response.status}).`);
+  const source = new DOMParser().parseFromString(await response.text(), "text/html");
+  const policyMain = source.querySelector(".policy-main");
+  if (!policyMain) throw new Error("politicas.html no contiene el contenido de políticas esperado.");
+  policyMain.querySelector(".policy-nav")?.remove();
+  policyMain.querySelector(".policy-back-top")?.remove();
+  policiesView.innerHTML = policyMain.innerHTML;
+  policiesLoaded = true;
+}
+
+function showPoliciesView({ pushHistory = true } = {}) {
+  showInstitutionalView("returns", policiesView, "Políticas y condiciones", "/politicas", { pushHistory });
+  returnsView.hidden = false;
+  loadPolicies().catch((error) => {
+    console.error("No se pudo cargar la vista de políticas.", error);
+    policiesView.innerHTML = '<main class="policy-main page-container"><p role="alert">No se pudieron cargar las políticas. Recarga la página para intentarlo de nuevo.</p></main>';
+  });
 }
 
 function showReviewsView(options) {
-  showInstitutionalView("reviews", reviewsView, "Opiniones y preguntas frecuentes", "#opiniones", options);
+  showInstitutionalView("reviews", reviewsView, "Opiniones y preguntas frecuentes", "/preguntas-resenas", options);
 }
 
 function restoreRoute(state = history.state) {
-  if (state?.view === "about" || location.hash === "#nosotros") {
+  const forwardedPath = new URLSearchParams(location.search).get("route");
+  if (forwardedPath?.startsWith("/")) {
+    history.replaceState(null, "", forwardedPath);
+  }
+  const hash = location.hash;
+  const legacyHashRoutes = {
+    "#inicio": "/",
+    "#catalogo": "/catalogo",
+    "#productos": "/catalogo",
+    "#ofertas": "/catalogo?filtro=ofertas",
+    "#nosotros": "/nosotros",
+    "#tienda": "/nosotros",
+    "#instalaciones": "/nosotros",
+    "#beneficios": "/nosotros",
+    "#sucursales": "/nosotros",
+    "#cambios": "/politicas",
+    "#opiniones": "/preguntas-resenas",
+  };
+  const legacyCategoryHash = hash.match(/^#categoria\/([a-z0-9-]+)$/);
+  const legacyCategory = legacyCategoryHash && (
+    Object.keys(categoryDescriptions).find((item) => categorySlug(item) === legacyCategoryHash[1]) ||
+    Object.entries(legacyCategoryAliases).find(([name]) => categorySlug(name) === legacyCategoryHash[1])?.[1]
+  );
+  const legacyPath = legacyHashRoutes[hash] || (legacyCategory && categoryPath(legacyCategory));
+  if ((location.pathname === "/" || location.pathname === "/index.html") && legacyPath) {
+    history.replaceState(null, "", legacyPath);
+  }
+  const path = location.pathname.replace(/\/+$/, "") || "/";
+  if (
+    path === "/nosotros" ||
+    path === "/tienda" ||
+    (path === "/" && ["#nosotros", "#tienda", "#instalaciones", "#beneficios", "#sucursales"].includes(hash)) ||
+    state?.view === "about" ||
+    state?.view === "store"
+  ) {
     showAboutView({ pushHistory: false });
     return;
   }
-  if (state?.view === "returns" || location.hash === "#cambios") {
-    showReturnsView({ pushHistory: false });
+  if (path === "/politicas" || (path === "/" && hash === "#cambios") || state?.view === "returns") {
+    showPoliciesView({ pushHistory: false });
     return;
   }
-  if (state?.view === "reviews" || location.hash === "#opiniones") {
+  if (path === "/preguntas-resenas" || (path === "/" && hash === "#opiniones") || state?.view === "reviews") {
     showReviewsView({ pushHistory: false });
     return;
   }
+  const departmentRoute = path.match(/^\/departamento\/([a-z0-9-]+)$/);
+  const categoryPathMatch = departmentRoute || hash.match(/^#categoria\/([a-z0-9-]+)$/);
+  const category = categoryPathMatch && Object.keys(categoryDescriptions).find((item) =>
+    categorySlug(item) === categoryPathMatch[1],
+  );
   const stateCategory = legacyCategoryAliases[state?.category] || state?.category;
-  if (state?.view === "category" && categoryDescriptions[stateCategory]) {
-    showCategoryView(stateCategory, { pushHistory: false });
+  if (category || (state?.view === "category" && categoryDescriptions[stateCategory])) {
+    showCategoryView(category || stateCategory, { pushHistory: false });
     return;
   }
-  if (state?.view === "catalog" || location.hash === "#catalogo") {
-    showCatalogView({ filter: state?.filter || "Todos", pushHistory: false });
+  if (path === "/catalogo" || state?.view === "catalog" || hash === "#catalogo" || hash === "#productos" || hash === "#ofertas") {
+    const filter = new URLSearchParams(location.search).get("filtro") === "ofertas" || hash === "#ofertas"
+      ? "Ofertas"
+      : state?.filter || "Todos";
+    showCatalogView({ filter, pushHistory: false });
     return;
   }
-  if (state?.view === "store" || location.hash === "#tienda" || location.hash === "#instalaciones") {
-    showStoreView({ pushHistory: false });
+  if (path === "/" || path === "/index.html" || state?.view === "home" || hash === "#inicio") {
+    showHomeView({ pushHistory: path !== "/" && !state?.view });
     return;
   }
-  if (state?.view === "home") {
-    showHomeView({ filter: state.filter || "Todos", pushHistory: false });
-    return;
-  }
-  const route = location.hash.match(/^#categoria\/([a-z0-9-]+)$/);
-  if (route) {
-    const category = Object.keys(categoryDescriptions).find((item) =>
-      categoryHash(item) === `#categoria/${route[1]}`,
-    );
-    const legacyCategory = Object.entries(legacyCategoryAliases).find(([item]) =>
-      categoryHash(item) === `#categoria/${route[1]}`,
-    );
-    const resolvedCategory = category || legacyCategory?.[1];
-    if (resolvedCategory) {
-      showCategoryView(resolvedCategory, { pushHistory: false });
-      return;
-    }
-  }
-  if (location.hash === "#ofertas") {
-    showCatalogView({ filter: "Ofertas", pushHistory: false });
-    return;
-  }
-  showHomeView({ pushHistory: false });
+  showHomeView({ pushHistory: true });
+}
+
+function navigateToPath(path) {
+  history.pushState(null, "", path);
+  restoreRoute();
 }
 
 function showToast(message) {
@@ -666,7 +698,7 @@ function renderActiveProducts() {
 document.querySelector("#search-form").addEventListener("submit", (event) => {
   event.preventDefault();
   if (activeView !== "category") {
-    showCatalogView({ filter: activeFilter, scrollTarget: "#productos" });
+    showCatalogView({ filter: activeFilter });
     renderProducts(productGrid, activeFilter);
   } else {
     renderActiveProducts();
@@ -675,8 +707,7 @@ document.querySelector("#search-form").addEventListener("submit", (event) => {
 
 searchInput.addEventListener("input", () => {
   if (activeView === "home" && searchInput.value.trim()) {
-    showCatalogView({ pushHistory: false });
-    history.replaceState({ view: "catalog", filter: activeFilter }, "", "#catalogo");
+    showCatalogView();
   }
   if (activeView === "catalog" && searchInput.value.trim() && activeFilter !== "Todos") setActiveFilter("Todos");
   productPages.set(
@@ -695,7 +726,15 @@ document.querySelector(".product-filters").addEventListener("click", (event) => 
 });
 
 departmentFilter.addEventListener("change", () => {
-  setActiveFilter(departmentFilter.value, { clearSearch: true });
+  const selectedDepartment = departmentFilter.value;
+  const department = Object.keys(categoryDescriptions).find((name) =>
+    normalizeText(name) === normalizeText(selectedDepartment),
+  );
+  if (department) {
+    navigateToPath(categoryPath(department));
+    return;
+  }
+  setActiveFilter(selectedDepartment, { clearSearch: true });
   productPages.set(productGrid.id, 1);
   renderProducts(productGrid, activeFilter);
 });
@@ -711,55 +750,19 @@ document.querySelectorAll(".product-pagination").forEach((pagination) => {
   });
 });
 
-document.querySelector(".category-links").addEventListener("click", (event) => {
-  const homeLink = event.target.closest("[data-page-home]");
-  if (homeLink) {
-    event.preventDefault();
-    showHomeView();
-    return;
-  }
-  const catalogLink = event.target.closest("[data-page-catalog]");
-  if (catalogLink) {
-    event.preventDefault();
-    showCatalogView({ clearSearch: true });
-    return;
-  }
-  const storeLink = event.target.closest("[data-page-store]");
-  if (storeLink) {
-    event.preventDefault();
-    showStoreView();
-    return;
-  }
-  if (event.target.closest("[data-page-about]")) {
-    event.preventDefault();
-    showAboutView();
-    return;
-  }
-  if (event.target.closest("[data-page-returns]")) {
-    event.preventDefault();
-    showReturnsView();
-    return;
-  }
-  if (event.target.closest("[data-page-reviews]")) {
-    event.preventDefault();
-    showReviewsView();
-    return;
-  }
-  const link = event.target.closest("[data-category]");
-  if (!link) return;
+document.addEventListener("click", (event) => {
+  const link = event.target.closest("a[data-route]");
+  if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  if (link.origin !== location.origin) return;
+  if (link.target && link.target !== "_self") return;
   event.preventDefault();
-  if (link.dataset.category === "Ofertas") {
-    showCatalogView({ filter: "Ofertas", clearSearch: true });
+  closeMobileCategoryMenu();
+  const category = link.dataset.category;
+  if (category && categoryDescriptions[category]) {
+    navigateToPath(categoryPath(category));
     return;
   }
-  showCategoryView(link.dataset.category);
-});
-
-document.querySelectorAll(".filter-link").forEach((link) => {
-  link.addEventListener("click", (event) => {
-    event.preventDefault();
-    showCatalogView({ filter: link.dataset.filter, clearSearch: true });
-  });
+  navigateToPath(link.pathname + link.search);
 });
 
 function handleProductGridClick(event) {
@@ -799,53 +802,9 @@ featuredProductGrid.addEventListener("click", handleProductGridClick);
 document.querySelector("#category-back-button").addEventListener("click", () => showCatalogView({ clearSearch: true }));
 window.addEventListener("popstate", (event) => restoreRoute(event.state));
 
-document.querySelectorAll('.brand[href="#inicio"]').forEach((brand) => {
-  brand.addEventListener("click", (event) => {
-    event.preventDefault();
-    showHomeView();
-  });
-});
-
-document.querySelectorAll('a[href="#sucursales"], a[href="#beneficios"]').forEach((link) => {
-  link.addEventListener("click", (event) => {
-    event.preventDefault();
-    showStoreView({ scrollTarget: event.currentTarget.getAttribute("href") });
-  });
-});
-
-document.querySelectorAll('a[href="#instalaciones"]').forEach((link) => {
-  link.addEventListener("click", (event) => {
-    event.preventDefault();
-    showStoreView({ scrollTarget: "#instalaciones" });
-  });
-});
-
-document.querySelector(".dashboard-store-preview [data-page-store]").addEventListener("click", (event) => {
-  event.preventDefault();
-  showStoreView();
-});
-
-document.querySelectorAll("footer [data-page-about]").forEach((link) => link.addEventListener("click", (event) => {
-  event.preventDefault();
-  showAboutView();
-}));
-document.querySelectorAll("footer [data-page-returns]").forEach((link) => link.addEventListener("click", (event) => {
-  event.preventDefault();
-  showReturnsView();
-}));
-document.querySelectorAll("footer [data-page-reviews]").forEach((link) => link.addEventListener("click", (event) => {
-  event.preventDefault();
-  showReviewsView();
-}));
-
-document.querySelector("#hero-cta").addEventListener("click", (event) => {
-  event.preventDefault();
-  showCategoryView(event.currentTarget.dataset.category);
-});
-
 document.querySelector("#welcome-catalog-cta").addEventListener("click", (event) => {
   event.preventDefault();
-  showCatalogView({ scrollTarget: "#productos" });
+  navigateToPath("/catalogo");
 });
 
 cartButton.addEventListener("click", () => setCartOpen(true));
@@ -948,84 +907,6 @@ document.querySelector("#mobile-menu-button").addEventListener("click", (event) 
   event.currentTarget.setAttribute("aria-expanded", String(isOpen));
   if (!isOpen) document.querySelector(".departments-menu").open = false;
 });
-
-const slides = [
-  {
-    eyebrow: "FRUTAS Y VERDURAS FRESCAS",
-    title: "Tu fin de semana<br />rinde mucho más en<br />Frutas y Verduras",
-    description: "Color, sabor y frescura para llenar tu mesa.",
-    cta: "Ver frescos",
-    category: "Frutas y Verduras",
-    image: "assets/promo-verduras.jpg",
-    theme: "fresh",
-    sticker: "FRESCO",
-    stickerCopy: "como<br />debe ser",
-  },
-  {
-    eyebrow: "CARNES Y CHARCUTERÍA",
-    title: "Calidad y frescura<br />insuperable en Carnes<br />y Charcutería",
-    description: "El sabor ideal para compartir alrededor de la mesa.",
-    cta: "Ver carnes",
-    category: "Carnes, Aves y Charcutería",
-    image: "assets/promo-carnes.jpg",
-    theme: "meat",
-    sticker: "CALIDAD",
-    stickerCopy: "para<br />compartir",
-  },
-  {
-    eyebrow: "VÍVERES Y DESPENSA",
-    title: "Todo lo esencial<br />para tu hogar<br />al mejor precio",
-    description: "Llena tu despensa con lo que necesitas cada día.",
-    cta: "Ver víveres",
-    category: "Víveres y Alacena",
-    image: "assets/hipermercado-pasillos.png",
-    theme: "pantry",
-    sticker: "ESENCIAL",
-    stickerCopy: "para<br />tu hogar",
-  },
-];
-let activeSlide = 0;
-let heroTransitionTimeout;
-const hero = document.querySelector(".hero");
-
-function selectSlide(index) {
-  if (index === activeSlide) return;
-  activeSlide = index;
-  const slide = slides[index];
-  hero.dataset.slide = String(index);
-  document.querySelector("#hero-image").src = slide.image;
-  document.querySelector("#hero-sticker-title").textContent = slide.sticker;
-  document.querySelector("#hero-sticker-copy").innerHTML = slide.stickerCopy;
-  const heroContent = document.querySelector(".hero-content");
-  heroContent.classList.remove("changing");
-  void heroContent.offsetWidth;
-  heroContent.classList.add("changing");
-  window.clearTimeout(heroTransitionTimeout);
-  heroTransitionTimeout = window.setTimeout(() => heroContent.classList.remove("changing"), 320);
-  document.querySelector("#hero-eyebrow").textContent = slide.eyebrow;
-  document.querySelector("#hero-title").innerHTML = slide.title;
-  document.querySelector("#hero-description").textContent = slide.description;
-  document.querySelector("#hero-cta").firstChild.textContent = `${slide.cta} `;
-  document.querySelector("#hero-cta").dataset.category = slide.category;
-  document.querySelector("#hero-cta").href = categoryHash(slide.category);
-  document.querySelectorAll(".hero-dot").forEach((dot, dotIndex) => {
-    const selected = dotIndex === index;
-    dot.classList.toggle("active", selected);
-    dot.setAttribute("aria-pressed", String(selected));
-  });
-}
-
-document.querySelector(".hero-pagination").addEventListener("click", (event) => {
-  const dot = event.target.closest("[data-slide]");
-  if (dot) selectSlide(Number(dot.dataset.slide));
-});
-
-if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-  window.setInterval(() => {
-    if (activeView !== "catalog" || document.hidden || hero.matches(":hover") || hero.contains(document.activeElement)) return;
-    selectSlide((activeSlide + 1) % slides.length);
-  }, 5000);
-}
 
 const faqSearch = document.querySelector("#faq-search");
 const faqItems = [...document.querySelectorAll("[data-faq-item]")];

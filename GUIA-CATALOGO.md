@@ -24,6 +24,12 @@ El panel requiere correo y contraseña de Supabase. RLS valida `app_metadata.rol
 
 El panel `/admin/` adapta el formulario y el inventario a pantallas pequeñas: en móvil, cada fila de inventario se presenta como una tarjeta con sus datos y acciones.
 
+## Restaurante de comida china
+
+La sección independiente del restaurante vive en `restaurante/`; comparte la conexión de Supabase y el inicio de sesión con rol `admin`, pero sus datos y fotos usan tablas (`restaurant_categories`, `restaurant_products`) y bucket (`restaurant-images`) separados de los del hipermercado. Ejecuta una vez `restaurante/supabase-restaurante.sql` desde el SQL Editor para crear las categorías iniciales, las tablas con RLS, el bucket de imágenes y la señal Realtime. El script es repetible y no crea platos de ejemplo ni inventa precios.
+
+La página pública está en `/restaurante/` y su panel privado en `/restaurante/admin/`. El mismo usuario propietario con `app_metadata.role = admin` puede entrar; desde el panel puede agregar platos, fotos, descripción y precio, editarlos, ocultarlos o eliminarlos. El menú público se actualiza desde Supabase y prepara el pedido por WhatsApp. El formulario y el inventario del panel también se adaptan a móviles.
+
 El logo del encabezado y del pie utiliza el mismo archivo `assets/kristal-logo.png`. El seed opcional carga los 53 productos asociados a fotos compartidas previamente; las tarjetas muestran precios en USD y permiten agregarlos al carrito. Al procesar el pedido, el sitio abre WhatsApp con el resumen para coordinar disponibilidad y entrega.
 
 Si ya configuraste el proyecto, ejecuta `supabase-departamentos.sql` desde **SQL Editor** para asegurar los 11 departamentos del menú y del formulario de `/admin/`: Víveres y Alacena; Frutas y Verduras; Carnes, Aves y Charcutería; Bebidas, Licores y Tabaco; Snacks, Golosinas y Confitería; Cuidado Personal e Higiene; Cuidado del Hogar y Limpieza; Hogar, Bazar y Utensilios; Electrodomésticos y Ferretería; Mascotas; y Congelados. La migración también asigna los productos existentes de bebidas al nuevo departamento y conserva “Lácteos” en “Víveres y Alacena” para los productos de leche en polvo ya cargados. Es seguro volver a ejecutarla; no vuelvas a ejecutar el seed.
@@ -32,9 +38,9 @@ Para una instalación nueva, `supabase-schema.sql` ya crea los mismos 11 departa
 
 ## 1. Navegación, vistas y enlaces
 
-La página principal funciona como una aplicación de vistas independientes: **Inicio** muestra el panel de presentación y la selección destacada; **Catálogo** y cada categoría presentan el inventario disponible consultado en Supabase; **Nuestra tienda** presenta las instalaciones y **Sobre nosotros** tiene una página institucional separada. **Cambios y devoluciones** y **Opiniones y preguntas frecuentes** también cuentan con vistas propias. La navegación cambia de vista sin giros de página y actualiza la URL y el historial; el botón para volver desde una categoría regresa al catálogo.
+La tienda usa rutas independientes en el navegador: `/` muestra Inicio y sus destacados, `/catalogo` muestra el inventario en cuadrícula, `/departamento/<slug>` muestra un único departamento, `/nosotros` presenta la información y fotos de las instalaciones, `/preguntas-resenas` muestra preguntas frecuentes y opiniones, y `/politicas` reúne privacidad, términos y devoluciones. La navegación actualiza la URL y el historial sin desplazarse entre secciones; la configuración `404.html` permite abrir y recargar directamente las rutas en GitHub Pages.
 
-El buscador, el carrito y los accesos por WhatsApp permanecen disponibles en todas las vistas. Los enlaces **Política de privacidad** y **Términos y condiciones** del pie abren `politicas.html` directamente en su sección correspondiente. Esta página explica el uso de datos para pedidos por WhatsApp, la disponibilidad de productos y el proceso de confirmación y pago.
+El buscador, el carrito y los accesos por WhatsApp permanecen disponibles en todas las vistas. El enlace **Política de privacidad y términos** abre `/politicas`, donde se muestran privacidad, condiciones de compra y cambios/devoluciones.
 
 En el pie se agrupan la política de privacidad y los términos en un solo enlace; las preguntas frecuentes aparecen una sola vez dentro de **Opiniones y preguntas frecuentes**, y se eliminó el acceso duplicado de **Contacto y ubicación**.
 
