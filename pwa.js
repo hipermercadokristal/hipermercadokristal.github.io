@@ -1,22 +1,13 @@
 const installAppButtons = [...document.querySelectorAll("[data-install-app]")];
-const mobileInstallBanner = document.querySelector("#mobile-install-banner");
-const mobileViewport = window.matchMedia("(max-width: 767px)");
 let deferredInstallPrompt = null;
 
 function isAppInstalled() {
   return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 }
 
-function updateMobileInstallBanner() {
-  const visible = mobileViewport.matches && !isAppInstalled();
-  mobileInstallBanner.hidden = !visible;
-  document.body.classList.toggle("install-banner-visible", visible);
-}
-
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
-  updateMobileInstallBanner();
 });
 
 async function installApp() {
@@ -24,7 +15,7 @@ async function installApp() {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
       || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     showToast(isIOS
-      ? "Para instalar Kristal, toca Compartir y elige «Añadir a pantalla de inicio»."
+      ? "En iPhone, Safari exige usar Compartir > «Añadir a pantalla de inicio»; no permite iniciar la instalación desde un botón."
       : "Abre el menú del navegador y elige «Instalar app» o «Añadir a pantalla de inicio».");
     return;
   }
@@ -59,7 +50,6 @@ window.addEventListener("appinstalled", () => {
   installAppButtons.forEach((button) => {
     button.hidden = true;
   });
-  updateMobileInstallBanner();
   showToast("Hipermercado Kristal quedó instalada en tu dispositivo.");
 });
 
@@ -68,9 +58,6 @@ if (isAppInstalled()) {
     button.hidden = true;
   });
 }
-
-updateMobileInstallBanner();
-window.addEventListener("resize", updateMobileInstallBanner);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
