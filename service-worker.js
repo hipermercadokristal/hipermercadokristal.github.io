@@ -1,4 +1,4 @@
-const CACHE_NAME = "hipermercado-kristal-v1";
+const CACHE_NAME = "hipermercado-kristal-v2";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -11,6 +11,16 @@ const APP_SHELL = [
   "/assets/app-icons/icon-192.png",
   "/assets/app-icons/icon-512.png",
   "/assets/app-icons/icon-180.png",
+  "/restaurante/",
+  "/restaurante/index.html",
+  "/restaurante/restaurante.css",
+  "/restaurante/restaurante.js",
+  "/restaurante/assets/kristal-logo.png",
+  "/restaurante/assets/kristal-favicon.png",
+  "/restaurante/assets/payment-banks/banco-de-venezuela.png",
+  "/restaurante/assets/payment-banks/banesco.png",
+  "/restaurante/assets/payment-banks/mercantil.png",
+  "/restaurante/assets/payment-banks/provincial.png",
 ];
 const APP_SHELL_PATHS = new Set(APP_SHELL);
 
@@ -43,14 +53,15 @@ self.addEventListener("fetch", (event) => {
   if (
     url.pathname === "/admin"
     || url.pathname.startsWith("/admin/")
-    || url.pathname === "/restaurante"
-    || url.pathname.startsWith("/restaurante/")
+    || url.pathname === "/restaurante/admin"
+    || url.pathname.startsWith("/restaurante/admin/")
   ) return;
 
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(async () => {
-        const cachedApp = await caches.match("/");
+        const fallbackPath = url.pathname.startsWith("/restaurante/") ? "/restaurante/" : "/";
+        const cachedApp = await caches.match(fallbackPath) || await caches.match("/");
         if (cachedApp) return cachedApp;
         throw new Error("No hay una versión guardada de la tienda para abrir sin conexión.");
       }),

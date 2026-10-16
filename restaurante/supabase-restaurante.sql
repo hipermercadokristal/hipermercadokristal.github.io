@@ -25,11 +25,17 @@ create table if not exists public.restaurant_product_events (
 
 insert into public.restaurant_categories (nombre) values
   ('Entradas'),
+  ('Sopas'),
   ('Arroces'),
   ('Tallarines'),
+  ('Chop suey y vegetales'),
   ('Pollo'),
   ('Carnes y mariscos'),
+  ('Carnes y cerdo'),
+  ('Mariscos'),
+  ('Especialidades'),
   ('Combos'),
+  ('Buffet'),
   ('Bebidas')
 on conflict (nombre) do nothing;
 

@@ -1,64 +1,251 @@
 <!doctype html>
 <html lang="es">
   <head>
+    <meta name="google-site-verification" content="CiGjSftEml-1rmGK8r1b04RR2k_JclvGyqyx0A2McD0" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#74251e" />
-    <meta name="description" content="Explora el menú de comida china de Hipermercado Kristal y prepara tu pedido por WhatsApp." />
-    <title>Restaurante Kristal | Comida china</title>
-    <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="restaurante.css" />
+    <meta name="theme-color" content="#0f3822" />
+    <meta name="description" content="Sabores de la comida china venezolana en Restaurante Kristal, Villa Bruzual. Arma tu pedido para delivery o retiro." />
+    <title>Restaurante Kristal | Sabor chino venezolano</title>
+    <link rel="icon" type="image/png" href="assets/kristal-favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="restaurante.css?v=monto-transferencia-total-2026-10" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
-    <script src="restaurante.js" defer></script>
+    <script src="restaurante.js?v=monto-transferencia-total-2026-10" defer></script>
   </head>
   <body>
     <header class="restaurant-header">
       <a class="restaurant-brand" href="./" aria-label="Restaurante Kristal, inicio">
-        <img src="../assets/kristal-logo.png" alt="" />
-        <span><strong>Restaurante Kristal</strong><small>Comida china en Villa Bruzual</small></span>
+        <img src="assets/kristal-logo.png" alt="" />
+        <span><strong>Restaurante Kristal</strong><small>Comida china · Villa Bruzual</small></span>
       </a>
-      <nav aria-label="Navegación principal">
-        <a href="../">Hipermercado</a>
+      <nav class="header-actions" aria-label="Navegación principal">
+        <a class="header-menu-link" href="#menu">La carta</a>
+        <button class="payment-open-button" id="payment-open" type="button">
+          <svg viewBox="0 0 48 42" aria-hidden="true" focusable="false">
+            <rect x="1" y="1" width="46" height="40" rx="10" fill="#e8f7f5" />
+            <path d="M12 12h15M12 20h15M12 28h15" stroke="#e8a900" stroke-linecap="round" stroke-width="3" />
+            <rect x="31" y="9" width="11" height="24" rx="3" fill="#08aaa4" />
+            <path d="M34 13h5M34 18h5M34 23h5" stroke="#fff" stroke-linecap="round" stroke-width="1.6" />
+          </svg>
+          <span>Pago Móvil</span>
+        </button>
         <a class="admin-link" href="admin/">Administración</a>
+        <div class="rate-chip" aria-live="polite">
+          <span class="rate-dot" aria-hidden="true"></span>
+          <span id="exchange-rate">Consultando BCV…</span>
+          <button class="rate-refresh" id="rate-refresh" type="button" aria-label="Actualizar tasa BCV" title="Actualizar tasa">↻</button>
+        </div>
       </nav>
     </header>
     <main>
       <section class="restaurant-hero">
+        <div class="hero-shade"></div>
         <div class="hero-copy">
-          <span class="eyebrow">SABOR PARA COMPARTIR</span>
-          <h1>Disfruta la comida china de Kristal</h1>
-          <p>Explora el menú, elige tus favoritos y coordina tu pedido directamente con nuestro equipo.</p>
+          <span class="eyebrow"><span class="eyebrow-line"></span>TRADICIÓN CHINA, CORAZÓN VENEZOLANO</span>
+          <h1>El sabor que<br /><em>nos reúne.</em></h1>
+          <p>Arroz recién salteado, platos para compartir y ese toque criollo que sabe a casa.</p>
+          <a class="hero-cta" href="#menu">Explorar la carta <span aria-hidden="true">↓</span></a>
+          <div class="hero-note"><span aria-hidden="true">✳</span> Preparado al momento en Villa Bruzual</div>
         </div>
-        <div class="hero-art" aria-hidden="true">
-          <span class="hero-stamp">KRISTAL<br />食</span>
-          <span class="hero-orbit hero-orbit-one"></span>
-          <span class="hero-orbit hero-orbit-two"></span>
-          <span class="hero-chopsticks"></span>
+        <div class="hero-seal" aria-label="Restaurante Kristal">
+          <span class="seal-top">RESTAURANTE</span>
+          <span class="seal-mark">食</span>
+          <span class="seal-bottom">KRISTAL · DESDE SIEMPRE</span>
         </div>
+      </section>
+      <section class="trust-strip" aria-label="Información del restaurante">
+        <span><b>01</b> Sabor chino venezolano</span>
+        <span><b>02</b> Pide por WhatsApp</span>
+        <span><b>03</b> Delivery o retiro</span>
+        <span class="strip-location">Villa Bruzual · Portuguesa</span>
+      </section>
+      <section class="buffet-section" aria-labelledby="buffet-heading">
+        <div class="buffet-intro">
+          <span class="eyebrow"><span class="eyebrow-line"></span>HECHO A TU GUSTO</span>
+          <h2 id="buffet-heading">Arma tu plato.</h2>
+          <p>Una base, tus proteínas favoritas y algo rico para acompañar. Tú eliges la combinación.</p>
+          <div class="buffet-mark" aria-hidden="true">KRISTAL <span>✳</span> BUFFET</div>
+        </div>
+        <form class="buffet-builder" id="buffet-form">
+          <fieldset class="buffet-group buffet-sizes">
+            <legend>Elige el tamaño</legend>
+            <div class="buffet-options">
+              <label class="buffet-choice"><input type="radio" name="buffet-size" value="Pequeño" data-price="8.50" checked /><span><strong>Pequeño</strong><small>1 base · 1 proteína</small><b data-buffet-price="8.50">$8.50</b></span></label>
+              <label class="buffet-choice"><input type="radio" name="buffet-size" value="Mediano" data-price="11.50" /><span><strong>Mediano</strong><small>1 base · hasta 2 proteínas</small><b data-buffet-price="11.50">$11.50</b></span></label>
+              <label class="buffet-choice"><input type="radio" name="buffet-size" value="Grande" data-price="14.50" /><span><strong>Grande</strong><small>1 base · hasta 3 proteínas</small><b data-buffet-price="14.50">$14.50</b></span></label>
+            </div>
+          </fieldset>
+          <fieldset class="buffet-group">
+            <legend>Escoge una base</legend>
+            <div class="buffet-options buffet-tile-options">
+              <label class="buffet-tile"><input type="radio" name="buffet-base" value="Arroz chino" required /><span>Arroz chino</span></label>
+              <label class="buffet-tile"><input type="radio" name="buffet-base" value="Tallarines salteados" /><span>Tallarines salteados</span></label>
+              <label class="buffet-tile"><input type="radio" name="buffet-base" value="Chop suey de vegetales" /><span>Chop suey de vegetales</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="buffet-group">
+            <legend>Elige tus proteínas <small id="protein-hint">· hasta 1</small></legend>
+            <div class="buffet-options buffet-tile-options">
+              <label class="buffet-tile"><input type="checkbox" name="buffet-protein" value="Pollo agridulce" /><span>Pollo agridulce</span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-protein" value="Pollo con vegetales" /><span>Pollo con vegetales</span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-protein" value="Carne en salsa de ostras" /><span>Carne en salsa de ostras</span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-protein" value="Cerdo agridulce" /><span>Cerdo agridulce</span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-protein" value="Camarones salteados" /><span>Camarones salteados</span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-protein" value="Costillitas chinas" /><span>Costillitas chinas</span></label>
+            </div>
+          </fieldset>
+          <fieldset class="buffet-group">
+            <legend>Acompañantes y extras <small>· cada extra suma al plato</small></legend>
+            <div class="buffet-options buffet-tile-options">
+              <label class="buffet-tile"><input type="checkbox" name="buffet-extra" value="Papas fritas" data-price="2.50" /><span>Papas fritas <small>+$2.50</small></span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-extra" value="Chop suey extra" data-price="3.00" /><span>Chop suey extra <small>+$3.00</small></span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-extra" value="Tajadas" data-price="2.00" /><span>Tajadas <small>+$2.00</small></span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-extra" value="Arroz chino extra" data-price="2.50" /><span>Arroz chino extra <small>+$2.50</small></span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-extra" value="Lumpias" data-price="2.00" /><span>Lumpias <small>+$2.00</small></span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-extra" value="Wantones fritos" data-price="2.50" /><span>Wantones fritos <small>+$2.50</small></span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-extra" value="Ensalada china" data-price="1.50" /><span>Ensalada china <small>+$1.50</small></span></label>
+              <label class="buffet-tile"><input type="checkbox" name="buffet-extra" value="Salsa agridulce" data-price="0.75" /><span>Salsa agridulce <small>+$0.75</small></span></label>
+            </div>
+          </fieldset>
+          <div class="buffet-submit">
+            <p>Tu plato desde <strong id="buffet-price">$8.50</strong><small class="buffet-ves" id="buffet-price-ves"></small></p>
+            <button class="buffet-add-button" type="submit">Agregar al pedido <span aria-hidden="true">+</span></button>
+          </div>
+          <p class="buffet-error" id="buffet-error" role="status" aria-live="polite"></p>
+        </form>
       </section>
       <section class="menu-section" id="menu">
         <header class="menu-heading">
-          <div><span class="eyebrow">RESTAURANTE KRISTAL</span><h2>Nuestro menú</h2><p>Consulta disponibilidad y coordina tu pedido por WhatsApp.</p></div>
-          <label class="search-label" for="dish-search">Buscar en el menú
-            <input id="dish-search" type="search" placeholder="Ej.: arroz, pollo..." />
+          <div class="menu-heading-copy">
+            <span class="eyebrow"><span class="eyebrow-line"></span>RECIÉN SALIDO DEL WOK</span>
+            <h2>La carta</h2>
+            <p>Clásicos criollos, combos para compartir y antojos para cualquier día. Precios referenciales en USD con equivalente diario en Bs. a tasa BCV.</p>
+          </div>
+          <label class="search-label" for="dish-search">
+            <span>¿Qué se te antoja?</span>
+            <span class="search-wrap"><span aria-hidden="true">⌕</span><input id="dish-search" type="search" placeholder="Busca un plato..." /></span>
           </label>
         </header>
         <nav class="category-filter" id="category-filter" aria-label="Filtrar por categoría"></nav>
-        <p class="catalog-status" id="catalog-status" role="status" aria-live="polite">Cargando el menú…</p>
+        <p class="catalog-status" id="catalog-status" role="status" aria-live="polite">Cargando la carta…</p>
         <div class="dish-grid" id="dish-grid" aria-live="polite"></div>
       </section>
-      <section class="order-banner">
-        <div><span class="eyebrow">¿LISTO PARA PEDIR?</span><h2>Tu pedido, directo por WhatsApp</h2><p>El equipo confirmará disponibilidad, precio final y forma de entrega.</p></div>
-        <button id="order-button" type="button" disabled>Preparar pedido <span id="order-count">0</span></button>
+      <section class="order-callout">
+        <span class="callout-ornament" aria-hidden="true">食</span>
+        <div><span class="eyebrow">EL PRÓXIMO ANTOJO VA POR NUESTRA CUENTA</span><h2>Lo bueno se comparte.</h2><p>Arma tu pedido y nosotros nos encargamos del sabor.</p></div>
+        <a href="#menu">Elegir mis platos <span aria-hidden="true">→</span></a>
       </section>
     </main>
     <footer class="restaurant-footer">
-      <a href="../">← Volver a Hipermercado Kristal</a>
+      <a class="footer-brand" href="./"><img src="assets/kristal-logo.png" alt="" /><strong>Restaurante Kristal</strong></a>
+      <a href="../">← Hipermercado Kristal</a>
       <span>Villa Bruzual (Turén), Estado Portuguesa</span>
-      <span>Los precios y la disponibilidad se confirman al coordinar el pedido.</span>
+      <span>Fotografías referenciales. Confirma precios y disponibilidad al ordenar.</span>
+      <button class="footer-payment-link" id="footer-payment-open" type="button">Pago Móvil</button>
+      <a href="admin/">Administración</a>
     </footer>
+    <dialog class="payment-dialog" id="payment-dialog" aria-labelledby="payment-heading">
+      <section class="payment-panel">
+        <header class="payment-dialog-header">
+          <div>
+            <span class="eyebrow"><span class="eyebrow-line"></span>PAGO MÓVIL</span>
+            <h2 id="payment-heading">Elige tu banco</h2>
+          </div>
+          <button class="dialog-close" id="payment-close" type="button" aria-label="Cerrar Pago Móvil">×</button>
+        </header>
+        <div class="payment-dialog-content">
+          <p class="payment-success-message" id="payment-success-message" role="status" aria-live="polite" hidden></p>
+          <section id="payment-bank-list" aria-label="Bancos disponibles">
+            <p class="payment-dialog-intro">Selecciona tu banco para consultar los datos de pago.</p>
+            <div class="payment-bank-grid">
+              <button class="payment-bank-card bank-venezuela" type="button" data-payment-bank="Banco de Venezuela" data-payment-code="0102" data-payment-logo="assets/payment-banks/banco-de-venezuela.png" aria-label="Banco de Venezuela, código 0102">
+                <span class="payment-bank-logo"><img src="assets/payment-banks/banco-de-venezuela.png" alt="" /><strong>Banco de Venezuela</strong></span>
+                <span class="payment-bank-code">0102</span>
+                <span class="bank-card-arrow" aria-hidden="true">→</span>
+              </button>
+              <button class="payment-bank-card bank-provincial" type="button" data-payment-bank="BBVA Provincial" data-payment-code="0108" data-payment-logo="assets/payment-banks/provincial.png" aria-label="BBVA Provincial, código 0108">
+                <span class="payment-bank-logo"><img src="assets/payment-banks/provincial.png" alt="" /><strong>Provincial</strong></span>
+                <span class="payment-bank-code">0108</span>
+                <span class="bank-card-arrow" aria-hidden="true">→</span>
+              </button>
+              <button class="payment-bank-card bank-banesco" type="button" data-payment-bank="Banesco" data-payment-code="0134" data-payment-logo="assets/payment-banks/banesco.png" aria-label="Banesco, código 0134">
+                <span class="payment-bank-logo"><img src="assets/payment-banks/banesco.png" alt="" /><strong>Banesco</strong></span>
+                <span class="payment-bank-code">0134</span>
+                <span class="bank-card-arrow" aria-hidden="true">→</span>
+              </button>
+              <button class="payment-bank-card bank-mercantil" type="button" data-payment-bank="Mercantil" data-payment-code="0105" data-payment-logo="assets/payment-banks/mercantil.png" aria-label="Mercantil, código 0105">
+                <span class="payment-bank-logo"><img src="assets/payment-banks/mercantil.png" alt="" /><strong>Mercantil</strong></span>
+                <span class="payment-bank-code">0105</span>
+                <span class="bank-card-arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
+          </section>
+          <section class="payment-bank-detail" id="payment-bank-detail" aria-live="polite" hidden>
+            <button class="payment-back-button" id="payment-back" type="button"><span aria-hidden="true">←</span> Volver a los bancos</button>
+            <div class="payment-detail-card">
+              <span class="payment-detail-brand"><img id="payment-detail-logo" src="assets/payment-banks/banco-de-venezuela.png" alt="" /></span>
+              <h3 id="payment-detail-bank"></h3>
+              <p>Datos para realizar tu Pago Móvil</p>
+              <dl class="payment-data">
+                <div><dt>Código del banco</dt><dd><button class="payment-copy-field" id="payment-code" type="button" data-copy-label="Código bancario">0102</button></dd></div>
+                <div><dt>Teléfono</dt><dd><button class="payment-copy-field" id="payment-phone" type="button" data-copy-label="Teléfono">04245104430</button></dd></div>
+                <div><dt>Cédula / RIF</dt><dd><button class="payment-copy-field" id="payment-id" type="button" data-copy-label="Cédula / RIF">V-26199919</button></dd></div>
+              </dl>
+              <section class="payment-order-amount" aria-label="Monto del pedido">
+                <div class="payment-amount-display">
+                  <small>Monto en bolívares</small>
+                  <span id="payment-total-usd">$0.00 REF.</span>
+                  <button class="payment-amount-copy" id="payment-total-ves" type="button" data-copy-label="Monto en bolívares">Pendiente de tasa BCV</button>
+                </div>
+                <small id="payment-rate-note">Confirma el monto final con el restaurante antes de transferir.</small>
+              </section>
+              <button class="payment-copy-button" id="payment-copy" type="button">Copiar todo</button>
+              <p class="payment-copy-status" id="payment-copy-status" role="status" aria-live="polite" hidden></p>
+              <button class="payment-continue-button" id="payment-continue-whatsapp" type="button" hidden>Continuar a WhatsApp <span aria-hidden="true">↗</span></button>
+              <small>Confirma el monto final con el restaurante antes de transferir.</small>
+            </div>
+          </section>
+        </div>
+      </section>
+    </dialog>
+    <aside class="cart-bar" id="cart-bar" aria-label="Resumen de tu carrito">
+      <div class="cart-bar-info"><span class="cart-bag" aria-hidden="true">▣</span><span><strong id="order-count">0</strong> productos</span><span class="cart-bar-divider"></span><span class="cart-subtotal-label">Subtotal</span><span class="cart-totals"><strong id="cart-total-usd">$0.00</strong><small id="cart-total-ves">Tasa BCV pendiente</small></span></div>
+      <button class="cart-open-button" id="order-button" type="button" disabled>Ver pedido <span aria-hidden="true">→</span></button>
+    </aside>
+    <dialog class="order-dialog" id="order-dialog" aria-labelledby="order-heading">
+      <div class="dialog-panel">
+        <header class="dialog-header">
+          <div><span class="eyebrow"><span class="eyebrow-line"></span>CASI LISTO</span><h2 id="order-heading">Tu pedido</h2></div>
+          <button class="dialog-close" id="order-close" type="button" aria-label="Cerrar resumen">×</button>
+        </header>
+        <div class="dialog-scroll">
+          <section class="order-lines" id="order-lines" aria-label="Productos seleccionados"></section>
+          <section class="order-total" aria-live="polite"><span>Subtotal estimado</span><strong id="dialog-total-usd">$0.00</strong><small id="dialog-total-ves">Tasa BCV pendiente</small></section>
+          <form class="customer-form" id="customer-form">
+            <h3>¿A nombre de quién?</h3>
+            <div class="customer-fields">
+              <label>Nombre<input name="customer-name" autocomplete="name" placeholder="Tu nombre" required maxlength="80" /></label>
+              <label>Teléfono<input name="customer-phone" type="tel" autocomplete="tel" placeholder="Ej. 0412 123 4567" required minlength="7" maxlength="25" /></label>
+            </div>
+            <label>Método de entrega
+              <select id="fulfillment-method" name="fulfillment" required>
+                <option value="Retiro en el local">Retiro en el local</option>
+                <option value="Delivery">Delivery</option>
+              </select>
+            </label>
+            <label id="delivery-address-row" hidden>Dirección de entrega<input id="delivery-address" name="address" autocomplete="street-address" placeholder="Sector, calle, casa o punto de referencia" maxlength="180" /></label>
+            <label>Notas especiales <span class="optional-label">· opcional</span><textarea id="order-notes" name="notes" rows="3" placeholder="Sin cebolla, salsa extra..." maxlength="400"></textarea></label>
+            <p class="form-hint">El equipo confirmará disponibilidad, total final y cobertura de delivery por WhatsApp.</p>
+            <button class="whatsapp-submit" id="whatsapp-submit" type="submit">Enviar pedido por WhatsApp <span aria-hidden="true">↗</span></button>
+          </form>
+        </div>
+      </div>
+    </dialog>
     <div class="toast" id="restaurant-toast" role="status" aria-live="polite"></div>
   </body>
 </html>

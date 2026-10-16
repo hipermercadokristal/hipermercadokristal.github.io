@@ -30,13 +30,15 @@ El panel requiere correo y contraseña de Supabase. RLS valida `app_metadata.rol
 
 El panel `/admin/` adapta el formulario y el inventario a pantallas pequeñas: en móvil, cada fila de inventario se presenta como una tarjeta con sus datos y acciones.
 
-## Restaurante de comida china
+## Restaurante Kristal dentro de la app
 
-La sección independiente del restaurante vive en `restaurante/`; comparte la conexión de Supabase y el inicio de sesión con rol `admin`, pero sus datos y fotos usan tablas (`restaurant_categories`, `restaurant_products`) y bucket (`restaurant-images`) separados de los del hipermercado. Ejecuta una vez `restaurante/supabase-restaurante.sql` desde el SQL Editor para crear las categorías iniciales, las tablas con RLS, el bucket de imágenes y la señal Realtime. El script es repetible y no crea platos de ejemplo ni inventa precios.
+El restaurante está integrado en la misma app instalable y se abre desde **Restaurante Kristal** en la navegación de la tienda o desde el pie de página. Su página `/restaurante/` incluye carta con búsqueda y categorías, buffet personalizable, carrito, tasa BCV, datos de Pago Móvil y el flujo de pedido por WhatsApp. Desde su pie de página se puede volver al hipermercado.
 
-La página pública está en `/restaurante/` y su panel privado en `/restaurante/admin/`. El mismo usuario propietario con `app_metadata.role = admin` puede entrar; desde el panel puede agregar platos, fotos, descripción y precio, editarlos, ocultarlos o eliminarlos. El menú público se actualiza desde Supabase y prepara el pedido por WhatsApp. El formulario y el inventario del panel también se adaptan a móviles.
+La carta combina platos de presentación con productos administrados en Supabase. Las fotos y precios de presentación son referenciales; el equipo confirma la disponibilidad y el total final por WhatsApp. Antes de abrir WhatsApp, el cliente puede seleccionar Banco de Venezuela (0102), Provincial (0108), Banesco (0134) o Mercantil (0105), copiar los datos de pago y el monto en bolívares. Debe esperar la confirmación de la tienda antes de transferir.
 
-El logo del encabezado y del pie utiliza el mismo archivo `assets/kristal-logo.png`. El seed opcional carga los 53 productos asociados a fotos compartidas previamente; las tarjetas muestran precios en USD y permiten agregarlos al carrito. Al procesar el pedido, el sitio abre WhatsApp con el resumen para coordinar disponibilidad y entrega.
+El panel del restaurante está en `/restaurante/admin/`; el inventario del hipermercado está en `/admin/`. Ambos requieren una cuenta de Supabase con `app_metadata.role = admin`. Se puede entrar a los dos paneles desde los enlaces de administración del pie de página. Los productos del restaurante y sus fotos usan tablas (`restaurant_categories`, `restaurant_products`) y el bucket (`restaurant-images`), separados de los del hipermercado. Ejecuta `restaurante/supabase-restaurante.sql` desde SQL Editor para crear o actualizar las categorías, tablas, políticas RLS, bucket y señal Realtime; es seguro volver a ejecutarlo.
+
+La app conserva en caché la estructura del menú y sus recursos principales, pero cargar la carta desde Supabase, consultar la tasa BCV, usar Pago Móvil y enviar pedidos requiere conexión a Internet.
 
 Si ya configuraste el proyecto, ejecuta `supabase-departamentos.sql` desde **SQL Editor** para asegurar los 11 departamentos del menú y del formulario de `/admin/`: Víveres y Alacena; Frutas y Verduras; Carnes, Aves y Charcutería; Bebidas, Licores y Tabaco; Snacks, Golosinas y Confitería; Cuidado Personal e Higiene; Cuidado del Hogar y Limpieza; Hogar, Bazar y Utensilios; Electrodomésticos y Ferretería; Mascotas; y Congelados. La migración también asigna los productos existentes de bebidas al nuevo departamento y conserva “Lácteos” en “Víveres y Alacena” para los productos de leche en polvo ya cargados. Es seguro volver a ejecutarla; no vuelvas a ejecutar el seed.
 
