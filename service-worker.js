@@ -1,4 +1,4 @@
-const CACHE_NAME = "hipermercado-kristal-v16";
+const CACHE_NAME = "hipermercado-kristal-v17";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -17,6 +17,12 @@ const APP_SHELL = [
   "/delivery/index.html",
   "/delivery/delivery.css",
   "/delivery/delivery.js",
+  "/caja/",
+  "/caja/index.html",
+  "/admin/admin.css",
+  "/admin/admin.js",
+  "/supabase-config.js",
+  "/supabase-client.js",
   "/restaurante/",
   "/restaurante/index.html",
   "/restaurante/restaurante.css",
@@ -68,9 +74,11 @@ self.addEventListener("fetch", (event) => {
       fetch(request).catch(async () => {
         const fallbackPath = url.pathname.startsWith("/delivery/")
           ? "/delivery/"
-          : url.pathname.startsWith("/restaurante/")
-            ? "/restaurante/"
-            : "/";
+          : url.pathname.startsWith("/caja/")
+            ? "/caja/"
+            : url.pathname.startsWith("/restaurante/")
+              ? "/restaurante/"
+              : "/";
         const cachedApp = await caches.match(fallbackPath) || await caches.match("/");
         if (cachedApp) return cachedApp;
         throw new Error("No hay una versión guardada de la tienda para abrir sin conexión.");

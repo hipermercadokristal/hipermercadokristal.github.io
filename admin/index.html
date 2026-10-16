@@ -6,20 +6,20 @@
     <meta name="theme-color" content="#0f3822" />
     <title>Administración | Hipermercado Kristal</title>
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="admin.css?v=delivery-roles-20261016" />
+    <link rel="stylesheet" href="admin.css?v=cashier-separation-20261016" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
-    <script src="admin.js?v=delivery-roles-20261016" defer></script>
+    <script src="admin.js?v=cashier-separation-20261016" defer></script>
   </head>
   <body>
-    <main class="admin-shell">
+    <main class="admin-shell" data-staff-page="admin">
       <a class="back-link" href="../index.html">← Volver a la tienda</a>
       <section class="auth-card" id="auth-section" aria-labelledby="login-heading">
         <img src="../assets/kristal-logo.png" alt="Hipermercado Kristal" />
         <p class="eyebrow">ACCESO PRIVADO</p>
         <h1 id="login-heading">Administración</h1>
-        <p class="intro">El acceso a inventario, caja y pedidos depende del rol seguro asignado a tu cuenta.</p>
+        <p class="intro">Acceso exclusivo del propietario para administrar el inventario y el equipo.</p>
         <form id="login-form">
           <label for="login-email">Correo electrónico</label>
           <input id="login-email" name="email" type="email" autocomplete="username" required />
@@ -41,33 +41,17 @@
         </header>
         <p class="status-message" id="dashboard-status" role="status" aria-live="polite"></p>
 
-        <section class="panel" id="staff-scan-panel" aria-labelledby="staff-scan-heading" hidden>
-          <div class="panel-heading">
-            <div><p class="eyebrow">TICKETS Y ENTREGAS</p><h2 id="staff-scan-heading">Validar código QR</h2></div>
-          </div>
-          <p class="intro">Valida aquí tickets de retiro en caja. La confirmación de entregas se hace desde el módulo de reparto.</p>
-          <form id="staff-scan-form">
-            <label for="staff-scan-purpose">Tipo de código</label>
-            <select id="staff-scan-purpose" name="purpose">
-              <option value="pickup">Ticket de retiro en caja</option>
-            </select>
-            <label for="staff-scan-token">Código del pedido</label>
-            <input id="staff-scan-token" name="token" autocomplete="off" required />
-            <button class="primary-button" type="submit">Validar código</button>
-          </form>
-          <p class="status-message" id="staff-scan-status" role="status" aria-live="polite"></p>
-          <div id="staff-scan-result" aria-live="polite"></div>
-        </section>
-
-        <section class="panel product-form-panel" id="admin-product-form-panel" aria-labelledby="product-form-heading">
-          <div class="panel-heading">
-            <div>
-              <p class="eyebrow">GESTIÓN</p>
-              <h2 id="product-form-heading">Agregar producto</h2>
+        <details class="product-form-compact" id="product-form-details">
+          <summary>Agregar un producto al inventario</summary>
+          <section class="panel product-form-panel" id="admin-product-form-panel" aria-labelledby="product-form-heading">
+            <div class="panel-heading">
+              <div>
+                <p class="eyebrow">GESTIÓN</p>
+                <h2 id="product-form-heading">Agregar producto</h2>
+              </div>
+              <button class="text-button" id="cancel-edit-button" type="button" hidden>Cancelar edición</button>
             </div>
-            <button class="text-button" id="cancel-edit-button" type="button" hidden>Cancelar edición</button>
-          </div>
-          <form id="product-form">
+            <form id="product-form">
             <div class="form-grid">
               <label class="field field-wide" for="product-name">Nombre del producto
                 <input id="product-name" name="nombre" type="text" maxlength="140" required />
@@ -98,7 +82,29 @@
               </label>
             </div>
             <button class="primary-button submit-button" id="save-product-button" type="submit">Guardar producto</button>
+            </form>
+          </section>
+        </details>
+
+        <section class="panel staff-management-panel" id="staff-management-panel" aria-labelledby="staff-management-heading">
+          <div class="panel-heading">
+            <div><p class="eyebrow">ACCESOS</p><h2 id="staff-management-heading">Equipo y permisos</h2></div>
+          </div>
+          <p class="intro">Primero crea o invita la cuenta en Supabase → Authentication → Users. Luego asígnale aquí el acceso de caja o reparto.</p>
+          <form class="staff-role-form" id="staff-role-form">
+            <label class="field" for="staff-email">Correo de la cuenta
+              <input id="staff-email" name="email" type="email" autocomplete="off" required />
+            </label>
+            <label class="field" for="staff-role">Acceso
+              <select id="staff-role" name="role" required>
+                <option value="operator">Caja · operador</option>
+                <option value="courier">Repartidor</option>
+              </select>
+            </label>
+            <button class="primary-button" type="submit">Guardar acceso</button>
           </form>
+          <p class="status-message" id="staff-role-status" role="status" aria-live="polite"></p>
+          <p class="staff-role-help">El personal deberá cerrar sesión y volver a entrar para que se active el permiso.</p>
         </section>
 
         <section class="panel inventory-panel" id="admin-inventory-panel" aria-labelledby="inventory-heading">
@@ -127,7 +133,22 @@
           <p class="empty-inventory" id="empty-inventory" hidden>Aún no hay productos en el inventario.</p>
         </section>
 
-        <section class="panel order-inbox-panel" id="order-inbox-panel" aria-labelledby="order-inbox-heading">
+        <section class="panel deleted-products-panel" id="deleted-products-panel" aria-labelledby="deleted-products-heading">
+          <div class="panel-heading">
+            <div><p class="eyebrow">HISTORIAL</p><h2 id="deleted-products-heading">Productos eliminados</h2></div>
+            <button class="secondary-button" id="refresh-deleted-products-button" type="button">Actualizar historial</button>
+          </div>
+          <p class="intro">Los productos eliminados quedan archivados y se pueden restaurar. Sus fotos y registros de pedidos se conservan.</p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Producto</th><th>Eliminado</th><th>Acciones</th></tr></thead>
+              <tbody id="deleted-product-rows"></tbody>
+            </table>
+          </div>
+          <p class="empty-inventory" id="empty-deleted-products" hidden>No hay productos eliminados.</p>
+        </section>
+
+        <section class="panel order-inbox-panel" id="order-inbox-panel" aria-labelledby="order-inbox-heading" hidden>
           <div class="panel-heading">
             <div>
               <p class="eyebrow">CAJA</p>

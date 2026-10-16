@@ -566,7 +566,7 @@
           p_purpose: section.dataset.qrPurpose,
         });
         if (error) throw error;
-        const scanUrl = new URL(section.dataset.qrPurpose === "delivery" ? "/delivery/" : "/admin/", window.location.origin);
+        const scanUrl = new URL(section.dataset.qrPurpose === "delivery" ? "/delivery/" : "/caja/", window.location.origin);
         scanUrl.hash = new URLSearchParams({ scan: section.dataset.qrPurpose, token }).toString();
         const qr = window.qrcode(0, "M");
         qr.addData(scanUrl.toString());

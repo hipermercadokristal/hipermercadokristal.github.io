@@ -44,6 +44,12 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .panel { margin-top: 18px; padding: 24px; }
 .panel-heading { margin-bottom: 22px; }
 .text-button { padding: 8px 0; border: 0; background: transparent; color: #27633b; font-size: 13px; font-weight: 800; }
+.product-form-compact { margin-top: 18px; border: 1px solid #dfe9e1; border-radius: 12px; background: #f9fcf9; }
+.product-form-compact > summary { min-height: 54px; display: flex; align-items: center; padding: 0 18px; color: #205a34; font-size: 14px; font-weight: 800; cursor: pointer; list-style: none; }
+.product-form-compact > summary::-webkit-details-marker { display: none; }
+.product-form-compact > summary::after { margin-left: auto; content: "+"; font-size: 20px; }
+.product-form-compact[open] > summary::after { content: "−"; }
+.product-form-compact > .product-form-panel { margin-top: 0; border: 0; border-top: 1px solid #e6eee7; border-radius: 0 0 12px 12px; box-shadow: none; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
 .field { display: grid; align-content: start; gap: 7px; margin-bottom: 16px; color: #344b3c; font-size: 13px; font-weight: 700; }
 .field-wide { grid-column: 1 / -1; }
@@ -57,12 +63,16 @@ th { color: #728078; font-size: 10px; letter-spacing: .6px; text-transform: uppe
 td:first-child { min-width: 210px; font-weight: 700; }
 .inventory-product { display: flex; align-items: center; gap: 10px; }
 .inventory-product img { width: 44px; height: 44px; border: 1px solid #edf0ed; border-radius: 6px; object-fit: contain; }
+.deleted-product-price { display: block; margin-top: 4px; color: #748179; font-size: 10px; font-weight: 500; }
 .stock-label { display: inline-block; padding: 5px 8px; border-radius: 20px; background: #e6f4e9; color: #27663a; font-size: 10px; font-weight: 800; }
 .stock-label.unavailable { background: #fff0ee; color: #a13d34; }
 .row-actions { display: flex; flex-wrap: wrap; gap: 6px; min-width: 210px; }
 .row-actions button { padding: 7px 9px; border: 1px solid #dce6dd; border-radius: 6px; background: #fff; color: #345441; font-size: 11px; font-weight: 700; }
 .row-actions .delete-button { border-color: #f0d9d6; color: #a13d34; }
 .empty-inventory { margin: 18px 0 0; color: #748179; font-size: 13px; }
+.staff-role-form { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(190px, 1fr) auto; align-items: end; gap: 12px; }
+.staff-role-form .field { margin-bottom: 0; }
+.staff-role-help { margin: 12px 0 0; color: #748179; font-size: 12px; }
 .admin-orders-list { display: grid; gap: 14px; }
 .admin-order-card { padding: 16px; border: 1px solid #e3eae4; border-radius: 10px; background: #fbfdfb; }
 .admin-order-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
@@ -99,6 +109,7 @@ td:first-child { min-width: 210px; font-weight: 700; }
   .dashboard-header, .panel-heading { align-items: flex-start; }
   .dashboard-header { flex-wrap: wrap; gap: 10px; }
   .dashboard-header .secondary-button { min-height: 40px; }
+  .staff-role-form { grid-template-columns: 1fr; }
   .dashboard-header h1 { font-size: 26px; }
   .panel { margin-top: 14px; padding: 17px; }
   .panel-heading { gap: 10px; margin-bottom: 17px; }

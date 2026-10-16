@@ -15,6 +15,10 @@ const cancelEditButton = document.querySelector("#cancel-edit-button");
 const adminOrdersList = document.querySelector("#admin-orders-list");
 const adminOrdersStatus = document.querySelector("#orders-admin-status");
 const emptyOrders = document.querySelector("#empty-orders");
+const staffPage = document.querySelector("[data-staff-page]")?.dataset.staffPage || "admin";
+const deletedProductRows = document.querySelector("#deleted-product-rows");
+const emptyDeletedProducts = document.querySelector("#empty-deleted-products");
+const staffRoleForm = document.querySelector("#staff-role-form");
 const currency = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
 const departmentNames = [
   "Víveres y Alacena",
@@ -35,7 +39,7 @@ let missingDepartments = [];
 let deliveryCouriers = [];
 let adminOrdersChannel = null;
 let staffRole = "";
-imageInput.required = true;
+if (imageInput) imageInput.required = true;
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => ({
@@ -53,8 +57,8 @@ function setMessage(element, message, success = false) {
 }
 
 function setAuthenticatedView(isAuthenticated) {
-  authSection.hidden = isAuthenticated;
-  dashboardSection.hidden = !isAuthenticated;
+  if (authSection) authSection.hidden = isAuthenticated;
+  if (dashboardSection) dashboardSection.hidden = !isAuthenticated;
 }
 
 function getInventoryImageUrl(url) {
@@ -67,9 +71,20 @@ async function requireStaff(session) {
     window.location.replace("/delivery/");
     throw new Error("Abriendo el módulo de reparto…");
   }
-  if (!["admin", "operator"].includes(role)) {
+  if (staffPage === "admin" && role === "operator") {
+    window.location.replace("/caja/");
+    throw new Error("Abriendo la bandeja de caja…");
+  }
+  if (staffPage === "cashier" && role === "admin") {
+    window.location.replace("/admin/");
+    throw new Error("Abriendo la administración…");
+  }
+  const allowed = staffPage === "cashier" ? role === "operator" : role === "admin";
+  if (!allowed) {
     await supabaseClient.auth.signOut();
-    throw new Error("Esta cuenta no tiene permisos de administración ni de caja. Solicita al propietario que asigne el rol correspondiente.");
+    throw new Error(staffPage === "cashier"
+      ? "Esta cuenta no tiene permiso de caja. Solicita al propietario que asigne el rol operator."
+      : "Esta sección es exclusiva del propietario. Las cuentas de caja deben entrar en /caja/.");
   }
   return role;
 }
@@ -97,6 +112,7 @@ async function loadInventory() {
   const { data, error } = await supabaseClient
     .from("productos")
     .select("id,nombre,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
+    .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   if (error) throw error;
 
@@ -125,6 +141,50 @@ async function loadInventory() {
     missingDepartments.length === 0,
   );
   return data;
+}
+
+async function loadDeletedProducts() {
+  if (!deletedProductRows) return;
+  const { data, error } = await supabaseClient
+    .from("productos")
+    .select("id,nombre,precio,precio_oferta,imagen_url,deleted_at")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+  if (error) throw error;
+  deletedProductRows.innerHTML = data.map((product) => {
+    const deletedAt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", timeStyle: "short" })
+      .format(new Date(product.deleted_at));
+    return `<tr>
+      <td data-label="Producto"><div class="inventory-product"><img src="${escapeHtml(getInventoryImageUrl(product.imagen_url))}" alt="" loading="lazy" /><span>${escapeHtml(product.nombre)}<small class="deleted-product-price">Precio: ${currency.format(Number(product.precio))}${product.precio_oferta === null ? "" : ` · Oferta: ${currency.format(Number(product.precio_oferta))}`}</small></span></div></td>
+      <td data-label="Eliminado">${escapeHtml(deletedAt)}</td>
+      <td data-label="Acciones"><div class="row-actions"><button type="button" data-restore-product="${escapeHtml(product.id)}">Restaurar</button></div></td>
+    </tr>`;
+  }).join("");
+  emptyDeletedProducts.hidden = data.length > 0;
+}
+
+async function setStaffRole(event) {
+  event.preventDefault();
+  const status = document.querySelector("#staff-role-status");
+  const submit = staffRoleForm.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  setMessage(status, "Guardando acceso…");
+  try {
+    const formData = new FormData(staffRoleForm);
+    const { error } = await supabaseClient.rpc("set_store_staff_role", {
+      p_email: String(formData.get("email")).trim(),
+      p_role: formData.get("role"),
+    });
+    if (error) throw error;
+    staffRoleForm.reset();
+    setMessage(status, "Acceso actualizado. La persona debe cerrar sesión y volver a entrar.", true);
+    await loadDeliveryCouriers();
+  } catch (error) {
+    console.error("No se pudo actualizar el rol del personal.", error);
+    setMessage(status, error.message || "No se pudo actualizar el acceso.");
+  } finally {
+    submit.disabled = false;
+  }
 }
 
 const orderStatusLabels = {
@@ -335,7 +395,7 @@ async function initializeAdminOrders() {
     console.error("No se pudo cargar la bandeja de pedidos.", error);
     setMessage(
       adminOrdersStatus,
-      `No se pudo cargar la bandeja: ${error.message || "error de conexión"}. Ejecuta supabase-orders.sql y luego supabase-delivery-roles.sql en Supabase SQL Editor.`,
+      `No se pudo cargar la bandeja: ${error.message || "error de conexión"}. Ejecuta supabase-orders.sql, supabase-delivery-roles.sql y supabase-admin-organization.sql en Supabase SQL Editor.`,
       false,
     );
   }
@@ -344,14 +404,15 @@ async function initializeAdminOrders() {
 function setStaffView(role) {
   staffRole = role;
   setAuthenticatedView(true);
-  const isAdmin = role === "admin";
-  document.querySelector("#dashboard-heading").textContent = isAdmin ? "Administración de la tienda" : "Caja · Bandeja de pedidos";
-  document.querySelector("#admin-product-form-panel").hidden = !isAdmin;
-  document.querySelector("#admin-inventory-panel").hidden = !isAdmin;
-  document.querySelector("#order-inbox-panel").hidden = false;
-  document.querySelector("#staff-scan-panel").hidden = !isAdmin;
-  document.querySelector("#staff-scan-heading").textContent = "Validar ticket de retiro";
-  document.querySelector("#staff-scan-purpose").value = "pickup";
+  const isAdmin = staffPage === "admin" && role === "admin";
+  document.querySelector("#dashboard-heading").textContent = isAdmin ? "Administración de la tienda" : "Caja · Pedidos y pagos";
+  document.querySelector("#order-inbox-panel").hidden = isAdmin;
+  const scanPanel = document.querySelector("#staff-scan-panel");
+  if (scanPanel) scanPanel.hidden = isAdmin;
+  const scanHeading = document.querySelector("#staff-scan-heading");
+  if (scanHeading) scanHeading.textContent = "Validar ticket de retiro";
+  const scanPurpose = document.querySelector("#staff-scan-purpose");
+  if (scanPurpose) scanPurpose.value = "pickup";
 }
 
 async function processStaffScan(purpose, token) {
@@ -361,7 +422,7 @@ async function processStaffScan(purpose, token) {
     setMessage(status, "El código QR no contiene un tipo o token válido.");
     return;
   }
-  if (purpose === "pickup" && staffRole !== "admin") {
+  if (purpose === "pickup" && staffRole !== "operator") {
     setMessage(status, "Solo caja puede validar tickets de retiro.");
     return;
   }
@@ -373,7 +434,7 @@ async function processStaffScan(purpose, token) {
       const { data: orderId, error } = await supabaseClient.rpc("complete_delivery_by_qr", { p_token: token });
       if (error) throw error;
       setMessage(status, `Entrega confirmada. Pedido ${String(orderId).slice(0, 8).toUpperCase()} marcado como entregado.`, true);
-      if (staffRole === "admin") await loadAdminOrders();
+      if (staffRole === "admin" || staffRole === "operator") await loadAdminOrders();
     } else {
       const { data, error } = await supabaseClient.rpc("scan_store_pickup_ticket", { p_token: token });
       if (error) throw error;
@@ -399,8 +460,9 @@ async function enterStaffDashboard(session) {
   if (role === "admin") {
     await loadCategories();
     await loadInventory();
+    await loadDeletedProducts();
   }
-  await initializeAdminOrders();
+  if (staffPage === "cashier") await initializeAdminOrders();
   const scanParams = new URLSearchParams(location.hash.slice(1));
   if (scanParams.has("scan") || scanParams.has("token")) {
     const purpose = scanParams.get("scan");
@@ -409,9 +471,12 @@ async function enterStaffDashboard(session) {
       window.location.replace(`/delivery/${location.hash}`);
       return;
     }
+    if (staffPage !== "cashier") return;
     history.replaceState(history.state, "", `${location.pathname}${location.search}`);
-    document.querySelector("#staff-scan-purpose").value = "pickup";
-    document.querySelector("#staff-scan-token").value = token || "";
+    const scanPurpose = document.querySelector("#staff-scan-purpose");
+    if (scanPurpose) scanPurpose.value = "pickup";
+    const scanToken = document.querySelector("#staff-scan-token");
+    if (scanToken) scanToken.value = token || "";
     await processStaffScan(purpose, token);
   }
 }
@@ -424,9 +489,11 @@ function resetProductForm() {
   saveButton.textContent = "Guardar producto";
   cancelEditButton.hidden = true;
   imageInput.required = true;
+  document.querySelector("#product-form-details").open = false;
 }
 
 function beginEditing(product) {
+  document.querySelector("#product-form-details").open = true;
   editingProduct = product;
   productForm.elements.nombre.value = product.nombre;
   const productCategory = Array.isArray(product.categorias) ? product.categorias[0] : product.categorias;
@@ -578,23 +645,30 @@ async function handleInventoryAction(event) {
       return;
     }
     if (button.dataset.action === "delete") {
-      if (!window.confirm(`¿Eliminar "${data.nombre}" del inventario?`)) return;
-      const { error: deleteError } = await supabaseClient.from("productos").delete().eq("id", productId);
-      if (deleteError) throw deleteError;
-      if (data.imagen_path) {
-        const { error: imageError } = await supabaseClient.storage.from("product-images").remove([data.imagen_path]);
-        if (imageError) {
-          console.error("El producto se eliminó, pero no se pudo borrar su foto.", imageError);
-          await loadInventory();
-          setMessage(dashboardStatus, "Producto eliminado, pero no se pudo borrar su foto del almacenamiento.");
-          return;
-        }
-      }
+      if (!window.confirm(`¿Archivar "${data.nombre}"? Dejará de aparecer en la tienda y quedará disponible en el historial para restaurarlo.`)) return;
+      const { error: archiveError } = await supabaseClient.rpc("archive_store_product", { p_product_id: productId });
+      if (archiveError) throw archiveError;
       await loadInventory();
+      await loadDeletedProducts();
     }
   } catch (error) {
     console.error("No se pudo completar la acción del inventario.", error);
     setMessage(dashboardStatus, error.message || "No se pudo completar la acción.");
+  }
+
+  async function restoreDeletedProduct(productId) {
+    try {
+      const { error } = await supabaseClient
+        .from("productos")
+        .update({ deleted_at: null, deleted_by: null, disponible: false, updated_at: new Date().toISOString() })
+        .eq("id", productId);
+      if (error) throw error;
+      await Promise.all([loadInventory(), loadDeletedProducts()]);
+      setMessage(dashboardStatus, "Producto restaurado como no disponible. Actívalo en el inventario cuando esté listo.", true);
+    } catch (error) {
+      console.error("No se pudo restaurar el producto archivado.", error);
+      setMessage(dashboardStatus, error.message || "No se pudo restaurar el producto.");
+    }
   }
 }
 
@@ -643,27 +717,38 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
-productForm.addEventListener("submit", saveProduct);
-document.querySelector("#staff-scan-form").addEventListener("submit", (event) => {
+productForm?.addEventListener("submit", saveProduct);
+document.querySelector("#staff-scan-form")?.addEventListener("submit", (event) => {
   event.preventDefault();
   processStaffScan(event.currentTarget.elements.purpose.value, event.currentTarget.elements.token.value.trim());
 });
-inventoryRows.addEventListener("click", handleInventoryAction);
-cancelEditButton.addEventListener("click", resetProductForm);
-document.querySelector("#refresh-button").addEventListener("click", () => {
+inventoryRows?.addEventListener("click", handleInventoryAction);
+deletedProductRows?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-restore-product]");
+  if (button) restoreDeletedProduct(button.dataset.restoreProduct);
+});
+cancelEditButton?.addEventListener("click", resetProductForm);
+staffRoleForm?.addEventListener("submit", setStaffRole);
+document.querySelector("#refresh-button")?.addEventListener("click", () => {
   loadInventory().catch((error) => {
     console.error("No se pudo actualizar la lista del inventario.", error);
     setMessage(dashboardStatus, error.message || "No se pudo actualizar el inventario.");
   });
 });
-document.querySelector("#refresh-orders-button").addEventListener("click", () => {
+document.querySelector("#refresh-deleted-products-button")?.addEventListener("click", () => {
+  loadDeletedProducts().catch((error) => {
+    console.error("No se pudo actualizar el historial de productos eliminados.", error);
+    setMessage(dashboardStatus, error.message || "No se pudo actualizar el historial.");
+  });
+});
+document.querySelector("#refresh-orders-button")?.addEventListener("click", () => {
   loadAdminOrders().catch((error) => {
     console.error("No se pudo actualizar la bandeja de pedidos.", error);
     setMessage(adminOrdersStatus, error.message || "No se pudo actualizar la bandeja.", false);
   });
 });
-adminOrdersList.addEventListener("click", handleAdminOrderAction);
-document.querySelector("#sign-out-button").addEventListener("click", async () => {
+adminOrdersList?.addEventListener("click", handleAdminOrderAction);
+document.querySelector("#sign-out-button")?.addEventListener("click", async () => {
   try {
     const { error } = await supabaseClient.auth.signOut();
     if (error) throw error;
@@ -673,8 +758,9 @@ document.querySelector("#sign-out-button").addEventListener("click", async () =>
     }
     setAuthenticatedView(false);
     staffRole = "";
-    document.querySelector("#staff-scan-result").replaceChildren();
-    setMessage(document.querySelector("#staff-scan-status"), "");
+    document.querySelector("#staff-scan-result")?.replaceChildren();
+    const scanStatus = document.querySelector("#staff-scan-status");
+    if (scanStatus) setMessage(scanStatus, "");
     loginForm.reset();
   } catch (error) {
     console.error("No se pudo cerrar la sesión administrativa.", error);

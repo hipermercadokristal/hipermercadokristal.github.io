@@ -17,7 +17,8 @@ La instalación requiere que la tienda esté publicada por HTTPS. La app conserv
 3. En **Project Settings → API**, copia la **Project URL** y la clave pública **anon/publishable** en `supabase-config.js`. Esas credenciales públicas pueden estar en el frontend; **nunca** pegues una clave `service_role` o secret en este repositorio.
 4. Ejecuta `supabase-orders.sql` después de crear `productos` y `categorias`. Crea el historial y detalle de pedidos, perfiles de clientes, políticas RLS, el bucket privado `payment-proofs`, la función segura que calcula el pedido con precios vigentes, el reporte de evidencia (referencia o foto), los códigos QR privados de retiro/entrega y sus funciones de validación, además de la publicación Realtime. Si ya habías ejecutado una versión anterior, vuelve a ejecutar el archivo actualizado; el script es idempotente.
 5. Ejecuta `supabase-delivery-roles.sql` después de `supabase-orders.sql`. Añade la asignación de repartidores, políticas RLS para cada rol y funciones seguras de aprobación de pagos, avance de pedidos y finalización por QR. Vuelve a ejecutar este archivo si actualizas la migración; es idempotente.
-6. En **Authentication → Settings**, permite el registro de clientes. Si está activada la confirmación por correo, cada cliente deberá validar su dirección antes de iniciar sesión. Para habilitar **Continuar con Google**, crea credenciales OAuth de tipo aplicación web en Google Cloud Console y agrega `https://fregeynuqwlwsyaslgor.supabase.co/auth/v1/callback` como URI de redirección autorizada. Confirma que corresponde al callback mostrado en **Authentication → Providers → Google**. Activa Google en Supabase con el Client ID y Client Secret, establece `https://hipermercadokristal.github.io/` como **Site URL** y añádelo a **Authentication → URL Configuration → Redirect URLs**. El callback OAuth de la tienda regresa a la raíz para evitar el 404 de rutas profundas en GitHub Pages; después de que Supabase confirma la sesión, la app abre Perfil. Estas credenciales deben configurarse en el panel de Supabase/Google, no en el código. En **Authentication → Users**, crea/invita al propietario y asigna su rol `admin` en `app_metadata` desde SQL Editor (sustituye el correo):
+6. Ejecuta `supabase-admin-organization.sql` después de las migraciones anteriores. Separa el permiso de caja del de propietario, permite al propietario asignar los roles de caja/repartidor desde `/admin/` y archiva productos eliminados para que puedan restaurarse desde el historial. Es idempotente.
+7. En **Authentication → Settings**, permite el registro de clientes. Si está activada la confirmación por correo, cada cliente deberá validar su dirección antes de iniciar sesión. Para habilitar **Continuar con Google**, crea credenciales OAuth de tipo aplicación web en Google Cloud Console y agrega `https://fregeynuqwlwsyaslgor.supabase.co/auth/v1/callback` como URI de redirección autorizada. Confirma que corresponde al callback mostrado en **Authentication → Providers → Google**. Activa Google en Supabase con el Client ID y Client Secret, establece `https://hipermercadokristal.github.io/` como **Site URL** y añádelo a **Authentication → URL Configuration → Redirect URLs**. El callback OAuth de la tienda regresa a la raíz para evitar el 404 de rutas profundas en GitHub Pages; después de que Supabase confirma la sesión, la app abre Perfil. Estas credenciales deben configurarse en el panel de Supabase/Google, no en el código. En **Authentication → Users**, crea/invita al propietario y asigna su rol `admin` en `app_metadata` desde SQL Editor (sustituye el correo):
 
    ```sql
    update auth.users
@@ -25,28 +26,12 @@ La instalación requiere que la tienda esté publicada por HTTPS. La app conserv
    where email = 'propietario@ejemplo.com';
    ```
 
-   Cierra y vuelve a iniciar sesión después de asignar el rol para renovar el token. Invita a cada cajero/operador y asígnale el rol `operator` (no `admin`):
+   La cuenta del propietario se configura inicialmente con ese SQL. Para el resto del personal, crea o invita primero las cuentas en **Authentication → Users**; después asígnales `operator` o `courier` desde **Administración → Equipo y permisos**. El personal debe cerrar sesión y volver a entrar para renovar el token. El registro público no permite asignar roles. Google proporciona nombre y correo; el cliente debe completar y guardar su teléfono en **Perfil** para hacer pedidos.
+8. El propietario entra a `/admin/`; las cuentas de caja entran únicamente a `/caja/` y los repartidores a `/delivery/`. En Administración → **Equipo y permisos**, introduce el correo de una cuenta que ya hayas creado/invitado en **Authentication → Users**, elige Caja u operador o Repartidor y pulsa **Guardar acceso**. Cada usuario debe cerrar sesión y volver a entrar. Solo la cuenta con rol `admin` puede usar `/admin/`; el personal `operator` solo accede a la bandeja de `/caja/`, donde verifica pagos, prepara pedidos y valida tickets de retiro. No hay una pasarela bancaria automática conectada; el estado verde `Pagado` aparece cuando caja confirma el pago. La asignación a delivery está disponible cuando el pedido está listo y el pago está autorizado.
 
-   ```sql
-   update auth.users
-   set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"operator"}'::jsonb
-   where email = 'cajero@ejemplo.com';
-   ```
+Los pedidos de **retiro + efectivo/POS** muestran un ticket QR temporal de 24 horas que caja valida desde `/caja/`. En pedidos delivery, caja asigna un repartidor activo desde la bandeja; esa acción cambia el estado a **En camino**. Entonces el cliente ve un QR temporal en **Mis pedidos**. El repartidor inicia sesión en `/delivery/`, ve únicamente los pedidos asignados a su cuenta y usa **Escanear QR de entrega** para abrir la cámara. Supabase verifica rol, asignación, estado y vigencia del token y lo consume al marcar el pedido como entregado. El identificador de pedido no se usa como credencial QR. No compartas ni fotografíes esos códigos.
 
-   Crea/invita también una cuenta separada para cada repartidor y asígnale el rol `courier`:
-
-   ```sql
-   update auth.users
-   set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"courier"}'::jsonb
-   where email = 'repartidor@ejemplo.com';
-   ```
-
-   Para actualizar cada rol desde SQL, usa el correo correspondiente (no asignes `admin` a cuentas de clientes o repartidores). El registro público no permite asignar o cambiar roles. Google proporciona nombre y correo; el cliente debe completar y guardar su teléfono en **Perfil** para hacer pedidos.
-7. El propietario administra el inventario en `/admin/`; las cuentas `operator` entran al mismo URL y solo ven la bandeja de caja. La caja verifica en el banco las referencias o comprobantes de Pago Móvil antes de aprobar/rechazar, confirma los pagos recibidos y prepara pedidos. No hay una pasarela bancaria automática conectada; el estado verde `Pagado` aparece cuando una cuenta autorizada lo confirma. La asignación a delivery está disponible cuando el pedido está listo y el pago está autorizado.
-
-Los pedidos de **retiro + efectivo/POS** muestran un ticket QR temporal de 24 horas que caja valida desde `/admin/`. En pedidos delivery, caja asigna un repartidor activo desde la bandeja; esa acción cambia el estado a **En camino**. Entonces el cliente ve un QR temporal en **Mis pedidos**. El repartidor inicia sesión en `/delivery/`, ve únicamente los pedidos asignados a su cuenta y usa **Escanear QR de entrega** para abrir la cámara. Supabase verifica rol, asignación, estado y vigencia del token y lo consume al marcar el pedido como entregado. El identificador de pedido no se usa como credencial QR. No compartas ni fotografíes esos códigos.
-
-El catálogo del cliente se sirve desde la raíz (`/`) para conservar las rutas existentes de GitHub Pages; su lógica de pedidos está separada en `client/`. Caja/administración y reparto tienen vistas independientes en `/admin/` y `/delivery/`.
+El catálogo del cliente se sirve desde la raíz (`/`) para conservar las rutas existentes de GitHub Pages; su lógica de pedidos está separada en `client/`. Administración, caja y reparto tienen vistas independientes en `/admin/`, `/caja/` y `/delivery/`.
 
 La selección **Lo Más Destacado** se consulta del catálogo de Supabase y funciona como carrusel con avance automático, controles, desplazamiento táctil y pausa al interactuar. Respeta la preferencia de movimiento reducido del dispositivo.
 
@@ -54,7 +39,7 @@ Las rutas `/admin/`, `/perfil` y `/pedidos` siguen el enrutamiento de raíz exis
 
 El panel requiere correo y contraseña de Supabase. RLS valida `app_metadata.role = admin` tanto en tablas como en Storage; ocultar el panel en el navegador no sustituye esas políticas. El catálogo público solo puede leer artículos disponibles; una tabla Realtime separada publica únicamente una señal de cambio para mantener privada la información de los productos agotados.
 
-El panel `/admin/` adapta el formulario y el inventario a pantallas pequeñas: en móvil, cada fila de inventario se presenta como una tarjeta con sus datos y acciones.
+El formulario de producto en `/admin/` inicia plegado para ahorrar espacio. **Eliminar** archiva el producto en vez de borrarlo definitivamente; el historial permite restaurarlo como no disponible. La imagen y los registros previos de pedidos se conservan.
 
 ## Restaurante Kristal dentro de la app
 
@@ -133,6 +118,6 @@ Para nuevos productos, no edites el código ni guardes fotos manualmente allí: 
 
 ## 5. Agregar o cambiar productos, precios y ofertas
 
-El inventario se administra desde `/admin/`; `app.js` ya no contiene una lista de productos. En el formulario puedes asignar nombre, categoría, presentación, precio regular, precio de oferta, foto, disponibilidad y si aparece en **Lo Más Destacado**. Edita una fila para corregir sus datos; **Ocultar** marca el producto como agotado sin borrarlo, y **Eliminar** lo retira junto con su foto del bucket cuando corresponda.
+El inventario se administra desde `/admin/`; `app.js` ya no contiene una lista de productos. En el formulario plegable puedes asignar nombre, categoría, presentación, precio regular, precio de oferta, foto, disponibilidad y si aparece en **Lo Más Destacado**. Edita una fila para corregir sus datos; **Ocultar** marca el producto como agotado sin archivarlo. **Eliminar** lo archiva para que deje de aparecer en la tienda; usa el historial para restaurarlo.
 
 Las ofertas deben ser menores que el precio regular. El catálogo muestra hasta 15 productos por página y se actualiza inmediatamente al guardar cambios en el panel, sin reconstruir el sitio.

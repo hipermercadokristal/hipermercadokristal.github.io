@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f3822" />
+    <title>Caja | Hipermercado Kristal</title>
+    <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
+    <link rel="stylesheet" href="../admin/admin.css?v=cashier-separation-20261016" />
+    <script src="../supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../supabase-client.js"></script>
+    <script src="../admin/admin.js?v=cashier-separation-20261016" defer></script>
+  </head>
+  <body>
+    <main class="admin-shell" data-staff-page="cashier">
+      <a class="back-link" href="../index.html">← Volver a la tienda</a>
+      <section class="auth-card" id="auth-section" aria-labelledby="login-heading">
+        <img src="../assets/kristal-logo.png" alt="Hipermercado Kristal" />
+        <p class="eyebrow">ACCESO DE PERSONAL</p>
+        <h1 id="login-heading">Caja</h1>
+        <p class="intro">Acceso para revisar pagos, preparar pedidos y validar retiros.</p>
+        <form id="login-form">
+          <label for="login-email">Correo electrónico</label>
+          <input id="login-email" name="email" type="email" autocomplete="username" required />
+          <label for="login-password">Contraseña</label>
+          <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+          <button class="primary-button" type="submit">Entrar a caja</button>
+        </form>
+        <p class="status-message" id="auth-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="dashboard" id="dashboard-section" hidden aria-labelledby="dashboard-heading">
+        <header class="dashboard-header">
+          <div>
+            <p class="eyebrow">HIPERMERCADO KRISTAL</p>
+            <h1 id="dashboard-heading">Caja · Pedidos y pagos</h1>
+            <p class="intro">Esta cuenta solo tiene acceso a las herramientas de caja.</p>
+          </div>
+          <button class="secondary-button" id="sign-out-button" type="button">Cerrar sesión</button>
+        </header>
+        <p class="status-message" id="dashboard-status" role="status" aria-live="polite"></p>
+
+        <section class="panel" id="staff-scan-panel" aria-labelledby="staff-scan-heading">
+          <div class="panel-heading">
+            <div><p class="eyebrow">RETIROS</p><h2 id="staff-scan-heading">Validar ticket de retiro</h2></div>
+          </div>
+          <p class="intro">Escanea el QR que presenta el cliente o pega el código para consultar los productos del pedido.</p>
+          <form id="staff-scan-form">
+            <label for="staff-scan-purpose">Tipo de código</label>
+            <select id="staff-scan-purpose" name="purpose">
+              <option value="pickup">Ticket de retiro en caja</option>
+            </select>
+            <label for="staff-scan-token">Código del pedido</label>
+            <input id="staff-scan-token" name="token" autocomplete="off" required />
+            <button class="primary-button" type="submit">Validar código</button>
+          </form>
+          <p class="status-message" id="staff-scan-status" role="status" aria-live="polite"></p>
+          <div id="staff-scan-result" aria-live="polite"></div>
+        </section>
+
+        <section class="panel order-inbox-panel" id="order-inbox-panel" aria-labelledby="order-inbox-heading">
+          <div class="panel-heading">
+            <div><p class="eyebrow">CAJA</p><h2 id="order-inbox-heading">Bandeja de pedidos</h2></div>
+            <button class="secondary-button" id="refresh-orders-button" type="button">Actualizar pedidos</button>
+          </div>
+          <p class="intro">Revisa referencias y comprobantes antes de confirmar un pago. Aquí no se administra el inventario.</p>
+          <p class="status-message" id="orders-admin-status" role="status" aria-live="polite"></p>
+          <div class="admin-orders-list" id="admin-orders-list"></div>
+          <p class="empty-inventory" id="empty-orders" hidden>No hay pedidos registrados.</p>
+        </section>
+      </section>
+    </main>
+  </body>
+</html>
