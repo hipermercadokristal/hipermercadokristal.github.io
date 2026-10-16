@@ -4,12 +4,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f3822" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Kristal" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta
       name="description"
       content="Compra víveres, productos frescos y mucho más en Hipermercado Kristal. Calidad y ofertas para tu hogar."
     />
     <title>Hipermercado Kristal | Todo para tu hogar</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="icon" type="image/png" sizes="64x64" href="assets/kristal-favicon.png" />
+    <link rel="apple-touch-icon" href="/assets/app-icons/icon-180.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -21,11 +26,16 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
     <script src="app.js" defer></script>
+    <script src="pwa.js" defer></script>
   </head>
   <body id="inicio">
     <header class="site-header">
       <div class="announcement">
         <p><strong>¡Envío gratis en compras desde USD 50!</strong></p>
+        <button class="announcement-install" id="install-app-button" type="button">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v8m0 0 3-3m-3 3-3-3M2.5 10.5v3h11v-3" /></svg>
+          Instalar app
+        </button>
       </div>
       <div class="header-main page-container">
         <a class="brand" href="/" data-route aria-label="Hipermercado Kristal, inicio">

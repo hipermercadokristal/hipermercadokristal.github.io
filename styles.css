@@ -27,6 +27,9 @@ button { color: inherit; }
 .announcement p { margin: 0; }
 .announcement strong { font-weight: 800; }
 .announcement a { font-size: 10px; font-weight: 700; }
+.announcement-install { display: inline-flex; align-items: center; gap: 5px; padding: 3px 0; border: 0; background: transparent; color: inherit; font-size: 10px; font-weight: 800; cursor: pointer; }
+.announcement-install svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.announcement-install:disabled { cursor: wait; opacity: .65; }
 
 .site-header { position: sticky; z-index: 10; top: 0; background: #ffffffed; box-shadow: 0 4px 18px #18352a0a; backdrop-filter: blur(14px); }
 .header-main { min-height: 76px; display: flex; align-items: center; gap: 25px; }
@@ -508,8 +511,10 @@ main { min-height: 55vh; padding-bottom: 40px; }
   .policy-card h3 { font-size: 14px; }
   .policy-contact { align-items: flex-start; flex-direction: column; padding: 17px; }
   .policy-footer > div { align-items: flex-start; flex-direction: column; justify-content: center; padding-block: 12px; font-size: 10px; }
-  .announcement { min-height: 32px; gap: 7px; padding-inline: 8px; font-size: 9px; }
+  .announcement { min-height: 32px; gap: 10px; padding-inline: 8px; font-size: 9px; }
   .announcement a { display: none; }
+  .announcement-install { gap: 3px; font-size: 9px; white-space: nowrap; }
+  .announcement-install svg { width: 12px; height: 12px; }
   .header-main { min-height: 68px; flex-wrap: nowrap; gap: 11px; padding-block: 6px; }
   .brand-image { width: 76px; height: 58px; }
   .header-instagram { margin-left: auto; }

@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "Hipermercado Kristal",
+  "short_name": "Kristal",
+  "description": "Compra víveres, productos frescos y artículos para tu hogar en Hipermercado Kristal.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f8f6",
+  "theme_color": "#0f3822",
+  "icons": [
+    {
+      "src": "/assets/app-icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/app-icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

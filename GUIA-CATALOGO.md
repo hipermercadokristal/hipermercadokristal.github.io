@@ -4,6 +4,12 @@
 
 El sitio consulta los productos en Supabase y por eso debe abrirse desde un servidor web, no con doble clic sobre `index.html`. En desarrollo puedes usar **Live Server** de VS Code. Para publicarlo, el workflow existente de GitHub Pages despliega el sitio estático; los productos se actualizan desde Supabase sin volver a desplegarlo.
 
+## Instalar la tienda como app
+
+La tienda se puede instalar en el teléfono o computadora desde el botón **Instalar app** de la franja superior. En Android y navegadores compatibles, el botón abre la confirmación de instalación; en iPhone/iPad, usa **Compartir → Añadir a pantalla de inicio** desde Safari. La app se abre en una ventana independiente con el nombre y el logo de Hipermercado Kristal. También puede instalarse desde el menú del navegador.
+
+La instalación requiere que la tienda esté publicada por HTTPS. La app conserva la estructura de la tienda para abrirla sin conexión, pero consultar el catálogo de Supabase y enviar pedidos por WhatsApp sí requiere Internet.
+
 ## Configurar Supabase (una sola vez)
 
 1. Crea un proyecto en Supabase y abre **SQL Editor**. Ejecuta `supabase-schema.sql` para crear las tablas `productos` y `categorias`, el bucket público `product-images`, las políticas RLS y la publicación Realtime.
