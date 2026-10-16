@@ -8,14 +8,15 @@ El sitio consulta los productos en Supabase y por eso debe abrirse desde un serv
 
 La tienda se puede instalar en el teléfono o computadora desde el botón **Instalar app** de la franja superior. En Android y navegadores compatibles, el botón abre la confirmación de instalación; en iPhone/iPad, usa **Compartir → Añadir a pantalla de inicio** desde Safari. La app se abre en una ventana independiente con el nombre y el logo de Hipermercado Kristal. También puede instalarse desde el menú del navegador.
 
-La instalación requiere que la tienda esté publicada por HTTPS. La app conserva la estructura de la tienda para abrirla sin conexión, pero consultar el catálogo de Supabase y enviar pedidos por WhatsApp sí requiere Internet.
+La instalación requiere que la tienda esté publicada por HTTPS. La app conserva la estructura de la tienda para abrirla sin conexión, pero consultar el catálogo, iniciar sesión, registrar pedidos, adjuntar comprobantes y recibir actualizaciones requiere Internet.
 
 ## Configurar Supabase (una sola vez)
 
 1. Crea un proyecto en Supabase y abre **SQL Editor**. Ejecuta `supabase-schema.sql` para crear las tablas `productos` y `categorias`, el bucket público `product-images`, las políticas RLS y la publicación Realtime.
 2. Ejecuta `supabase-seed.sql` una sola vez si deseas importar el catálogo de 53 productos que ya mostraba la versión estática. El seed conserva sus rutas de fotos locales en `assets/products/`; verifica precios y disponibilidad antes de publicar. Las nuevas fotos agregadas desde el panel sí se suben al bucket de Supabase.
 3. En **Project Settings → API**, copia la **Project URL** y la clave pública **anon/publishable** en `supabase-config.js`. Esas credenciales públicas pueden estar en el frontend; **nunca** pegues una clave `service_role` o secret en este repositorio.
-4. En **Authentication → Users**, crea/invita al propietario. En **Authentication → Settings**, desactiva el registro público para que nadie pueda crear cuentas administrativas. Luego asigna al usuario propietario el rol `admin` en `app_metadata` desde el SQL Editor (sustituye el correo):
+4. Ejecuta `supabase-orders.sql` después de crear `productos` y `categorias`. Crea el historial y detalle de pedidos, perfiles de clientes, políticas RLS, el bucket privado `payment-proofs`, la función segura que calcula el pedido con precios vigentes de la base de datos y la publicación Realtime. El cliente debe adjuntar referencia y comprobante para Pago Móvil; el pago queda pendiente hasta que caja lo compruebe.
+5. En **Authentication → Settings**, permite el registro de clientes. Si está activada la confirmación por correo, cada cliente deberá validar su dirección antes de iniciar sesión. Para habilitar **Continuar con Google**, crea credenciales OAuth de tipo aplicación web en Google Cloud Console, agrega como URI de redirección autorizada la URL de callback que muestra Supabase en **Authentication → Providers → Google**, activa Google en esa pantalla con el Client ID y Client Secret, y añade el dominio público de la tienda (incluida la ruta `/perfil`) a **Authentication → URL Configuration → Redirect URLs**. El botón permite crear una cuenta o iniciar sesión con Google; estas credenciales deben configurarse en el panel de Supabase/Google, no en el código. En **Authentication → Users**, crea/invita al propietario y asigna solo a esa cuenta el rol `admin` en `app_metadata` desde SQL Editor (sustituye el correo):
 
    ```sql
    update auth.users
@@ -23,8 +24,12 @@ La instalación requiere que la tienda esté publicada por HTTPS. La app conserv
    where email = 'propietario@ejemplo.com';
    ```
 
-   Cierra y vuelve a iniciar sesión después de asignar el rol para renovar el token.
-5. Abre `/admin/` para administrar el inventario. En GitHub Pages de proyecto, la dirección tendrá el formato `https://<usuario>.github.io/<repositorio>/admin/`; en un dominio propio será `https://<dominio>/admin/`.
+   Cierra y vuelve a iniciar sesión después de asignar el rol para renovar el token. El registro público no permite que los clientes asignen o cambien `app_metadata.role`; por eso las políticas de administración siguen limitadas al propietario. Google proporciona nombre y correo; el cliente debe completar y guardar su teléfono en **Perfil** para hacer pedidos.
+6. Abre `/admin/` para administrar el inventario y la bandeja de pedidos. Los clientes crean su cuenta desde **Perfil**; sus perfiles y pedidos quedan aislados por RLS. Desde la bandeja, caja abre el comprobante privado, verifica el abono en la cuenta bancaria y luego aprueba o rechaza el pago. También actualiza el estado de preparación/entrega y puede preparar manualmente un aviso por WhatsApp; no hay aprobación bancaria ni envío automático por API.
+
+El checkout admite retiro, delivery, Pago Móvil, Zelle y efectivo/POS. Para Pago Móvil muestra y permite copiar el equivalente referencial en bolívares usando la tasa BCV, que caja debe confirmar antes de la transferencia. Para Zelle, caja debe proporcionar las instrucciones; no se configuran datos de destinatario. El recibo confirma el registro del pedido, pero no es factura fiscal ni prueba de pago. No se debe marcar un Pago Móvil como verificado solo por la referencia o la imagen.
+
+Las rutas `/admin/`, `/perfil` y `/pedidos` siguen el enrutamiento de raíz existente de la tienda; la publicación debe servir el sitio desde la raíz del dominio configurado.
 
 El panel requiere correo y contraseña de Supabase. RLS valida `app_metadata.role = admin` tanto en tablas como en Storage; ocultar el panel en el navegador no sustituye esas políticas. El catálogo público solo puede leer artículos disponibles; una tabla Realtime separada publica únicamente una señal de cambio para mantener privada la información de los productos agotados.
 

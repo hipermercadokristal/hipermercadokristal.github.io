@@ -20,6 +20,8 @@ const aboutView = document.querySelector("#about-view");
 const returnsView = document.querySelector("#returns-view");
 const reviewsView = document.querySelector("#reviews-view");
 const policiesView = document.querySelector("#policies-view");
+const profileView = document.querySelector("#profile-view");
+const ordersView = document.querySelector("#orders-view");
 const categoryViewTitle = document.querySelector("#category-view-title");
 const categoryViewDescription = document.querySelector("#category-view-description");
 const cartCount = document.querySelector("#cart-count");
@@ -166,6 +168,10 @@ function setCurrentNavigation(view, category = "") {
       (view === "category" && link.dataset.category === category);
     if (current) link.setAttribute("aria-current", "page");
     else if (link.getAttribute("aria-current") === "page") link.removeAttribute("aria-current");
+  });
+  document.querySelectorAll("a[data-app-route]").forEach((link) => {
+    if (link.dataset.appRoute === view) link.setAttribute("aria-current", "page");
+    else link.removeAttribute("aria-current");
   });
 }
 
@@ -361,6 +367,8 @@ function showCategoryView(category, { pushHistory = true } = {}) {
   returnsView.hidden = true;
   reviewsView.hidden = true;
   policiesView.hidden = true;
+  profileView.hidden = true;
+  ordersView.hidden = true;
   categoryView.hidden = false;
   setActiveFilter(category, { clearSearch: true });
   setCurrentNavigation("category", category);
@@ -384,6 +392,8 @@ function showHomeView({ pushHistory = true } = {}) {
   returnsView.hidden = true;
   reviewsView.hidden = true;
   policiesView.hidden = true;
+  profileView.hidden = true;
+  ordersView.hidden = true;
   homeView.hidden = false;
   setActiveFilter("Todos", { clearSearch: true });
   setCurrentNavigation("home");
@@ -403,6 +413,8 @@ function showCatalogView({ filter = "Todos", pushHistory = true, clearSearch = f
   returnsView.hidden = true;
   reviewsView.hidden = true;
   policiesView.hidden = true;
+  profileView.hidden = true;
+  ordersView.hidden = true;
   catalogView.hidden = false;
   productPages.set(productGrid.id, 1);
   setActiveFilter(filter, { clearSearch });
@@ -425,12 +437,36 @@ function showInstitutionalView(viewName, viewElement, title, route, { pushHistor
   returnsView.hidden = true;
   reviewsView.hidden = true;
   policiesView.hidden = viewElement !== policiesView;
+  profileView.hidden = true;
+  ordersView.hidden = true;
   viewElement.hidden = false;
   setActiveFilter("Todos", { clearSearch: true });
   setCurrentNavigation(viewName);
   closeMobileCategoryMenu();
   document.title = `${title} | Hipermercado Kristal`;
   if (pushHistory) history.pushState({ view: viewName }, "", route);
+  window.scrollTo(0, 0);
+}
+
+function showAccountView(view, { pushHistory = true } = {}) {
+  activeView = view;
+  activeCategory = "";
+  homeView.hidden = true;
+  catalogView.hidden = true;
+  storeView.hidden = true;
+  categoryView.hidden = true;
+  aboutView.hidden = true;
+  returnsView.hidden = true;
+  reviewsView.hidden = true;
+  policiesView.hidden = true;
+  profileView.hidden = view !== "profile";
+  ordersView.hidden = view !== "orders";
+  setActiveFilter("Todos", { clearSearch: true });
+  setCurrentNavigation(view);
+  closeMobileCategoryMenu();
+  document.title = `${view === "profile" ? "Perfil" : "Mis pedidos"} | Hipermercado Kristal`;
+  if (pushHistory) history.pushState({ view }, "", view === "profile" ? "/perfil" : "/pedidos");
+  document.dispatchEvent(new CustomEvent("kristal:account-view", { detail: { view } }));
   window.scrollTo(0, 0);
 }
 
@@ -496,6 +532,14 @@ function restoreRoute(state = history.state) {
     history.replaceState(null, "", legacyPath);
   }
   const path = location.pathname.replace(/\/+$/, "") || "/";
+  if (path === "/perfil" || state?.view === "profile") {
+    showAccountView("profile", { pushHistory: false });
+    return;
+  }
+  if (path === "/pedidos" || state?.view === "orders") {
+    showAccountView("orders", { pushHistory: false });
+    return;
+  }
   if (
     path === "/nosotros" ||
     path === "/tienda" ||
@@ -683,6 +727,8 @@ function updateCart() {
   cartCount.textContent = String(cartTotal);
   cartButton.setAttribute("aria-label", `Carrito, ${cartTotal} ${cartTotal === 1 ? "artículo" : "artículos"}`);
   mobileCartCount.textContent = String(cartTotal);
+  const appCartCount = document.querySelector("#mobile-nav-cart-count");
+  if (appCartCount) appCartCount.textContent = String(cartTotal);
   mobileCartButton.setAttribute("aria-label", `Abrir carrito, ${cartTotal} ${cartTotal === 1 ? "artículo" : "artículos"}`);
   mobileCartButton.hidden = cartTotal === 0;
   document.body.classList.toggle("has-cart-items", cartTotal > 0);
@@ -765,6 +811,20 @@ document.addEventListener("click", (event) => {
   navigateToPath(link.pathname + link.search);
 });
 
+document.addEventListener("click", (event) => {
+  const routeLink = event.target.closest("[data-app-route]");
+  if (!routeLink || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  if (routeLink.tagName === "BUTTON") {
+    if (routeLink.dataset.appRoute === "cart") document.dispatchEvent(new CustomEvent("kristal:open-cart"));
+    return;
+  }
+  if (routeLink.origin !== location.origin) return;
+  event.preventDefault();
+  const routes = { home: "/", catalog: "/catalogo", orders: "/pedidos", profile: "/perfil" };
+  const path = routes[routeLink.dataset.appRoute];
+  if (path) navigateToPath(path);
+});
+
 function handleProductGridClick(event) {
   const favorite = event.target.closest(".favorite-button");
   if (favorite) {
@@ -809,6 +869,8 @@ document.querySelector("#welcome-catalog-cta").addEventListener("click", (event)
 
 cartButton.addEventListener("click", () => setCartOpen(true));
 mobileCartButton.addEventListener("click", () => setCartOpen(true));
+document.addEventListener("kristal:open-cart", () => setCartOpen(true));
+document.addEventListener("kristal:close-cart", () => setCartOpen(false));
 document.querySelector("#cart-close").addEventListener("click", () => setCartOpen(false));
 cartBackdrop.addEventListener("click", () => setCartOpen(false));
 cartItemsContainer.addEventListener("click", (event) => {
@@ -866,24 +928,22 @@ document.addEventListener("keydown", (event) => {
 checkoutButton.addEventListener("click", () => {
   const entries = products.filter((product) => cartItems.has(product.id));
   if (!entries.length) return;
+  document.dispatchEvent(new CustomEvent("kristal:checkout-request", {
+    detail: {
+      items: entries.map((product) => ({
+        product_id: product.id,
+        quantity: cartItems.get(product.id),
+        name: product.name,
+        price: product.price,
+      })),
+    },
+  }));
+});
 
-  const total = entries.reduce((sum, product) => sum + product.price * cartItems.get(product.id), 0);
-  const orderLines = entries.map((product) => {
-    const quantity = cartItems.get(product.id);
-    const lineTotal = product.price * quantity;
-    return `• ${product.name} (${product.detail}) x${quantity} — ${currency.format(product.price)} c/u | Subtotal: ${currency.format(lineTotal)}`;
-  });
-  const message = [
-    "¡Hola, Hipermercado Kristal! Quiero procesar este pedido:",
-    "",
-    ...orderLines,
-    "",
-    `TOTAL: ${currency.format(total)}`,
-    "",
-    "Quedo atento/a para confirmar disponibilidad y coordinar la entrega. ¡Gracias!",
-  ].join("\n");
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-  window.open(whatsappUrl, "_blank", "noopener,noreferrer");
+document.addEventListener("kristal:order-completed", (event) => {
+  for (const productId of event.detail?.productIds || []) cartItems.delete(productId);
+  updateCart();
+  renderActiveProducts();
 });
 
 document.querySelectorAll("[data-scroll-target]").forEach((button) => {

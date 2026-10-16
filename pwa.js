@@ -1,4 +1,4 @@
-const installAppButton = document.querySelector("#install-app-button");
+const installAppButtons = [...document.querySelectorAll("[data-install-app]")];
 let deferredInstallPrompt = null;
 
 window.addEventListener("beforeinstallprompt", (event) => {
@@ -6,7 +6,7 @@ window.addEventListener("beforeinstallprompt", (event) => {
   deferredInstallPrompt = event;
 });
 
-installAppButton.addEventListener("click", async () => {
+async function installApp() {
   if (!deferredInstallPrompt) {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
       || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
@@ -16,7 +16,9 @@ installAppButton.addEventListener("click", async () => {
     return;
   }
 
-  installAppButton.disabled = true;
+  installAppButtons.forEach((installButton) => {
+    installButton.disabled = true;
+  });
   try {
     const installPrompt = deferredInstallPrompt;
     deferredInstallPrompt = null;
@@ -29,18 +31,28 @@ installAppButton.addEventListener("click", async () => {
     console.error("No se pudo iniciar la instalación de Hipermercado Kristal.", error);
     showToast("No se pudo iniciar la instalación. Inténtalo desde el menú del navegador.");
   } finally {
-    installAppButton.disabled = false;
+    installAppButtons.forEach((installButton) => {
+      installButton.disabled = false;
+    });
   }
+}
+
+installAppButtons.forEach((button) => {
+  button.addEventListener("click", installApp);
 });
 
 window.addEventListener("appinstalled", () => {
   deferredInstallPrompt = null;
-  installAppButton.hidden = true;
+  installAppButtons.forEach((button) => {
+    button.hidden = true;
+  });
   showToast("Hipermercado Kristal quedó instalada en tu dispositivo.");
 });
 
 if (window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) {
-  installAppButton.hidden = true;
+  installAppButtons.forEach((button) => {
+    button.hidden = true;
+  });
 }
 
 if ("serviceWorker" in navigator) {

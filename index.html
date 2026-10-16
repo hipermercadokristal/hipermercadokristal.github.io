@@ -26,13 +26,26 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
     <script src="app.js" defer></script>
+    <script src="app-orders.js" defer></script>
     <script src="pwa.js" defer></script>
   </head>
   <body id="inicio">
+    <header class="mobile-app-bar" aria-label="Encabezado de la app">
+      <a class="mobile-app-brand" href="/" data-app-route="home" aria-label="Hipermercado Kristal, inicio">
+        <img src="/assets/app-icons/icon-192.png" alt="" />
+        <span><strong>Hipermercado Kristal</strong><small>⌖ Villa Bruzual · Turén</small></span>
+      </a>
+      <button class="mobile-install-button" id="mobile-install-app-button" type="button" data-install-app aria-label="Instalar app" title="Instalar app">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3" /></svg>
+      </button>
+      <button class="mobile-profile-button" type="button" data-app-route="profile" aria-label="Abrir mi perfil">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
+      </button>
+    </header>
     <header class="site-header">
       <div class="announcement">
         <p><strong>¡Envío gratis en compras desde USD 50!</strong></p>
-        <button class="announcement-install" id="install-app-button" type="button">
+        <button class="announcement-install" id="install-app-button" data-install-app type="button">
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v8m0 0 3-3m-3 3-3-3M2.5 10.5v3h11v-3" /></svg>
           Instalar app
         </button>
@@ -57,6 +70,10 @@
         </a>
 
         <div class="header-tools">
+          <a class="icon-action account-icon-action" href="/perfil" data-app-route="profile" aria-label="Mi perfil">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
+            <span>Mi perfil</span>
+          </a>
           <button class="icon-action cart-action" id="cart-button" type="button" aria-label="Carrito, 0 artículos">
             <span class="cart-icon-wrap">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="21" r="1" /><circle cx="18" cy="21" r="1" /></svg>
@@ -145,7 +162,7 @@
               <span class="eyebrow">SELECCIÓN KRISTAL</span>
               <h2 id="featured-heading">Lo Más Destacado</h2>
               <p>Selección de productos para descubrir y agregar al carrito</p>
-              <small class="price-reference-note">Agrega tus productos y envía el pedido por WhatsApp.</small>
+              <small class="price-reference-note">Agrega productos y finaliza tu pedido con el método de entrega y pago que prefieras.</small>
             </div>
             <div class="carousel-controls" aria-label="Controles de Lo Más Destacado" hidden>
               <button class="carousel-arrow" type="button" data-scroll-target="featured-products" data-scroll-direction="-1" aria-label="Ver productos destacados anteriores">←</button>
@@ -188,7 +205,7 @@
 
       <section class="catalog-view" id="catalog-view" aria-label="Catálogo digital" hidden>
       <header class="catalog-page-heading page-container">
-        <div><span class="eyebrow">CATÁLOGO DIGITAL</span><h1>Explora nuestros productos</h1><p>Agrega tus productos al carrito y envía tu pedido por WhatsApp.</p></div>
+        <div><span class="eyebrow">CATÁLOGO DIGITAL</span><h1>Explora nuestros productos</h1>        <p>Agrega tus productos al carrito y completa el pedido desde la app.</p></div>
         <span class="catalog-heading-badge">KRISTAL</span>
       </header>
       <section class="products-section page-container" id="productos" data-reveal>
@@ -196,7 +213,7 @@
           <div>
             <span class="eyebrow section-eyebrow">CATÁLOGO KRISTAL</span>
             <h2 id="products-heading">Explora nuestros productos</h2>
-            <p>Precios en USD. Agrega tus productos al carrito y envía el pedido por WhatsApp.</p>
+            <p>Precios en USD. Agrega productos al carrito y elige cómo pagar y recibir tu pedido.</p>
           </div>
           <a class="text-link filter-link" href="https://wa.me/584128867088" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp <span aria-hidden="true">↗</span></a>
         </div>
@@ -424,6 +441,64 @@
           </form>
         </section>
       </section>
+      <section class="app-account-view page-container" id="profile-view" aria-labelledby="profile-heading" hidden>
+        <header class="app-view-heading">
+          <span class="eyebrow">TU CUENTA</span>
+          <h1 id="profile-heading">Perfil</h1>
+          <p>Guarda tus datos y direcciones para agilizar tus compras.</p>
+        </header>
+        <section class="institutional-card" id="customer-auth-card">
+          <div class="account-auth-tabs" role="tablist" aria-label="Acceso a tu cuenta">
+            <button class="active" id="customer-login-tab" type="button" role="tab" aria-selected="true">Iniciar sesión</button>
+            <button id="customer-signup-tab" type="button" role="tab" aria-selected="false">Crear cuenta</button>
+          </div>
+          <button class="google-auth-button" id="customer-google-auth" type="button">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z" transform="translate(0 4)" /><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.75 7.18l7.73 6C44.42 38.03 46.98 31.9 46.98 24.55Z" /><path fill="#FBBC05" d="M10.53 28.59a14.4 14.4 0 0 1 0-9.18l-7.98-6.19a23.9 23.9 0 0 0 0 21.56l7.98-6.19Z" transform="translate(0 4)" /><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.14 1.45-4.88 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z" transform="translate(0 -4)" /></svg>
+            Continuar con Google
+          </button>
+          <p class="auth-divider"><span>o continúa con tu correo</span></p>
+          <form id="customer-login-form">
+            <label for="customer-login-email">Correo electrónico</label>
+            <input id="customer-login-email" name="email" type="email" autocomplete="email" required />
+            <label for="customer-login-password">Contraseña</label>
+            <input id="customer-login-password" name="password" type="password" autocomplete="current-password" minlength="8" required />
+            <button class="institutional-action" type="submit">Entrar a mi cuenta</button>
+          </form>
+          <form id="customer-signup-form" hidden>
+            <label for="customer-signup-name">Nombre completo</label>
+            <input id="customer-signup-name" name="full_name" autocomplete="name" maxlength="80" required />
+            <label for="customer-signup-phone">Teléfono</label>
+            <input id="customer-signup-phone" name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" required />
+            <label for="customer-signup-email">Correo electrónico</label>
+            <input id="customer-signup-email" name="email" type="email" autocomplete="email" required />
+            <label for="customer-signup-password">Contraseña (mínimo 8 caracteres)</label>
+            <input id="customer-signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required />
+            <button class="institutional-action" type="submit">Crear cuenta</button>
+          </form>
+          <p class="account-status" id="customer-auth-status" role="status" aria-live="polite"></p>
+        </section>
+        <a class="account-orders-link" href="/pedidos" data-app-route="orders">Consultar mis pedidos →</a>
+        <form class="institutional-card customer-profile-form" id="customer-profile-form" hidden>
+          <label for="customer-profile-name">Nombre completo</label>
+          <input id="customer-profile-name" name="full_name" autocomplete="name" maxlength="80" required />
+          <label for="customer-profile-phone">Teléfono</label>
+          <input id="customer-profile-phone" name="phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" required />
+          <label for="customer-profile-address">Dirección habitual (opcional)</label>
+          <textarea id="customer-profile-address" name="default_address" autocomplete="street-address" rows="3" maxlength="300"></textarea>
+          <button class="institutional-action" type="submit">Guardar mis datos</button>
+          <button class="account-sign-out" id="customer-sign-out" type="button">Cerrar sesión</button>
+          <p class="account-status" id="customer-profile-status" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section class="app-account-view page-container" id="orders-view" aria-labelledby="orders-heading" hidden>
+        <header class="app-view-heading">
+          <span class="eyebrow">SEGUIMIENTO</span>
+          <h1 id="orders-heading">Mis pedidos</h1>
+          <p>Consulta el estado de tus compras y el resultado de la revisión del pago.</p>
+        </header>
+        <p class="account-status" id="orders-status" role="status" aria-live="polite"></p>
+        <div class="customer-orders-list" id="customer-orders-list"></div>
+      </section>
       <div id="policies-view" hidden></div>
     </main>
 
@@ -460,9 +535,10 @@
         </div>
         <div class="footer-column footer-contact" id="sucursales">
           <h3>Estamos cerca de ti</h3>
-          <a class="contact-link" href="https://www.google.com/maps/place/Hipermercado+Kristal,+C.A./@9.3273659,-69.1198186,17z/data=!3m1!4b1!4m6!3m5!1s0x8e7dcd740f18557b:0x748040754d5b3875!8m2!3d9.3273659!4d-69.1198186!16s%2Fg%2F11y9nxj3rt?entry=ttu&amp;g_ep=EgoyMDI2MTAxMS4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noopener noreferrer"><span>⌖</span> Ver ubicación en Google Maps</a>
+          <a class="contact-link contact-map-link" href="https://www.google.com/maps/place/Hipermercado+Kristal,+C.A./@9.3273659,-69.1198186,17z/data=!3m1!4b1!4m6!3m5!1s0x8e7dcd740f18557b:0x748040754d5b3875!8m2!3d9.3273659!4d-69.1198186!16s%2Fg%2F11y9nxj3rt?entry=ttu&amp;g_ep=EgoyMDI2MTAxMS4wIKXMDSoASAFQAw%3D%3D" target="_blank" rel="noopener noreferrer"><span>⌖</span> Ver ubicación en Google Maps</a>
           <p><span>◷</span> Consulta el horario de tu sucursal por WhatsApp</p>
-          <a class="contact-link" href="tel:+584128867088"><span aria-hidden="true">Tel.</span> +58 (412) 886-7088</a>
+          <a class="contact-link contact-phone-link" href="tel:+584128867088"><span aria-hidden="true">Tel.</span> +58 (412) 886-7088</a>
+          <a class="contact-link mobile-legal-link" href="/politicas" data-route>Políticas y privacidad</a>
           <div class="payment-methods"><span>VISA</span><span>MC</span><span>Pago móvil</span></div>
         </div>
       </div>
@@ -504,13 +580,93 @@
       </div>
       <div class="cart-drawer-footer">
         <div class="cart-total-row"><span>Total de tu compra</span><strong id="cart-total">—</strong></div>
-        <p class="cart-checkout-note">El pedido se abrirá en WhatsApp para que lo confirmes con nuestra caja.</p>
+        <p class="cart-checkout-note">Elige cómo recibir y pagar tu pedido. Caja verificará los pagos móviles antes de confirmarlos.</p>
         <button class="checkout-button" id="checkout-button" type="button" disabled>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 11.8a8.4 8.4 0 0 1-12.4 7.4L4 20l.9-4a8.4 8.4 0 1 1 15.6-4.2Z" /><path d="M9 8.5c.4 2.6 2 4.2 4.6 5" /></svg>
-          Procesar compra por WhatsApp
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v17l-7-4-7 4zM9 9h6M9 13h6" /></svg>
+          Continuar al pago
         </button>
       </div>
     </aside>
+    <nav class="mobile-bottom-nav" aria-label="Navegación de la app">
+      <a href="/" data-app-route="home">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" /></svg>
+        <span>Inicio</span>
+      </a>
+      <a href="/catalogo" data-app-route="catalog">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM14 4h6v4h-6zM14 11h6v9h-6zM4 14h7v6H4z" /></svg>
+        <span>Catálogo</span>
+      </a>
+      <button type="button" data-app-route="cart" aria-label="Abrir carrito">
+        <span class="mobile-nav-cart-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="21" r="1" /><circle cx="18" cy="21" r="1" /></svg><span id="mobile-nav-cart-count">0</span></span>
+        <span>Carrito</span>
+      </button>
+      <a href="/pedidos" data-app-route="orders">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v17l-7-4-7 4zM9 9h6M9 13h6" /></svg>
+        <span>Pedidos</span>
+      </a>
+      <a href="/perfil" data-app-route="profile">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
+        <span>Perfil</span>
+      </a>
+    </nav>
+    <dialog class="store-checkout-dialog" id="store-checkout-dialog" aria-labelledby="store-checkout-heading">
+      <div class="store-checkout-panel">
+        <header class="checkout-dialog-header">
+          <div><span class="eyebrow">COMPRA SEGURA</span><h2 id="store-checkout-heading">Finalizar pedido</h2></div>
+          <button class="cart-close" id="store-checkout-close" type="button" aria-label="Cerrar checkout">×</button>
+        </header>
+        <div class="checkout-dialog-content">
+          <form id="store-checkout-form">
+            <label>Nombre completo<input name="customer_name" autocomplete="name" maxlength="80" required /></label>
+            <label>Teléfono<input name="customer_phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" required /></label>
+            <fieldset class="checkout-choice-group">
+              <legend>¿Cómo recibirás tu pedido?</legend>
+              <label><input type="radio" name="fulfillment" value="pickup" checked /> Retiro en tienda · Villa Bruzual</label>
+              <label><input type="radio" name="fulfillment" value="delivery" /> Delivery a domicilio</label>
+            </fieldset>
+            <label id="store-delivery-address-row" hidden>Dirección y punto de referencia<textarea name="delivery_address" autocomplete="street-address" rows="3" maxlength="300"></textarea></label>
+            <fieldset class="checkout-choice-group">
+              <legend>Método de pago</legend>
+              <label><input type="radio" name="payment_method" value="mobile_payment" checked /> Pago Móvil · enviar comprobante</label>
+              <label><input type="radio" name="payment_method" value="zelle" /> Zelle · solicitar instrucciones a caja</label>
+              <label><input type="radio" name="payment_method" value="cash_pos" /> Efectivo o punto de venta al recibir</label>
+            </fieldset>
+            <section class="checkout-mobile-payment" id="checkout-mobile-payment">
+              <h3>Pago Móvil</h3>
+              <p>Banco de Venezuela 0102 · Provincial 0108 · Banesco 0134 · Mercantil 0105</p>
+              <p>Teléfono: <strong>04245104430</strong> · Cédula/RIF: <strong>V-26199919</strong></p>
+              <label>Cuenta receptora del Pago Móvil
+                <select name="payment_bank_code" required>
+                  <option value="0102">Banco de Venezuela · 0102</option>
+                  <option value="0108">Provincial · 0108</option>
+                  <option value="0134">Banesco · 0134</option>
+                  <option value="0105">Mercantil · 0105</option>
+                </select>
+              </label>
+              <label>Número de referencia<input name="payment_reference" inputmode="numeric" autocomplete="off" maxlength="40" required /></label>
+              <label>Comprobante de pago<input name="payment_proof" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required /><small>JPG, PNG, WebP o PDF; máximo 5 MB. Caja verificará el pago antes de confirmarlo.</small></label>
+            </section>
+            <p class="checkout-method-note" id="checkout-method-note" hidden></p>
+            <section class="checkout-totals">
+              <p class="checkout-total" id="checkout-total"></p>
+              <p class="checkout-rate-status" id="checkout-rate-status" role="status" aria-live="polite">Consultando la tasa BCV…</p>
+              <button class="checkout-copy-ves" id="checkout-copy-ves" type="button" hidden>Copiar monto en bolívares</button>
+              <p class="checkout-copy-status" id="checkout-copy-status" role="status" aria-live="polite"></p>
+            </section>
+            <button class="checkout-button" id="confirm-store-order" type="submit">Confirmar pedido</button>
+            <p class="account-status" id="checkout-status" role="status" aria-live="polite"></p>
+          </form>
+          <section class="order-receipt" id="order-receipt" hidden>
+            <span class="receipt-check" aria-hidden="true">✓</span>
+            <h3>Pedido recibido</h3>
+            <p>Este recibo confirma que registramos tu pedido; no es una factura fiscal ni confirma el pago.</p>
+            <dl><div><dt>Número de pedido</dt><dd id="receipt-order-id"></dd></div><div><dt>Total estimado</dt><dd id="receipt-total"></dd></div><div><dt>Equivalente referencial</dt><dd id="receipt-total-ves">No disponible</dd></div><div><dt>Estado del pago</dt><dd id="receipt-payment-status"></dd></div></dl>
+            <a class="institutional-action" href="/pedidos" data-app-route="orders">Ver seguimiento</a>
+            <a class="receipt-whatsapp" id="receipt-whatsapp" href="#" target="_blank" rel="noopener noreferrer">Avisar a caja por WhatsApp</a>
+          </section>
+        </div>
+      </div>
+    </dialog>
     <dialog class="info-dialog" id="info-dialog" aria-labelledby="info-dialog-title">
       <div class="info-dialog-header">
         <h2 id="info-dialog-title"></h2>

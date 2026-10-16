@@ -12,6 +12,9 @@ const imageInput = document.querySelector("#product-image");
 const saveButton = document.querySelector("#save-product-button");
 const formHeading = document.querySelector("#product-form-heading");
 const cancelEditButton = document.querySelector("#cancel-edit-button");
+const adminOrdersList = document.querySelector("#admin-orders-list");
+const adminOrdersStatus = document.querySelector("#orders-admin-status");
+const emptyOrders = document.querySelector("#empty-orders");
 const currency = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
 const departmentNames = [
   "Víveres y Alacena",
@@ -29,6 +32,7 @@ const departmentNames = [
 let editingProduct = null;
 let categories = [];
 let missingDepartments = [];
+let adminOrdersChannel = null;
 imageInput.required = true;
 
 function escapeHtml(value) {
@@ -114,6 +118,171 @@ async function loadInventory() {
     missingDepartments.length === 0,
   );
   return data;
+}
+
+const orderStatusLabels = {
+  received: "Recibido",
+  preparing: "En preparación",
+  ready: "Listo para retirar",
+  delivering: "En delivery",
+  delivered: "Entregado",
+  cancelled: "Cancelado",
+};
+const paymentStatusLabels = {
+  pending_verification: "Pendiente de verificar Pago Móvil",
+  awaiting_instructions: "Pendiente de instrucciones Zelle",
+  awaiting_in_store: "Pago pendiente al retirar",
+  awaiting_delivery: "Pago pendiente al entregar",
+  verified: "Pago recibido",
+  rejected: "Pago rechazado",
+};
+
+function buildWhatsAppOrderLink(order, items) {
+  const lines = [
+    `Pedido ${order.id}`,
+    `Cliente: ${order.customer_name} · ${order.customer_phone}`,
+    `Entrega: ${order.fulfillment === "delivery" ? `Delivery — ${order.delivery_address || ""}` : "Retiro en tienda"}`,
+    `Pago: ${order.payment_method} · ${order.payment_status}`,
+    `Total: ${currency.format(Number(order.total_usd))}`,
+    ...(order.total_ves === null ? [] : [`Equivalente referencial: Bs. ${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(order.total_ves))}`]),
+    ...items.map((item) => `• ${item.product_name} × ${item.quantity}`),
+  ];
+  return `https://wa.me/584128867088?text=${encodeURIComponent(lines.join("\n"))}`;
+}
+
+async function loadAdminOrders() {
+  setMessage(adminOrdersStatus, "Cargando pedidos…");
+  const { data: orders, error } = await supabaseClient
+    .from("store_orders")
+    .select("id,user_id,customer_name,customer_phone,fulfillment,delivery_address,payment_method,payment_bank_code,payment_reference,payment_proof_path,payment_status,order_status,total_usd,total_ves,created_at")
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) throw error;
+  if (!orders.length) {
+    adminOrdersList.replaceChildren();
+    emptyOrders.hidden = false;
+    setMessage(adminOrdersStatus, "No hay pedidos registrados.", true);
+    return;
+  }
+  emptyOrders.hidden = true;
+  const orderIds = orders.map((order) => order.id);
+  const { data: items, error: itemsError } = await supabaseClient
+    .from("store_order_items")
+    .select("order_id,product_name,quantity,line_total_usd")
+    .in("order_id", orderIds);
+  if (itemsError) throw itemsError;
+  const itemsByOrder = new Map();
+  for (const item of items) {
+    if (!itemsByOrder.has(item.order_id)) itemsByOrder.set(item.order_id, []);
+    itemsByOrder.get(item.order_id).push(item);
+  }
+
+  const orderCards = await Promise.all(orders.map(async (order) => {
+    const orderItems = itemsByOrder.get(order.id) || [];
+    let proofLink = "";
+    let proofError = "";
+    if (order.payment_proof_path) {
+      const { data: signed, error: signedError } = await supabaseClient.storage
+        .from("payment-proofs")
+        .createSignedUrl(order.payment_proof_path, 3600);
+      if (signedError) {
+        console.error(`No se pudo crear un enlace privado para el comprobante del pedido ${order.id}.`, signedError);
+        proofError = "No se pudo abrir el comprobante; revisa las políticas del bucket privado.";
+      } else {
+        proofLink = `<a class="order-proof-link" href="${escapeHtml(signed.signedUrl)}" target="_blank" rel="noopener noreferrer">Ver comprobante</a>`;
+      }
+    }
+    const paymentAction = order.payment_method === "mobile_payment" && order.payment_status === "pending_verification"
+      ? `<div class="order-payment-actions"><button type="button" data-order-action="verify" data-id="${escapeHtml(order.id)}">Aprobar pago</button><button class="delete-button" type="button" data-order-action="reject" data-id="${escapeHtml(order.id)}">Rechazar pago</button></div>`
+      : !["verified", "rejected"].includes(order.payment_status)
+        ? `<div class="order-payment-actions"><button type="button" data-order-action="verify" data-id="${escapeHtml(order.id)}">${order.payment_method === "zelle" ? "Confirmar Zelle recibido" : "Confirmar efectivo/POS recibido"}</button></div>`
+        : `<span class="order-payment-result">Pago: ${escapeHtml(paymentStatusLabels[order.payment_status] || order.payment_status)}</span>`;
+    const availableStatuses = Object.entries(orderStatusLabels).filter(([value]) =>
+      order.fulfillment === "delivery" || value !== "delivering",
+    );
+    const statusOptions = availableStatuses.map(([value, label]) => {
+      const fulfillmentLabel = value === "ready" && order.fulfillment === "delivery" ? "Listo para enviar" : label;
+      return `<option value="${value}"${order.order_status === value ? " selected" : ""}>${fulfillmentLabel}</option>`;
+    }).join("");
+    const date = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(order.created_at));
+    return `<article class="admin-order-card" data-order-id="${escapeHtml(order.id)}">
+      <header class="admin-order-heading"><div><span class="eyebrow">${escapeHtml(date)}</span><h3>Pedido ${escapeHtml(order.id.slice(0, 8).toUpperCase())}</h3></div><strong>${currency.format(Number(order.total_usd))}${order.total_ves === null ? "" : `<small>Bs. ${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(order.total_ves))} · referencial</small>`}</strong></header>
+      <p><strong>${escapeHtml(order.customer_name)}</strong> · ${escapeHtml(order.customer_phone)}</p>
+      <p>${order.fulfillment === "delivery" ? `Delivery: ${escapeHtml(order.delivery_address || "")}` : "Retiro en tienda"} · Pago: ${escapeHtml(order.payment_method)}</p>
+      ${order.payment_method === "mobile_payment" ? `<p>Banco: ${escapeHtml(order.payment_bank_code || "—")} · Referencia: ${escapeHtml(order.payment_reference || "—")}</p>` : ""}
+      <ul class="admin-order-items">${orderItems.map((item) => `<li>${escapeHtml(item.product_name)} × ${item.quantity} <span>${currency.format(Number(item.line_total_usd))}</span></li>`).join("")}</ul>
+      <div class="admin-order-proof">${proofLink}${proofError ? `<span role="alert">${escapeHtml(proofError)}</span>` : ""}</div>
+      ${paymentAction}
+      <div class="admin-order-status-controls"><label>Estado del pedido<select data-order-status>${statusOptions}</select></label><button type="button" data-order-action="status" data-id="${escapeHtml(order.id)}">Guardar estado</button></div>
+      <a class="order-whatsapp-link" href="${buildWhatsAppOrderLink(order, orderItems)}" target="_blank" rel="noopener noreferrer">Preparar aviso por WhatsApp</a>
+    </article>`;
+  }));
+  adminOrdersList.innerHTML = orderCards.join("");
+  setMessage(adminOrdersStatus, `${orders.length} pedidos recientes.`);
+}
+
+async function handleAdminOrderAction(event) {
+  const button = event.target.closest("button[data-order-action]");
+  if (!button) return;
+  const orderId = button.dataset.id;
+  const action = button.dataset.orderAction;
+  const update = action === "verify"
+    ? { payment_status: "verified" }
+    : action === "reject"
+      ? { payment_status: "rejected" }
+      : { order_status: button.closest(".admin-order-card").querySelector("[data-order-status]").value };
+  if (action === "verify") {
+    const card = button.closest(".admin-order-card");
+    const paymentText = card.querySelector(".admin-order-heading h3").textContent;
+    const confirmationMessage = button.textContent === "Aprobar pago"
+      ? `¿Verificaste el abono bancario de ${paymentText} y deseas aprobarlo?`
+      : `¿Confirmas que recibiste el pago de ${paymentText}?`;
+    if (!window.confirm(confirmationMessage)) return;
+  }
+  if (action === "reject" && !window.confirm("¿Confirmas que el comprobante no corresponde a un pago válido?")) return;
+
+  button.disabled = true;
+  setMessage(adminOrdersStatus, "Guardando cambios…");
+  try {
+    const { error } = await supabaseClient
+      .from("store_orders")
+      .update({ ...update, updated_at: new Date().toISOString() })
+      .eq("id", orderId);
+    if (error) throw error;
+    await loadAdminOrders();
+  } catch (error) {
+    console.error("No se pudo actualizar el pedido.", error);
+    setMessage(adminOrdersStatus, error.message || "No se pudo actualizar el pedido.", false);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function subscribeToAdminOrders() {
+  if (adminOrdersChannel) supabaseClient.removeChannel(adminOrdersChannel);
+  adminOrdersChannel = supabaseClient
+    .channel("admin-store-orders")
+    .on("postgres_changes", { event: "*", schema: "public", table: "store_orders" }, () => {
+      loadAdminOrders().catch((error) => {
+        console.error("No se pudo actualizar la bandeja de pedidos.", error);
+        setMessage(adminOrdersStatus, error.message || "No se pudo actualizar la bandeja.", false);
+      });
+    })
+    .subscribe();
+}
+
+async function initializeAdminOrders() {
+  try {
+    await loadAdminOrders();
+    subscribeToAdminOrders();
+  } catch (error) {
+    console.error("No se pudo cargar la bandeja de pedidos.", error);
+    setMessage(
+      adminOrdersStatus,
+      `No se pudo cargar la bandeja: ${error.message || "error de conexión"}. Verifica que supabase-orders.sql esté aplicado.`,
+      false,
+    );
+  }
 }
 
 function resetProductForm() {
@@ -312,6 +481,7 @@ async function initializeAdmin() {
     setAuthenticatedView(true);
     await loadCategories();
     await loadInventory();
+    await initializeAdminOrders();
   } catch (error) {
     console.error("No se pudo abrir el panel de administración.", error);
     setAuthenticatedView(false);
@@ -340,6 +510,7 @@ loginForm.addEventListener("submit", async (event) => {
     setMessage(authStatus, "");
     await loadCategories();
     await loadInventory();
+    await initializeAdminOrders();
   } catch (error) {
     console.error("No se pudo iniciar sesión en el panel.", error);
     setAuthenticatedView(false);
@@ -358,10 +529,21 @@ document.querySelector("#refresh-button").addEventListener("click", () => {
     setMessage(dashboardStatus, error.message || "No se pudo actualizar el inventario.");
   });
 });
+document.querySelector("#refresh-orders-button").addEventListener("click", () => {
+  loadAdminOrders().catch((error) => {
+    console.error("No se pudo actualizar la bandeja de pedidos.", error);
+    setMessage(adminOrdersStatus, error.message || "No se pudo actualizar la bandeja.", false);
+  });
+});
+adminOrdersList.addEventListener("click", handleAdminOrderAction);
 document.querySelector("#sign-out-button").addEventListener("click", async () => {
   try {
     const { error } = await supabaseClient.auth.signOut();
     if (error) throw error;
+    if (adminOrdersChannel) {
+      await supabaseClient.removeChannel(adminOrdersChannel);
+      adminOrdersChannel = null;
+    }
     setAuthenticatedView(false);
     loginForm.reset();
   } catch (error) {

@@ -6,11 +6,11 @@
     <meta name="theme-color" content="#0f3822" />
     <title>Administración | Hipermercado Kristal</title>
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="admin.css?v=departments-mobile-20261014" />
+    <link rel="stylesheet" href="admin.css?v=store-orders-20260612" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
-    <script src="admin.js?v=departments-mobile-20261014" defer></script>
+    <script src="admin.js?v=store-orders-20260612" defer></script>
   </head>
   <body>
     <main class="admin-shell">
@@ -107,6 +107,20 @@
             </table>
           </div>
           <p class="empty-inventory" id="empty-inventory" hidden>Aún no hay productos en el inventario.</p>
+        </section>
+
+        <section class="panel order-inbox-panel" aria-labelledby="order-inbox-heading">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">CAJA</p>
+              <h2 id="order-inbox-heading">Bandeja de pedidos</h2>
+            </div>
+            <button class="secondary-button" id="refresh-orders-button" type="button">Actualizar pedidos</button>
+          </div>
+          <p class="intro">Verifica manualmente cada comprobante antes de aprobar un pago móvil.</p>
+          <p class="status-message" id="orders-admin-status" role="status" aria-live="polite"></p>
+          <div class="admin-orders-list" id="admin-orders-list"></div>
+          <p class="empty-inventory" id="empty-orders" hidden>No hay pedidos registrados.</p>
         </section>
       </section>
     </main>

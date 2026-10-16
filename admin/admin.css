@@ -59,6 +59,26 @@ td:first-child { min-width: 210px; font-weight: 700; }
 .row-actions button { padding: 7px 9px; border: 1px solid #dce6dd; border-radius: 6px; background: #fff; color: #345441; font-size: 11px; font-weight: 700; }
 .row-actions .delete-button { border-color: #f0d9d6; color: #a13d34; }
 .empty-inventory { margin: 18px 0 0; color: #748179; font-size: 13px; }
+.admin-orders-list { display: grid; gap: 14px; }
+.admin-order-card { padding: 16px; border: 1px solid #e3eae4; border-radius: 10px; background: #fbfdfb; }
+.admin-order-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.admin-order-heading h3 { margin: 2px 0 0; color: #1c3d2a; font-size: 17px; }
+.admin-order-heading > strong { color: #14552e; white-space: nowrap; }
+.admin-order-heading > strong small { display: block; margin-top: 4px; color: #718078; font-size: 10px; font-weight: 600; text-align: right; }
+.admin-order-card > p { margin: 12px 0 0; color: #53635a; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.admin-order-items { display: grid; gap: 7px; padding: 12px 0; margin: 12px 0 0; border-top: 1px solid #e8eee9; list-style: none; }
+.admin-order-items li { display: flex; justify-content: space-between; gap: 12px; color: #48584e; font-size: 12px; }
+.admin-order-items span { white-space: nowrap; }
+.admin-order-proof { display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0; font-size: 12px; }
+.order-proof-link, .order-whatsapp-link { color: #176332; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.admin-order-proof [role="alert"] { color: #a1382c; }
+.order-payment-actions, .admin-order-status-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-top: 12px; }
+.order-payment-actions button, .admin-order-status-controls button { min-height: 38px; padding: 8px 11px; border: 1px solid #dce6dd; border-radius: 6px; background: #14552e; color: white; font-size: 12px; font-weight: 800; }
+.order-payment-actions .delete-button { border-color: #f0d9d6; background: #fff; color: #a13d34; }
+.order-payment-result { color: #63736a; font-size: 12px; font-weight: 700; }
+.admin-order-status-controls label { display: grid; flex: 1 1 180px; gap: 5px; color: #526259; font-size: 11px; font-weight: 800; }
+.admin-order-status-controls select { min-width: 0; }
+.order-whatsapp-link { display: inline-block; margin-top: 13px; font-size: 12px; }
 @media (max-width: 640px) {
   .admin-shell { width: calc(100% - 24px); padding-top: 16px; }
   .back-link { margin-bottom: 14px; font-size: 13px; }
