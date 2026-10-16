@@ -657,6 +657,15 @@ main { min-height: 55vh; padding-bottom: 40px; }
 }
 
 .mobile-app-bar, .mobile-bottom-nav { display: none; }
+html.app-auth-pending body > :not(main),
+html.app-auth-required body > :not(main) { display: none !important; }
+html.app-auth-pending body > main,
+html.app-auth-required body > main { display: contents !important; }
+html.app-auth-pending body > main > :not(#profile-view),
+html.app-auth-required body > main > :not(#profile-view) { display: none !important; }
+html.app-auth-pending #profile-view,
+html.app-auth-required #profile-view { display: block !important; min-height: 100vh; padding-top: max(32px, env(safe-area-inset-top)); }
+html.app-auth-pending #customer-auth-status { color: var(--muted); }
 .app-view-heading { margin: 22px 0 18px; }
 .app-view-heading h1 { margin: 5px 0; color: var(--forest); font: 800 clamp(27px, 4vw, 38px)/1.15 "Manrope", sans-serif; }
 .app-view-heading p { margin: 0; color: var(--muted); }

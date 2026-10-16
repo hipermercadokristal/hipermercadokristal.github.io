@@ -47,6 +47,20 @@
     element.classList.toggle("error", isError);
   }
 
+  function updateInstalledAppAccess(user) {
+    const root = document.documentElement;
+    if (!root.classList.contains("installed-app")) return;
+    const authenticated = Boolean(user);
+    root.classList.toggle("app-auth-required", !authenticated);
+    root.classList.remove("app-auth-pending");
+    if (!authenticated && location.pathname.replace(/\/+$/, "") !== "/perfil") {
+      document.dispatchEvent(new CustomEvent("kristal:navigate", { detail: { path: "/perfil" } }));
+    }
+    if (!authenticated) {
+      setStatus("#customer-auth-status", "Inicia sesión o crea tu cuenta para continuar usando la app.");
+    }
+  }
+
   function restorePendingCheckout() {
     try {
       const saved = JSON.parse(sessionStorage.getItem(pendingCheckoutStorageKey) || "null");
@@ -161,6 +175,7 @@
   function setAuthenticatedUser(user) {
     if (currentUser?.id !== user?.id) ordersRequest += 1;
     currentUser = user;
+    updateInstalledAppAccess(user);
     if (user) {
       try {
         if (sessionStorage.getItem(oauthReturnStorageKey) === "1") {
@@ -630,6 +645,7 @@
     if (!supabase) {
       setStatus("#customer-auth-status", "La tienda no está conectada a Supabase. Inténtalo más tarde.", true);
       document.querySelector("#checkout-button").disabled = true;
+      updateInstalledAppAccess(null);
       return;
     }
     restorePendingCheckout();
@@ -654,6 +670,7 @@
     } catch (error) {
       console.error("No se pudo validar la sesión del cliente.", error);
       setStatus("#customer-auth-status", error.message || "No se pudo validar tu sesión.", true);
+      updateInstalledAppAccess(null);
     }
     supabase.auth.onAuthStateChange((_event, session) => {
       setAuthenticatedUser(session?.user || null);
@@ -745,6 +762,7 @@
     if (!currentUser) return;
     const button = profileForm.querySelector('button[type="submit"]');
     button.disabled = true;
+    let profileSaved = false;
     setStatus("#customer-profile-status", "Guardando tus datos…");
     try {
       const profile = {
@@ -761,11 +779,15 @@
       });
       if (userUpdateError) throw userUpdateError;
       setStatus("#customer-profile-status", "Datos guardados.", false);
+      profileSaved = true;
     } catch (error) {
       console.error("No se pudo guardar el perfil.", error);
       setStatus("#customer-profile-status", error.message || "No se pudieron guardar tus datos.", true);
     } finally {
       button.disabled = false;
+    }
+    if (profileSaved && document.documentElement.classList.contains("installed-app")) {
+      document.dispatchEvent(new CustomEvent("kristal:navigate", { detail: { path: "/" } }));
     }
   });
   document.querySelector("#customer-sign-out").addEventListener("click", async () => {
