@@ -209,6 +209,8 @@
     checkoutForm.elements.payment_bank_code.required = mobilePayment;
     checkoutForm.elements.payment_reference.required = mobilePayment;
     checkoutForm.elements.payment_proof.required = mobilePayment;
+    checkoutForm.elements.payment_reference.setCustomValidity("");
+    setStatus("#checkout-reference-status", "");
     if (method === "zelle") {
       setStatus("#checkout-method-note", "Solicita a caja los datos e instrucciones de Zelle antes de transferir. Tu pedido quedará pendiente de coordinación.");
     } else if (method === "cash_pos") {
@@ -282,6 +284,9 @@
         throw new Error("No está disponible la tasa BCV para calcular el monto en bolívares. Elige otro método o confirma el monto con caja.");
       }
       if (paymentMethod === "mobile_payment") {
+        if (!/^[0-9]{4,20}$/.test(String(formData.get("payment_reference")).trim())) {
+          throw new Error("La referencia bancaria debe tener entre 4 y 20 dígitos.");
+        }
         if (!(selectedProof instanceof File) || !selectedProof.size) {
           throw new Error("Adjunta el comprobante de Pago Móvil.");
         }
@@ -321,6 +326,16 @@
         order.total_ves === null ? "No disponible" : formatBolivares(Number(order.total_ves));
       document.querySelector("#receipt-payment-status").textContent =
         paymentStatusLabels[order.payment_status] || "Pendiente de coordinación";
+      const receipt = document.querySelector("#order-receipt");
+      receipt.dataset.orderId = order.order_id;
+      receipt.dataset.paymentMethod = paymentMethod;
+      document.querySelector("#receipt-payment-check").hidden = paymentMethod !== "mobile_payment";
+      document.querySelector("#receipt-reference-form").elements.payment_reference.value =
+        String(formData.get("payment_reference") || "").trim();
+      document.querySelector("#receipt-heading").textContent = "Pedido recibido";
+      document.querySelector(".receipt-check").classList.remove("is-verified");
+      setStatus("#receipt-verification-status", "");
+      setStatus("#receipt-reference-status", "");
       const message = [
         "Hola, registré un pedido en la app de Hipermercado Kristal.",
         `Pedido: ${order.order_id}`,
@@ -348,6 +363,72 @@
       }
       console.error("No se pudo registrar el pedido.", error);
       setStatus("#checkout-status", error.message || "No se pudo registrar el pedido. Revisa tu conexión e inténtalo de nuevo.", true);
+    } finally {
+      submitButton.disabled = false;
+    }
+  }
+
+  async function refreshReceiptPaymentStatus(button) {
+    const receipt = document.querySelector("#order-receipt");
+    if (!currentUser || !receipt.dataset.orderId) {
+      setStatus("#receipt-verification-status", "Inicia sesión para consultar el estado de este pago.", true);
+      return;
+    }
+    button.disabled = true;
+    setStatus("#receipt-verification-status", "Consultando el estado registrado del pedido…");
+    try {
+      const { data, error } = await supabase
+        .from("store_orders")
+        .select("payment_status")
+        .eq("id", receipt.dataset.orderId)
+        .eq("user_id", currentUser.id)
+        .single();
+      if (error) throw error;
+      const status = data.payment_status;
+      document.querySelector("#receipt-payment-status").textContent =
+        paymentStatusLabels[status] || "Estado de pago pendiente";
+      const verified = status === "verified";
+      document.querySelector("#receipt-heading").textContent =
+        verified ? "Pago verificado con éxito" : "Pedido recibido";
+      document.querySelector(".receipt-check").classList.toggle("is-verified", verified);
+      document.querySelector("#receipt-reference-form").hidden = status !== "pending_verification";
+      if (verified) {
+        setStatus("#receipt-verification-status", "Pago verificado y confirmado por caja.");
+      } else if (status === "rejected") {
+        setStatus("#receipt-verification-status", "Caja rechazó el pago. Revisa el comprobante o contacta a caja por WhatsApp.", true);
+      } else {
+        setStatus("#receipt-verification-status", "El pago sigue pendiente. Esta consulta revisa el estado de la tienda; no consulta al banco. Caja debe verificar el abono antes de confirmarlo.");
+      }
+    } catch (error) {
+      console.error("No se pudo consultar el estado del pago.", error);
+      setStatus("#receipt-verification-status", error.message || "No se pudo consultar el estado. Inténtalo de nuevo.", true);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  async function updateReceiptPaymentReference(event) {
+    event.preventDefault();
+    const receipt = document.querySelector("#order-receipt");
+    const form = event.currentTarget;
+    const reference = String(form.elements.payment_reference.value).trim();
+    const submitButton = form.querySelector('button[type="submit"]');
+    if (!/^[0-9]{4,20}$/.test(reference)) {
+      setStatus("#receipt-reference-status", "La referencia debe tener entre 4 y 20 dígitos.", true);
+      return;
+    }
+    submitButton.disabled = true;
+    setStatus("#receipt-reference-status", "Actualizando la referencia…");
+    try {
+      const { error } = await supabase.rpc("update_mobile_payment_reference", {
+        p_order_id: receipt.dataset.orderId,
+        p_payment_reference: reference,
+      });
+      if (error) throw error;
+      setStatus("#receipt-reference-status", "Referencia actualizada. El pago continúa pendiente hasta que caja confirme el abono.");
+    } catch (error) {
+      console.error("No se pudo actualizar la referencia bancaria.", error);
+      setStatus("#receipt-reference-status", error.message || "No se pudo actualizar la referencia.", true);
     } finally {
       submitButton.disabled = false;
     }
@@ -601,7 +682,23 @@
     if (event.target.name === "payment_method") setCheckoutPaymentFields();
     if (event.target.name === "fulfillment") setFulfillmentFields();
   });
+  checkoutForm.elements.payment_reference.addEventListener("input", (event) => {
+    const input = event.currentTarget;
+    const invalid = input.value.length > 0 && !/^[0-9]{4,20}$/.test(input.value);
+    input.setCustomValidity(invalid ? "Ingresa una referencia de 4 a 20 dígitos." : "");
+    setStatus("#checkout-reference-status", invalid ? "La referencia debe contener entre 4 y 20 dígitos." : "");
+  });
+  document.querySelector("#receipt-reference-form").elements.payment_reference.addEventListener("input", (event) => {
+    const input = event.currentTarget;
+    const invalid = input.value.length > 0 && !/^[0-9]{4,20}$/.test(input.value);
+    input.setCustomValidity(invalid ? "Ingresa una referencia de 4 a 20 dígitos." : "");
+    setStatus("#receipt-reference-status", invalid ? "La referencia debe contener entre 4 y 20 dígitos." : "");
+  });
   checkoutForm.addEventListener("submit", createOrder);
+  document.querySelector("#receipt-refresh-payment").addEventListener("click", (event) => {
+    refreshReceiptPaymentStatus(event.currentTarget);
+  });
+  document.querySelector("#receipt-reference-form").addEventListener("submit", updateReceiptPaymentReference);
   document.querySelector("#store-checkout-close").addEventListener("click", () => checkoutDialog.close());
   checkoutDialog.addEventListener("close", () => document.body.classList.remove("checkout-open"));
   document.addEventListener("click", (event) => {

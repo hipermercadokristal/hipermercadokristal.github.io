@@ -334,6 +334,54 @@ $$;
 revoke all on function public.create_store_order(uuid, text, text, text, text, text, text, text, text, numeric, jsonb) from public, anon;
 grant execute on function public.create_store_order(uuid, text, text, text, text, text, text, text, text, numeric, jsonb) to authenticated;
 
+create or replace function public.update_mobile_payment_reference(
+  p_order_id uuid,
+  p_payment_reference text
+)
+returns text
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_order public.store_orders%rowtype;
+  v_reference text := btrim(coalesce(p_payment_reference, ''));
+begin
+  if auth.uid() is null then
+    raise exception 'Debes iniciar sesión para actualizar la referencia.';
+  end if;
+
+  if v_reference !~ '^[0-9]{4,20}$' then
+    raise exception 'La referencia debe contener entre 4 y 20 dígitos.';
+  end if;
+
+  select *
+  into v_order
+  from public.store_orders
+  where id = p_order_id
+    and user_id = auth.uid()
+  for update;
+
+  if not found then
+    raise exception 'No se encontró el pedido.';
+  end if;
+  if v_order.payment_method <> 'mobile_payment'
+     or v_order.payment_status <> 'pending_verification' then
+    raise exception 'Solo se puede corregir la referencia de un Pago Móvil pendiente.';
+  end if;
+
+  update public.store_orders
+  set payment_reference = v_reference,
+      updated_at = now()
+  where id = p_order_id;
+
+  return 'pending_verification';
+end;
+$$;
+
+revoke all on function public.update_mobile_payment_reference(uuid, text) from public, anon;
+grant execute on function public.update_mobile_payment_reference(uuid, text) to authenticated;
+
 do $$
 begin
   alter table public.store_orders replica identity full;

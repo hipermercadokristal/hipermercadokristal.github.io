@@ -643,7 +643,8 @@
                   <option value="0105">Mercantil · 0105</option>
                 </select>
               </label>
-              <label>Número de referencia<input name="payment_reference" inputmode="numeric" autocomplete="off" maxlength="40" required /></label>
+              <label>Número de referencia<input name="payment_reference" inputmode="numeric" autocomplete="off" minlength="4" maxlength="20" pattern="[0-9]{4,20}" title="Ingresa de 4 a 20 dígitos." required /></label>
+              <p class="checkout-reference-status" id="checkout-reference-status" role="status" aria-live="polite"></p>
               <label>Comprobante de pago<input name="payment_proof" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required /><small>JPG, PNG, WebP o PDF; máximo 5 MB. Caja verificará el pago antes de confirmarlo.</small></label>
             </section>
             <p class="checkout-method-note" id="checkout-method-note" hidden></p>
@@ -658,9 +659,20 @@
           </form>
           <section class="order-receipt" id="order-receipt" hidden>
             <span class="receipt-check" aria-hidden="true">✓</span>
-            <h3>Pedido recibido</h3>
+            <h3 id="receipt-heading">Pedido recibido</h3>
             <p>Este recibo confirma que registramos tu pedido; no es una factura fiscal ni confirma el pago.</p>
             <dl><div><dt>Número de pedido</dt><dd id="receipt-order-id"></dd></div><div><dt>Total estimado</dt><dd id="receipt-total"></dd></div><div><dt>Equivalente referencial</dt><dd id="receipt-total-ves">No disponible</dd></div><div><dt>Estado del pago</dt><dd id="receipt-payment-status"></dd></div></dl>
+            <section class="receipt-payment-check" id="receipt-payment-check" hidden>
+              <button class="checkout-button" id="receipt-refresh-payment" type="button">Ya pagué · consultar estado</button>
+              <p class="account-status" id="receipt-verification-status" role="status" aria-live="polite"></p>
+              <form id="receipt-reference-form">
+                <label>¿Necesitas corregir la referencia?
+                  <input name="payment_reference" inputmode="numeric" autocomplete="off" minlength="4" maxlength="20" pattern="[0-9]{4,20}" title="Ingresa de 4 a 20 dígitos." required />
+                </label>
+                <button class="receipt-reference-submit" type="submit">Actualizar referencia</button>
+                <p class="account-status" id="receipt-reference-status" role="status" aria-live="polite"></p>
+              </form>
+            </section>
             <a class="institutional-action" href="/pedidos" data-app-route="orders">Ver seguimiento</a>
             <a class="receipt-whatsapp" id="receipt-whatsapp" href="#" target="_blank" rel="noopener noreferrer">Avisar a caja por WhatsApp</a>
           </section>
