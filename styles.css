@@ -14,7 +14,7 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; touch-action: manipulation; }
 body { min-width: 320px; margin: 0; }
 button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
@@ -749,6 +749,7 @@ main { min-height: 55vh; padding-bottom: 40px; }
 @media (prefers-reduced-motion: reduce) { .receipt-check.is-verified { animation: none; } }
 
 @media (max-width: 760px) {
+  input, select, textarea { font-size: 16px; }
   body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
   body.has-cart-items:not(.cart-open) { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
   .mobile-cart-fab { display: none; }
