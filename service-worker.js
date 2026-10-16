@@ -1,4 +1,4 @@
-const CACHE_NAME = "hipermercado-kristal-v9";
+const CACHE_NAME = "hipermercado-kristal-v10";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -67,6 +67,25 @@ self.addEventListener("fetch", (event) => {
         if (cachedApp) return cachedApp;
         throw new Error("No hay una versión guardada de la tienda para abrir sin conexión.");
       }),
+    );
+    return;
+  }
+
+  if (url.pathname === "/styles.css") {
+    event.respondWith(
+      fetch(request)
+        .then(async (response) => {
+          if (response.ok) {
+            const cache = await caches.open(CACHE_NAME);
+            await cache.put("/styles.css", response.clone());
+          }
+          return response;
+        })
+        .catch(async (error) => {
+          const cachedStyles = await caches.match("/styles.css");
+          if (cachedStyles) return cachedStyles;
+          throw error;
+        }),
     );
     return;
   }
