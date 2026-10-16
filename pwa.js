@@ -1,4 +1,5 @@
-const installAppButtons = [...document.querySelectorAll("[data-install-app]")];
+const installAppButtons = [...document.querySelectorAll("[data-install-app], [data-pwa-install]")];
+const pwaInstallBanner = document.querySelector("#pwa-install-banner");
 let deferredInstallPrompt = null;
 
 function isAppInstalled() {
@@ -8,6 +9,9 @@ function isAppInstalled() {
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
+  if (!isAppInstalled() && window.matchMedia("(max-width: 767px)").matches && pwaInstallBanner) {
+    pwaInstallBanner.hidden = false;
+  }
 });
 
 async function installApp() {
@@ -36,6 +40,7 @@ async function installApp() {
     deferredInstallPrompt = null;
     await installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
+    if (outcome === "accepted" && pwaInstallBanner) pwaInstallBanner.hidden = true;
     showToast(outcome === "accepted"
       ? "¡Listo! Hipermercado Kristal se está instalando."
       : "Puedes instalar Kristal más tarde desde el menú del navegador.");
@@ -52,12 +57,16 @@ async function installApp() {
 installAppButtons.forEach((button) => {
   button.addEventListener("click", installApp);
 });
+document.querySelector(".pwa-install-dismiss")?.addEventListener("click", () => {
+  if (pwaInstallBanner) pwaInstallBanner.hidden = true;
+});
 
 window.addEventListener("appinstalled", () => {
   deferredInstallPrompt = null;
   installAppButtons.forEach((button) => {
     button.hidden = true;
   });
+  if (pwaInstallBanner) pwaInstallBanner.hidden = true;
   showToast("Hipermercado Kristal quedó instalada en tu dispositivo.");
 });
 
@@ -65,6 +74,7 @@ if (isAppInstalled()) {
   installAppButtons.forEach((button) => {
     button.hidden = true;
   });
+  if (pwaInstallBanner) pwaInstallBanner.hidden = true;
 }
 
 if ("serviceWorker" in navigator) {

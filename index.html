@@ -41,6 +41,9 @@
         <img src="/assets/app-icons/icon-192.png" alt="" />
         <span><strong>Hipermercado Kristal</strong><small>⌖ Villa Bruzual · Turén</small></span>
       </a>
+      <button class="mobile-menu-button app-menu-toggle" type="button" aria-expanded="false" aria-controls="category-links" aria-label="Abrir menú">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+      </button>
       <button class="mobile-install-button" id="mobile-install-app-button" type="button" data-install-app aria-label="Instalar app" title="Instalar app">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3" /></svg>
       </button>
@@ -92,7 +95,7 @@
 
       <nav class="category-nav" aria-label="Navegación principal">
         <div class="page-container nav-inner">
-          <button class="mobile-menu-button" id="mobile-menu-button" type="button" aria-expanded="false" aria-controls="category-links">
+          <button class="mobile-menu-button" type="button" aria-expanded="false" aria-controls="category-links">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg> Menú
           </button>
           <div class="category-links" id="category-links">
@@ -133,7 +136,7 @@
           <p id="category-view-description"></p>
         </header>
         <div class="category-product-grid" id="category-product-grid" aria-live="polite"></div>
-        <div class="catalog-load-sentinel" data-load-grid="category-product-grid" aria-hidden="true"></div>
+        <nav class="product-pagination" data-pagination-grid="category-product-grid" aria-label="Paginación de productos por departamento" hidden></nav>
       </section>
       <div class="home-view" id="home-view">
       <section class="welcome-hero" aria-labelledby="welcome-title">
@@ -206,10 +209,6 @@
       </div>
 
       <section class="catalog-view" id="catalog-view" aria-label="Catálogo digital" hidden>
-      <header class="catalog-page-heading page-container">
-        <div><span class="eyebrow">CATÁLOGO DIGITAL</span><h1>Explora nuestros productos</h1>        <p>Agrega tus productos al carrito y completa el pedido desde la app.</p></div>
-        <span class="catalog-heading-badge">KRISTAL</span>
-      </header>
       <section class="products-section page-container" id="productos" data-reveal>
         <div class="section-heading">
           <div>
@@ -239,7 +238,7 @@
         </div>
         <div class="product-catalog">
           <div class="product-grid" id="product-grid" role="region" aria-live="polite" aria-label="Productos"></div>
-          <div class="catalog-load-sentinel" data-load-grid="product-grid" aria-hidden="true"></div>
+          <nav class="product-pagination" data-pagination-grid="product-grid" aria-label="Paginación del catálogo" hidden></nav>
         </div>
       </section>
 
@@ -607,6 +606,11 @@
         <span>Perfil</span>
       </a>
     </nav>
+    <aside class="pwa-install-banner" id="pwa-install-banner" aria-label="Instalar Hipermercado Kristal" hidden>
+      <span>Instala la app para acceder más rápido a Kristal</span>
+      <button class="pwa-install-action" type="button" data-pwa-install>Instalar app</button>
+      <button class="pwa-install-dismiss" type="button" aria-label="Cerrar aviso de instalación">×</button>
+    </aside>
     <dialog class="store-checkout-dialog" id="store-checkout-dialog" aria-labelledby="store-checkout-heading">
       <div class="store-checkout-panel">
         <header class="checkout-dialog-header">

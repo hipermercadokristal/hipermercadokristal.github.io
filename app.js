@@ -176,34 +176,76 @@ function setCurrentNavigation(view, category = "") {
   });
 }
 
-function renderProducts(targetGrid = productGrid, filter = activeFilter) {
+function productCartControl(product, { featured = false } = {}) {
+  const quantity = cartItems.get(product.id) || 0;
+  const canPurchase = Number.isFinite(product.price) && !product.consultarWhatsApp;
+  if (!canPurchase) {
+    return `<a class="add-button" href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola, quisiera consultar el precio vigente y la disponibilidad de ${product.name}.`)}" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>`;
+  }
+  if (quantity) {
+    return `<span class="quantity-control" aria-label="Cantidad en carrito: ${quantity}"><button class="quantity-button" type="button" data-action="decrease" data-product="${escapeHtml(product.id)}" aria-label="Quitar uno de ${escapeHtml(product.name)}">−</button><span>${quantity}</span><button class="quantity-button" type="button" data-action="increase" data-product="${escapeHtml(product.id)}" aria-label="Agregar uno de ${escapeHtml(product.name)}">+</button></span>`;
+  }
+  return `<button class="add-button" type="button" data-action="increase" data-product="${escapeHtml(product.id)}"><span aria-hidden="true">+</span> ${featured ? "Compra rápida" : "Agregar al carrito"}</button>`;
+}
+
+function visibleProductsFor(filter) {
   const query = normalizeText(searchInput.value);
   const normalizedFilter = normalizeText(filter);
   const isDepartmentFilter = Object.keys(categoryDescriptions).some((category) =>
     normalizeText(category) === normalizedFilter,
   );
-  const sentinel = document.querySelector(`[data-load-grid="${targetGrid.id}"]`);
-  if (catalogLoadError) {
-    targetGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
-    if (sentinel) sentinel.hidden = true;
-    return;
-  }
-  const visibleProducts = products.filter((product) => {
+  return products.filter((product) => {
     const matchesFilter =
       normalizedFilter === "todos" ||
       (normalizedFilter === "favoritos"
         ? favoriteItems.has(product.id)
         : normalizedFilter === "ofertas"
-          ? Number.isFinite(product.oldPrice) && Number.isFinite(product.price)
+          ? Number.isFinite(product.oldPrice) && Number.isFinite(product.price) && product.oldPrice > product.price
           : isDepartmentFilter
             ? normalizeText(product.group) === normalizedFilter
             : normalizeText(product.group) === normalizedFilter || normalizeText(product.category) === normalizedFilter);
     const searchableText = normalizeText(
       `${product.name} ${product.category} ${product.group} ${product.detail}`,
     );
-    const matchesSearch = searchableText.includes(query);
-    return matchesFilter && matchesSearch;
+    return matchesFilter && searchableText.includes(query);
   });
+}
+
+function renderProductPagination(targetGrid, totalPages, currentPage) {
+  const pagination = document.querySelector(`[data-pagination-grid="${targetGrid.id}"]`);
+  if (!pagination) return;
+  pagination.hidden = totalPages <= 1;
+  if (totalPages <= 1) {
+    pagination.replaceChildren();
+    return;
+  }
+  const buttons = [
+    `<button class="pagination-button" type="button" data-page-grid="${targetGrid.id}" data-page="${currentPage - 1}" aria-label="Página anterior"${currentPage === 1 ? " disabled" : ""}>Anterior</button>`,
+  ];
+  const pageNumbers = new Set([1, totalPages, currentPage - 1, currentPage, currentPage + 1]);
+  let previousPage = 0;
+  for (const page of [...pageNumbers].filter((number) => number >= 1 && number <= totalPages).sort((a, b) => a - b)) {
+    if (previousPage && page - previousPage > 1) buttons.push('<span class="pagination-ellipsis" aria-hidden="true">…</span>');
+    buttons.push(`<button class="pagination-button${page === currentPage ? " active" : ""}" type="button" data-page-grid="${targetGrid.id}" data-page="${page}" aria-label="Página ${page}"${page === currentPage ? ' aria-current="page"' : ""}>${page}</button>`);
+    previousPage = page;
+  }
+  buttons.push(
+    `<button class="pagination-button" type="button" data-page-grid="${targetGrid.id}" data-page="${currentPage + 1}" aria-label="Página siguiente"${currentPage === totalPages ? " disabled" : ""}>Siguiente</button>`,
+  );
+  pagination.innerHTML = buttons.join("");
+}
+
+function renderProducts(targetGrid = productGrid, filter = activeFilter) {
+  const normalizedFilter = normalizeText(filter);
+  const isDepartmentFilter = Object.keys(categoryDescriptions).some((category) =>
+    normalizeText(category) === normalizedFilter,
+  );
+  const visibleProducts = visibleProductsFor(filter);
+  if (catalogLoadError) {
+    targetGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
+    renderProductPagination(targetGrid, 0, 1);
+    return;
+  }
 
   if (!visibleProducts.length) {
     const isDepartment = targetGrid === categoryProductGrid || isDepartmentFilter;
@@ -215,16 +257,14 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
         : !products.length || isDepartment
           ? `<p class="empty-state">Aún no hay productos publicados ${isDepartment ? "en este departamento" : "en el catálogo"}. <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener noreferrer">Consulta disponibilidad y precios por WhatsApp.</a></p>`
           : '<p class="empty-state">No encontramos productos. Prueba con otra búsqueda.</p>';
-    if (sentinel) sentinel.hidden = true;
+    renderProductPagination(targetGrid, 0, 1);
     return;
   }
 
   const totalPages = Math.ceil(visibleProducts.length / PRODUCTS_PER_PAGE);
-  const currentPage = "IntersectionObserver" in window
-    ? Math.min(productPages.get(targetGrid.id) || 1, totalPages)
-    : totalPages;
+  const currentPage = Math.min(productPages.get(targetGrid.id) || 1, totalPages);
   productPages.set(targetGrid.id, currentPage);
-  const pageProducts = visibleProducts.slice(0, currentPage * PRODUCTS_PER_PAGE);
+  const pageProducts = visibleProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
 
   targetGrid.innerHTML = pageProducts
     .map((product) => {
@@ -237,16 +277,9 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
       const currentPrice = Number.isFinite(product.price)
         ? `<span class="current-price">${currency.format(product.price)}</span>`
         : '<span class="current-price">Precio por confirmar</span>';
-      const quantity = cartItems.get(product.id) || 0;
       const isFavorite = favoriteItems.has(product.id);
-      const canPurchase = Number.isFinite(product.price) && !product.consultarWhatsApp;
-      const cartControl = canPurchase && quantity
-        ? `<span class="quantity-control" aria-label="Cantidad en carrito: ${quantity}"><button class="quantity-button" type="button" data-action="decrease" data-product="${product.id}" aria-label="Quitar uno de ${escapeHtml(product.name)}">−</button><span>${quantity}</span><button class="quantity-button" type="button" data-action="increase" data-product="${product.id}" aria-label="Agregar uno de ${escapeHtml(product.name)}">+</button></span>`
-        : canPurchase
-          ? `<button class="add-button" type="button" data-action="increase" data-product="${product.id}"><span aria-hidden="true">+</span> Agregar al carrito</button>`
-          : `<a class="add-button" href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola, quisiera consultar el precio vigente y la disponibilidad de ${product.name}.`)}" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>`;
       return `
-        <article class="product-card" data-reveal>
+        <article class="product-card" data-product-card="${escapeHtml(product.id)}" data-reveal>
           ${badge ? `<span class="${badgeClass}">${badge}</span>` : ""}
           <button class="favorite-button${isFavorite ? " active" : ""}" type="button" aria-label="${isFavorite ? "Quitar" : "Añadir"} ${escapeHtml(product.name)} ${isFavorite ? "de" : "a"} favoritos" aria-pressed="${isFavorite}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.8c0 5.3-8.8 10-8.8 10s-8.8-4.7-8.8-10A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z" /></svg></button>
           <div class="product-image-wrap">
@@ -256,32 +289,13 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
           <h3 class="product-name">${escapeHtml(product.name)}</h3>
           <span class="product-presentation">${escapeHtml(product.detail)}</span>
           <div class="product-prices">${regularPrice}${currentPrice}</div>
-          ${cartControl}
+          <div class="product-cart-control">${productCartControl(product)}</div>
         </article>`;
     })
     .join("");
-  if (sentinel) {
-    sentinel.hidden = currentPage >= totalPages;
-    sentinel.dataset.filter = filter;
-  }
+  renderProductPagination(targetGrid, totalPages, currentPage);
   observeRevealElements(targetGrid);
 }
-
-const catalogLoadObserver = "IntersectionObserver" in window
-  ? new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      const grid = document.getElementById(entry.target.dataset.loadGrid);
-      if (!grid || entry.target.hidden) return;
-      productPages.set(grid.id, (productPages.get(grid.id) || 1) + 1);
-      renderProducts(grid, entry.target.dataset.filter || (grid === categoryProductGrid ? activeCategory : activeFilter));
-    });
-  }, { rootMargin: "500px 0px" })
-  : null;
-
-document.querySelectorAll(".catalog-load-sentinel").forEach((sentinel) => {
-  if (catalogLoadObserver) catalogLoadObserver.observe(sentinel);
-});
 
 function renderFeaturedProducts() {
   const scrollLeft = featuredProductGrid.scrollLeft;
@@ -296,17 +310,10 @@ function renderFeaturedProducts() {
   }
   featuredProductGrid.innerHTML = featuredProducts
     .map((product) => {
-      const quantity = cartItems.get(product.id) || 0;
       const hasOffer = Number.isFinite(product.oldPrice) && product.oldPrice > product.price;
       const discount = hasOffer ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
-      const canPurchase = Number.isFinite(product.price) && !product.consultarWhatsApp;
-      const cartControl = canPurchase && quantity
-        ? `<span class="quantity-control" aria-label="Cantidad en carrito: ${quantity}"><button class="quantity-button" type="button" data-action="decrease" data-product="${product.id}" aria-label="Quitar uno de ${escapeHtml(product.name)}">−</button><span>${quantity}</span><button class="quantity-button" type="button" data-action="increase" data-product="${product.id}" aria-label="Agregar uno de ${escapeHtml(product.name)}">+</button></span>`
-        : canPurchase
-          ? `<button class="add-button" type="button" data-action="increase" data-product="${product.id}"><span aria-hidden="true">+</span> Compra rápida</button>`
-          : `<a class="add-button" href="https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(`Hola, quisiera consultar el precio vigente y la disponibilidad de ${product.name}.`)}" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>`;
       return `
-        <article class="product-card featured-product-card" data-reveal>
+        <article class="product-card featured-product-card" data-product-card="${escapeHtml(product.id)}" data-reveal>
           <span class="product-badge ${hasOffer ? "sale" : "popular"}">${hasOffer ? `OFERTA ${discount}%` : "DESTACADO"}</span>
           <div class="product-image-wrap">
             <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.alt)}" loading="lazy" />
@@ -318,13 +325,51 @@ function renderFeaturedProducts() {
             ? `<span class="regular-price">Regular: ${currency.format(product.oldPrice)}</span><span class="current-price">Oferta: ${currency.format(product.price)}</span>`
             : `<span class="current-price">${currency.format(product.price)}</span>`}
           </div>
-          ${cartControl}
+          <div class="product-cart-control">${productCartControl(product, { featured: true })}</div>
         </article>`;
     })
     .join("");
   featuredProductGrid.scrollLeft = scrollLeft;
   observeRevealElements(featuredProductGrid);
 }
+
+function changeProductPage(grid, requestedPage, { scroll = false } = {}) {
+  const filter = grid === categoryProductGrid ? activeCategory : activeFilter;
+  const totalPages = Math.ceil(visibleProductsFor(filter).length / PRODUCTS_PER_PAGE);
+  if (totalPages < 1) return;
+  const page = Math.max(1, Math.min(requestedPage, totalPages));
+  if (page === (productPages.get(grid.id) || 1)) return;
+  productPages.set(grid.id, page);
+  renderProducts(grid, filter);
+  if (scroll) grid.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function installCatalogSwipe(grid) {
+  let startX = 0;
+  let startY = 0;
+  grid.addEventListener("touchstart", (event) => {
+    if (event.touches.length !== 1) return;
+    startX = event.touches[0].clientX;
+    startY = event.touches[0].clientY;
+  }, { passive: true });
+  grid.addEventListener("touchend", (event) => {
+    if (!startX || event.changedTouches.length !== 1 || window.innerWidth > 767) return;
+    const deltaX = event.changedTouches[0].clientX - startX;
+    const deltaY = event.changedTouches[0].clientY - startY;
+    startX = 0;
+    if (Math.abs(deltaX) < 55 || Math.abs(deltaX) < Math.abs(deltaY) * 1.3) return;
+    changeProductPage(grid, (productPages.get(grid.id) || 1) + (deltaX < 0 ? 1 : -1), { scroll: true });
+  }, { passive: true });
+}
+
+installCatalogSwipe(productGrid);
+installCatalogSwipe(categoryProductGrid);
+document.addEventListener("click", (event) => {
+  const pageButton = event.target.closest("[data-page-grid][data-page]");
+  if (!pageButton || pageButton.disabled) return;
+  const grid = document.getElementById(pageButton.dataset.pageGrid);
+  if (grid) changeProductPage(grid, Number(pageButton.dataset.page), { scroll: true });
+});
 
 const categoryDescriptions = {
   "Víveres y Alacena": "Granos, aceites, harinas, pastas, enlatados y condimentos.",
@@ -353,7 +398,8 @@ function categoryPath(category) {
 
 function closeMobileCategoryMenu() {
   document.querySelector("#category-links").classList.remove("open");
-  document.querySelector("#mobile-menu-button").setAttribute("aria-expanded", "false");
+  document.querySelectorAll(".mobile-menu-button").forEach((button) => button.setAttribute("aria-expanded", "false"));
+  document.body.classList.remove("mobile-menu-open");
   document.querySelector(".departments-menu").open = false;
 }
 
@@ -728,6 +774,17 @@ function updateCart() {
   renderCart();
 }
 
+function updateProductCardControls(productId) {
+  document.querySelectorAll(".product-card[data-product-card]").forEach((card) => {
+    if (card.dataset.productCard !== productId) return;
+    const product = products.find((item) => item.id === productId);
+    const control = card.querySelector(".product-cart-control");
+    if (product && control) {
+      control.innerHTML = productCartControl(product, { featured: card.classList.contains("featured-product-card") });
+    }
+  });
+}
+
 function renderActiveProducts() {
   if (activeView === "category") renderProducts(categoryProductGrid, activeCategory);
   else renderProducts(productGrid, activeFilter);
@@ -802,6 +859,7 @@ document.addEventListener("click", (event) => {
   }
   if (routeLink.origin !== location.origin) return;
   event.preventDefault();
+  closeMobileCategoryMenu();
   const routes = { home: "/", catalog: "/catalogo", orders: "/pedidos", profile: "/perfil" };
   const path = routes[routeLink.dataset.appRoute];
   if (path) navigateToPath(path);
@@ -833,7 +891,7 @@ function handleProductGridClick(event) {
   else cartItems.delete(product.id);
   if (direction > 0) animateAddToCart(quantityButton);
   updateCart();
-  renderActiveProducts();
+  updateProductCardControls(product.id);
   showToast(direction > 0 ? `${product.name} agregado al carrito` : quantity ? `Cantidad actualizada: ${quantity}` : `${product.name} eliminado del carrito`);
 }
 
@@ -879,7 +937,7 @@ cartItemsContainer.addEventListener("click", (event) => {
     if (adjustment > 0) animateAddToCart(control);
   }
   updateCart();
-  renderActiveProducts();
+  updateProductCardControls(product.id);
   if (action === "remove") {
     document.querySelector("#cart-close").focus();
   } else {
@@ -923,16 +981,33 @@ checkoutButton.addEventListener("click", () => {
 });
 
 document.addEventListener("kristal:order-completed", (event) => {
-  for (const productId of event.detail?.productIds || []) cartItems.delete(productId);
+  const completedProducts = event.detail?.productIds || [];
+  for (const productId of completedProducts) cartItems.delete(productId);
   updateCart();
-  renderActiveProducts();
+  completedProducts.forEach(updateProductCardControls);
 });
 
-document.querySelector("#mobile-menu-button").addEventListener("click", (event) => {
+document.querySelectorAll(".mobile-menu-button").forEach((button) => button.addEventListener("click", (event) => {
   const menu = document.querySelector("#category-links");
   const isOpen = menu.classList.toggle("open");
-  event.currentTarget.setAttribute("aria-expanded", String(isOpen));
+  document.querySelectorAll(".mobile-menu-button").forEach((menuButton) => {
+    menuButton.setAttribute("aria-expanded", String(isOpen));
+    menuButton.setAttribute("aria-label", isOpen ? "Cerrar menú" : "Abrir menú");
+  });
+  document.body.classList.toggle("mobile-menu-open", isOpen);
   if (!isOpen) document.querySelector(".departments-menu").open = false;
+}));
+document.addEventListener("click", (event) => {
+  if (!document.body.classList.contains("mobile-menu-open")) return;
+  if (event.target.closest(".category-nav, .app-menu-toggle")) return;
+  closeMobileCategoryMenu();
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key !== "Escape" || !document.body.classList.contains("mobile-menu-open")) return;
+  closeMobileCategoryMenu();
+  [...document.querySelectorAll(".mobile-menu-button")]
+    .find((button) => button.getClientRects().length > 0)
+    ?.focus();
 });
 
 const faqSearch = document.querySelector("#faq-search");
