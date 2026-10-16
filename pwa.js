@@ -12,8 +12,13 @@ window.addEventListener("beforeinstallprompt", (event) => {
 
 async function installApp() {
   if (!deferredInstallPrompt) {
+    const isAndroid = /Android/i.test(navigator.userAgent);
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
       || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (isAndroid) {
+      window.location.assign("/downloads/hipermercado-kristal.apk");
+      return;
+    }
     showToast(isIOS
       ? "En iPhone, Safari exige usar Compartir > «Añadir a pantalla de inicio»; no permite iniciar la instalación desde un botón."
       : "Abre el menú del navegador y elige «Instalar app» o «Añadir a pantalla de inicio».");
