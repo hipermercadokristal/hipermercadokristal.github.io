@@ -19,9 +19,12 @@ async function installApp() {
       window.location.assign("/downloads/hipermercado-kristal.apk");
       return;
     }
-    showToast(isIOS
-      ? "En iPhone, Safari exige usar Compartir > «Añadir a pantalla de inicio»; no permite iniciar la instalación desde un botón."
-      : "Abre el menú del navegador y elige «Instalar app» o «Añadir a pantalla de inicio».");
+    if (!isIOS) {
+      window.location.assign("/downloads/hipermercado-kristal.apk");
+      showToast("Descargando el APK para Android. Pásalo a tu teléfono Android para instalarlo.");
+      return;
+    }
+    showToast("En iPhone, Safari exige usar Compartir > «Añadir a pantalla de inicio»; no permite iniciar la instalación desde un botón.");
     return;
   }
 
