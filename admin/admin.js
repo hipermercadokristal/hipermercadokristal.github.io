@@ -33,6 +33,7 @@ let editingProduct = null;
 let categories = [];
 let missingDepartments = [];
 let adminOrdersChannel = null;
+let staffRole = "";
 imageInput.required = true;
 
 function escapeHtml(value) {
@@ -59,12 +60,13 @@ function getInventoryImageUrl(url) {
   return url.startsWith("assets/") ? `../${url}` : url;
 }
 
-async function requireAdmin(session) {
+async function requireStaff(session) {
   const role = session?.user?.app_metadata?.role;
-  if (role !== "admin") {
+  if (!["admin", "courier"].includes(role)) {
     await supabaseClient.auth.signOut();
-    throw new Error("Esta cuenta no tiene permisos de administrador. Solicita al propietario que asigne el rol admin.");
+    throw new Error("Esta cuenta no tiene permisos de caja ni de reparto. Solicita al propietario que asigne el rol correspondiente.");
   }
+  return role;
 }
 
 async function loadCategories() {
@@ -285,6 +287,78 @@ async function initializeAdminOrders() {
   }
 }
 
+function setStaffView(role) {
+  staffRole = role;
+  setAuthenticatedView(true);
+  const isAdmin = role === "admin";
+  document.querySelector("#dashboard-heading").textContent = isAdmin ? "Inventario de productos" : "Operaciones de reparto";
+  document.querySelector("#admin-product-form-panel").hidden = !isAdmin;
+  document.querySelector("#admin-inventory-panel").hidden = !isAdmin;
+  document.querySelector("#order-inbox-panel").hidden = !isAdmin;
+  document.querySelector("#staff-scan-panel").hidden = false;
+  document.querySelector("#staff-scan-heading").textContent = isAdmin ? "Validar ticket o entrega" : "Confirmar entrega";
+  document.querySelector("#staff-scan-purpose").querySelector('option[value="pickup"]').hidden = !isAdmin;
+  if (!isAdmin) document.querySelector("#staff-scan-purpose").value = "delivery";
+}
+
+async function processStaffScan(purpose, token) {
+  const result = document.querySelector("#staff-scan-result");
+  const status = document.querySelector("#staff-scan-status");
+  if (!["pickup", "delivery"].includes(purpose) || !token) {
+    setMessage(status, "El código QR no contiene un tipo o token válido.");
+    return;
+  }
+  if (purpose === "pickup" && staffRole !== "admin") {
+    setMessage(status, "Solo caja puede validar tickets de retiro.");
+    return;
+  }
+
+  result.replaceChildren();
+  setMessage(status, "Validando código con Supabase…");
+  try {
+    if (purpose === "delivery") {
+      const { data: orderId, error } = await supabaseClient.rpc("complete_delivery_by_qr", { p_token: token });
+      if (error) throw error;
+      setMessage(status, `Entrega confirmada. Pedido ${String(orderId).slice(0, 8).toUpperCase()} marcado como entregado.`, true);
+      if (staffRole === "admin") await loadAdminOrders();
+    } else {
+      const { data, error } = await supabaseClient.rpc("scan_store_pickup_ticket", { p_token: token });
+      if (error) throw error;
+      const items = Array.isArray(data.items) ? data.items : [];
+      result.innerHTML = `<article class="scanned-pickup-ticket">
+        <h3>Pedido ${escapeHtml(String(data.id).slice(0, 8).toUpperCase())}</h3>
+        <p><strong>${escapeHtml(data.customer_name)}</strong> · ${escapeHtml(data.customer_phone)}</p>
+        <ul>${items.map((item) => `<li>${escapeHtml(item.product_name)} × ${Number(item.quantity)}</li>`).join("")}</ul>
+        <p>Total: <strong>${currency.format(Number(data.total_usd))}</strong></p>
+        <p>Pago pendiente: cobra y confirma el pago desde la bandeja de pedidos.</p>
+      </article>`;
+      setMessage(status, "Ticket de retiro válido. Comprueba los artículos y registra el cobro en caja.", true);
+    }
+  } catch (error) {
+    console.error("No se pudo validar el código del pedido.", error);
+    setMessage(status, error.message || "No se pudo validar el código. Revisa el estado del pedido e inténtalo de nuevo.");
+  }
+}
+
+async function enterStaffDashboard(session) {
+  const role = await requireStaff(session);
+  setStaffView(role);
+  if (role === "admin") {
+    await loadCategories();
+    await loadInventory();
+    await initializeAdminOrders();
+  }
+  const scanParams = new URLSearchParams(location.hash.slice(1));
+  if (scanParams.has("scan") || scanParams.has("token")) {
+    const purpose = scanParams.get("scan");
+    const token = scanParams.get("token");
+    history.replaceState(history.state, "", `${location.pathname}${location.search}`);
+    document.querySelector("#staff-scan-purpose").value = purpose === "delivery" ? "delivery" : "pickup";
+    document.querySelector("#staff-scan-token").value = token || "";
+    await processStaffScan(purpose, token);
+  }
+}
+
 function resetProductForm() {
   productForm.reset();
   document.querySelector("#product-available").checked = true;
@@ -477,11 +551,7 @@ async function initializeAdmin() {
     const { data, error } = await supabaseClient.auth.getSession();
     if (error) throw error;
     if (!data.session) return;
-    await requireAdmin(data.session);
-    setAuthenticatedView(true);
-    await loadCategories();
-    await loadInventory();
-    await initializeAdminOrders();
+    await enterStaffDashboard(data.session);
   } catch (error) {
     console.error("No se pudo abrir el panel de administración.", error);
     setAuthenticatedView(false);
@@ -505,12 +575,8 @@ loginForm.addEventListener("submit", async (event) => {
       password: loginForm.elements.password.value,
     });
     if (error) throw error;
-    await requireAdmin(data.session);
-    setAuthenticatedView(true);
+    await enterStaffDashboard(data.session);
     setMessage(authStatus, "");
-    await loadCategories();
-    await loadInventory();
-    await initializeAdminOrders();
   } catch (error) {
     console.error("No se pudo iniciar sesión en el panel.", error);
     setAuthenticatedView(false);
@@ -521,6 +587,10 @@ loginForm.addEventListener("submit", async (event) => {
 });
 
 productForm.addEventListener("submit", saveProduct);
+document.querySelector("#staff-scan-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  processStaffScan(event.currentTarget.elements.purpose.value, event.currentTarget.elements.token.value.trim());
+});
 inventoryRows.addEventListener("click", handleInventoryAction);
 cancelEditButton.addEventListener("click", resetProductForm);
 document.querySelector("#refresh-button").addEventListener("click", () => {
@@ -545,6 +615,9 @@ document.querySelector("#sign-out-button").addEventListener("click", async () =>
       adminOrdersChannel = null;
     }
     setAuthenticatedView(false);
+    staffRole = "";
+    document.querySelector("#staff-scan-result").replaceChildren();
+    setMessage(document.querySelector("#staff-scan-status"), "");
     loginForm.reset();
   } catch (error) {
     console.error("No se pudo cerrar la sesión administrativa.", error);

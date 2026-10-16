@@ -1,4 +1,4 @@
-const CACHE_NAME = "hipermercado-kristal-v4";
+const CACHE_NAME = "hipermercado-kristal-v5";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -12,6 +12,7 @@ const APP_SHELL = [
   "/assets/app-icons/icon-192.png",
   "/assets/app-icons/icon-512.png",
   "/assets/app-icons/icon-180.png",
+  "/assets/vendor/qrcode-generator-2.0.4.min.js",
   "/restaurante/",
   "/restaurante/index.html",
   "/restaurante/restaurante.css",

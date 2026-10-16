@@ -33,6 +33,10 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .status-message { min-height: 19px; margin: 12px 0 0; color: #a1382c; font-size: 13px; line-height: 1.5; }
 .status-message.success { color: #246738; }
 .status-message:empty { display: none; }
+.scanned-pickup-ticket { padding: 14px; border: 1px solid #dce8de; border-radius: 10px; background: #f7faf7; }
+.scanned-pickup-ticket h3 { margin-top: 0; color: #0f3822; }
+.scanned-pickup-ticket ul { padding-left: 20px; }
+.scanned-pickup-ticket li, .scanned-pickup-ticket p { margin-block: 7px; color: #405249; font-size: 13px; }
 .dashboard-header, .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .dashboard-header { margin-bottom: 20px; }
 .dashboard-header .intro { margin-bottom: 0; }

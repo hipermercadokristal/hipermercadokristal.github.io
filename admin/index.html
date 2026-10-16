@@ -41,7 +41,26 @@
         </header>
         <p class="status-message" id="dashboard-status" role="status" aria-live="polite"></p>
 
-        <section class="panel product-form-panel" aria-labelledby="product-form-heading">
+        <section class="panel" id="staff-scan-panel" aria-labelledby="staff-scan-heading" hidden>
+          <div class="panel-heading">
+            <div><p class="eyebrow">TICKETS Y ENTREGAS</p><h2 id="staff-scan-heading">Validar código QR</h2></div>
+          </div>
+          <p class="intro">La cámara del teléfono puede abrir el enlace del QR. También puedes pegar aquí el código cuando una app de escaneo lo entregue como texto.</p>
+          <form id="staff-scan-form">
+            <label for="staff-scan-purpose">Tipo de código</label>
+            <select id="staff-scan-purpose" name="purpose">
+              <option value="pickup">Ticket de retiro en caja</option>
+              <option value="delivery">Confirmación de entrega</option>
+            </select>
+            <label for="staff-scan-token">Código del pedido</label>
+            <input id="staff-scan-token" name="token" autocomplete="off" required />
+            <button class="primary-button" type="submit">Validar código</button>
+          </form>
+          <p class="status-message" id="staff-scan-status" role="status" aria-live="polite"></p>
+          <div id="staff-scan-result" aria-live="polite"></div>
+        </section>
+
+        <section class="panel product-form-panel" id="admin-product-form-panel" aria-labelledby="product-form-heading">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">GESTIÓN</p>
@@ -83,7 +102,7 @@
           </form>
         </section>
 
-        <section class="panel inventory-panel" aria-labelledby="inventory-heading">
+        <section class="panel inventory-panel" id="admin-inventory-panel" aria-labelledby="inventory-heading">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">CATÁLOGO</p>
@@ -109,7 +128,7 @@
           <p class="empty-inventory" id="empty-inventory" hidden>Aún no hay productos en el inventario.</p>
         </section>
 
-        <section class="panel order-inbox-panel" aria-labelledby="order-inbox-heading">
+        <section class="panel order-inbox-panel" id="order-inbox-panel" aria-labelledby="order-inbox-heading">
           <div class="panel-heading">
             <div>
               <p class="eyebrow">CAJA</p>

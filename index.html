@@ -25,6 +25,7 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
+    <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
     <script src="app.js" defer></script>
     <script src="app-orders.js" defer></script>
     <script src="pwa.js" defer></script>
@@ -120,14 +121,14 @@
 
     <main>
       <section class="category-view page-container" id="category-view" aria-labelledby="category-view-title" hidden>
-        <button class="category-back-button" id="category-back-button" type="button">← Volver al catálogo</button>
+        <button class="category-back-button" id="category-back-button" type="button">Todos los departamentos</button>
         <header class="category-view-heading">
           <span class="eyebrow" id="category-view-eyebrow">CATÁLOGO KRISTAL</span>
           <h1 id="category-view-title"></h1>
           <p id="category-view-description"></p>
         </header>
         <div class="category-product-grid" id="category-product-grid" aria-live="polite"></div>
-        <nav class="product-pagination" data-pagination-for="category-product-grid" aria-label="Paginación de la categoría"></nav>
+        <div class="catalog-load-sentinel" data-load-grid="category-product-grid" aria-hidden="true"></div>
       </section>
       <div class="home-view" id="home-view">
       <section class="welcome-hero" aria-labelledby="welcome-title">
@@ -163,10 +164,6 @@
               <h2 id="featured-heading">Lo Más Destacado</h2>
               <p>Selección de productos para descubrir y agregar al carrito</p>
               <small class="price-reference-note">Agrega productos y finaliza tu pedido con el método de entrega y pago que prefieras.</small>
-            </div>
-            <div class="carousel-controls" aria-label="Controles de Lo Más Destacado" hidden>
-              <button class="carousel-arrow" type="button" data-scroll-target="featured-products" data-scroll-direction="-1" aria-label="Ver productos destacados anteriores">←</button>
-              <button class="carousel-arrow" type="button" data-scroll-target="featured-products" data-scroll-direction="1" aria-label="Ver más productos destacados">→</button>
             </div>
           </header>
           <div class="product-grid featured-product-grid" id="featured-products" role="region" aria-roledescription="carrusel" aria-label="Lo Más Destacado" tabindex="0"></div>
@@ -237,7 +234,7 @@
         </div>
         <div class="product-catalog">
           <div class="product-grid" id="product-grid" role="region" aria-live="polite" aria-label="Productos"></div>
-          <nav class="product-pagination" data-pagination-for="product-grid" aria-label="Paginación del catálogo"></nav>
+          <div class="catalog-load-sentinel" data-load-grid="product-grid" aria-hidden="true"></div>
         </div>
       </section>
 
@@ -265,10 +262,6 @@
           <p>Instalaciones modernas y el mejor surtido</p>
         </header>
         <div class="gallery-carousel">
-          <div class="carousel-controls" aria-label="Controles de la galería de instalaciones">
-            <button class="carousel-arrow" type="button" data-scroll-target="hypermarket-gallery" data-scroll-direction="-1" aria-label="Ver fotos anteriores">←</button>
-            <button class="carousel-arrow" type="button" data-scroll-target="hypermarket-gallery" data-scroll-direction="1" aria-label="Ver más fotos">→</button>
-          </div>
           <div class="hypermarket-gallery" id="hypermarket-gallery" role="region" aria-roledescription="carrusel" aria-label="Fotos de las instalaciones" tabindex="0">
             <article class="hypermarket-card" data-reveal>
               <h3>Pasillos, frescura y nuestra fachada</h3>
@@ -594,7 +587,7 @@
       </a>
       <a href="/catalogo" data-app-route="catalog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM14 4h6v4h-6zM14 11h6v9h-6zM4 14h7v6H4z" /></svg>
-        <span>Catálogo</span>
+        <span>Departamentos</span>
       </a>
       <button type="button" data-app-route="cart" aria-label="Abrir carrito">
         <span class="mobile-nav-cart-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="21" r="1" /><circle cx="18" cy="21" r="1" /></svg><span id="mobile-nav-cart-count">0</span></span>
@@ -643,9 +636,21 @@
                   <option value="0105">Mercantil · 0105</option>
                 </select>
               </label>
-              <label>Número de referencia<input name="payment_reference" inputmode="numeric" autocomplete="off" minlength="4" maxlength="20" pattern="[0-9]{4,20}" title="Ingresa de 4 a 20 dígitos." required /></label>
+              <button class="payment-details-trigger" id="open-payment-details" type="button">Ver y copiar datos de Pago Móvil</button>
+              <fieldset class="payment-evidence-tabs">
+                <legend>¿Cómo deseas reportar tu pago?</legend>
+                <div role="tablist" aria-label="Tipo de comprobante">
+                  <button type="button" role="tab" aria-selected="true" aria-controls="payment-reference-panel" data-evidence-tab="reference">Número de referencia</button>
+                  <button type="button" role="tab" aria-selected="false" aria-controls="payment-proof-panel" data-evidence-tab="proof">Foto del comprobante</button>
+                </div>
+                <div id="payment-reference-panel" role="tabpanel" data-evidence-panel="reference">
+                  <label>Número de referencia<input name="payment_reference" inputmode="numeric" autocomplete="off" minlength="4" maxlength="20" pattern="[0-9]{4,20}" title="Ingresa de 4 a 20 dígitos." required /></label>
+                </div>
+                <div id="payment-proof-panel" role="tabpanel" data-evidence-panel="proof" hidden>
+                  <label>Comprobante de pago<input name="payment_proof" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" /><small>JPG, PNG, WebP o PDF; máximo 5 MB. Caja verificará el abono.</small></label>
+                </div>
+              </fieldset>
               <p class="checkout-reference-status" id="checkout-reference-status" role="status" aria-live="polite"></p>
-              <label>Comprobante de pago<input name="payment_proof" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required /><small>JPG, PNG, WebP o PDF; máximo 5 MB. Caja verificará el pago antes de confirmarlo.</small></label>
             </section>
             <p class="checkout-method-note" id="checkout-method-note" hidden></p>
             <section class="checkout-totals">
@@ -674,9 +679,21 @@
               </form>
             </section>
             <a class="institutional-action" href="/pedidos" data-app-route="orders">Ver seguimiento</a>
-            <a class="receipt-whatsapp" id="receipt-whatsapp" href="#" target="_blank" rel="noopener noreferrer">Avisar a caja por WhatsApp</a>
+            <a class="receipt-whatsapp" id="receipt-whatsapp" href="https://wa.me/584128867088" target="_blank" rel="noopener noreferrer">Avisar a caja por WhatsApp</a>
           </section>
         </div>
+      </div>
+    </dialog>
+    <dialog class="payment-data-dialog" id="payment-data-dialog" aria-labelledby="payment-data-heading">
+      <div class="payment-data-sheet">
+        <header><div><span class="eyebrow">PAGO MÓVIL</span><h2 id="payment-data-heading">Datos para transferir</h2></div><button class="cart-close" id="payment-data-close" type="button" aria-label="Cerrar datos de pago">×</button></header>
+        <p>Verifica estos datos antes de realizar el pago.</p>
+        <dl>
+          <div><dt>Banco receptor</dt><dd id="payment-data-bank">Banco de Venezuela · 0102</dd><button type="button" data-copy-payment="bank">Copiar</button></div>
+          <div><dt>RIF / Cédula</dt><dd id="payment-data-rif">V-26199919</dd><button type="button" data-copy-payment="rif">Copiar</button></div>
+          <div><dt>Teléfono</dt><dd id="payment-data-phone">04245104430</dd><button type="button" data-copy-payment="phone">Copiar</button></div>
+        </dl>
+        <button class="checkout-button" id="payment-data-done" type="button">Listo</button>
       </div>
     </dialog>
     <dialog class="info-dialog" id="info-dialog" aria-labelledby="info-dialog-title">

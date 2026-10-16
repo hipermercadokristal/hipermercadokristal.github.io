@@ -170,7 +170,8 @@ function setCurrentNavigation(view, category = "") {
     else if (link.getAttribute("aria-current") === "page") link.removeAttribute("aria-current");
   });
   document.querySelectorAll("a[data-app-route]").forEach((link) => {
-    if (link.dataset.appRoute === view) link.setAttribute("aria-current", "page");
+    const currentRoute = view === "category" ? "catalog" : view;
+    if (link.dataset.appRoute === currentRoute) link.setAttribute("aria-current", "page");
     else link.removeAttribute("aria-current");
   });
 }
@@ -181,13 +182,10 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
   const isDepartmentFilter = Object.keys(categoryDescriptions).some((category) =>
     normalizeText(category) === normalizedFilter,
   );
-  const pagination = document.querySelector(`[data-pagination-for="${targetGrid.id}"]`);
+  const sentinel = document.querySelector(`[data-load-grid="${targetGrid.id}"]`);
   if (catalogLoadError) {
     targetGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
-    if (pagination) {
-      pagination.innerHTML = "";
-      pagination.hidden = true;
-    }
+    if (sentinel) sentinel.hidden = true;
     return;
   }
   const visibleProducts = products.filter((product) => {
@@ -217,17 +215,16 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
         : !products.length || isDepartment
           ? `<p class="empty-state">Aún no hay productos publicados ${isDepartment ? "en este departamento" : "en el catálogo"}. <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener noreferrer">Consulta disponibilidad y precios por WhatsApp.</a></p>`
           : '<p class="empty-state">No encontramos productos. Prueba con otra búsqueda.</p>';
-    if (pagination) {
-      pagination.innerHTML = "";
-      pagination.hidden = true;
-    }
+    if (sentinel) sentinel.hidden = true;
     return;
   }
 
   const totalPages = Math.ceil(visibleProducts.length / PRODUCTS_PER_PAGE);
-  const currentPage = Math.min(productPages.get(targetGrid.id) || 1, totalPages);
+  const currentPage = "IntersectionObserver" in window
+    ? Math.min(productPages.get(targetGrid.id) || 1, totalPages)
+    : totalPages;
   productPages.set(targetGrid.id, currentPage);
-  const pageProducts = visibleProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
+  const pageProducts = visibleProducts.slice(0, currentPage * PRODUCTS_PER_PAGE);
 
   targetGrid.innerHTML = pageProducts
     .map((product) => {
@@ -263,34 +260,38 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
         </article>`;
     })
     .join("");
-  if (pagination) {
-    pagination.hidden = totalPages <= 1;
-    pagination.innerHTML =
-        totalPages <= 1
-          ? ""
-          : `<button class="pagination-button" type="button" data-page-number="${currentPage - 1}" ${currentPage === 1 ? "disabled" : ""} aria-label="Página anterior">Anterior</button>
-            <span class="pagination-pages">${Array.from({ length: totalPages }, (_, index) => {
-              const page = index + 1;
-              return `<button class="pagination-button${page === currentPage ? " active" : ""}" type="button" data-page-number="${page}" aria-label="Página ${page}" ${page === currentPage ? 'aria-current="page"' : ""}>${page}</button>`;
-            }).join("")}</span>
-            <button class="pagination-button" type="button" data-page-number="${currentPage + 1}" ${currentPage === totalPages ? "disabled" : ""} aria-label="Página siguiente">Siguiente</button>`;
+  if (sentinel) {
+    sentinel.hidden = currentPage >= totalPages;
+    sentinel.dataset.filter = filter;
   }
   observeRevealElements(targetGrid);
 }
 
+const catalogLoadObserver = "IntersectionObserver" in window
+  ? new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const grid = document.getElementById(entry.target.dataset.loadGrid);
+      if (!grid || entry.target.hidden) return;
+      productPages.set(grid.id, (productPages.get(grid.id) || 1) + 1);
+      renderProducts(grid, entry.target.dataset.filter || (grid === categoryProductGrid ? activeCategory : activeFilter));
+    });
+  }, { rootMargin: "500px 0px" })
+  : null;
+
+document.querySelectorAll(".catalog-load-sentinel").forEach((sentinel) => {
+  if (catalogLoadObserver) catalogLoadObserver.observe(sentinel);
+});
+
 function renderFeaturedProducts() {
   const scrollLeft = featuredProductGrid.scrollLeft;
   const featuredProducts = products.filter((product) => product.esDestacado);
-  const carouselControls = document.querySelector(".featured-heading .carousel-controls");
-  carouselControls.hidden = !featuredProducts.length;
   if (catalogLoadError) {
     featuredProductGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
-    updateCarouselControls();
     return;
   }
   if (!featuredProducts.length) {
     featuredProductGrid.innerHTML = `<p class="empty-state">Estamos actualizando la selección de productos. <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener noreferrer">Consulta productos y ofertas vigentes por WhatsApp.</a></p>`;
-    updateCarouselControls();
     return;
   }
   featuredProductGrid.innerHTML = featuredProducts
@@ -323,7 +324,6 @@ function renderFeaturedProducts() {
     .join("");
   featuredProductGrid.scrollLeft = scrollLeft;
   observeRevealElements(featuredProductGrid);
-  updateCarouselControls();
 }
 
 const categoryDescriptions = {
@@ -594,6 +594,10 @@ function showToast(message) {
   toastTimeout = window.setTimeout(() => toast.classList.remove("visible"), 2400);
 }
 
+document.addEventListener("kristal:toast", (event) => {
+  if (event.detail?.message) showToast(event.detail.message);
+});
+
 function showInfoDialog(title, message) {
   document.querySelector("#info-dialog-title").textContent = title;
   document.querySelector("#info-dialog-message").textContent = message;
@@ -650,17 +654,6 @@ function renderCart() {
         </article>`;
     })
     .join("");
-}
-
-function updateCarouselControls() {
-  document.querySelectorAll("[data-scroll-target]").forEach((button) => {
-    const carousel = document.getElementById(button.dataset.scrollTarget);
-    if (!carousel) return;
-    const direction = Number(button.dataset.scrollDirection);
-    const atStart = carousel.scrollLeft <= 1;
-    const atEnd = carousel.scrollLeft + carousel.clientWidth >= carousel.scrollWidth - 1;
-    button.disabled = direction < 0 ? atStart : atEnd;
-  });
 }
 
 function observeRevealElements(root = document) {
@@ -783,17 +776,6 @@ departmentFilter.addEventListener("change", () => {
   setActiveFilter(selectedDepartment, { clearSearch: true });
   productPages.set(productGrid.id, 1);
   renderProducts(productGrid, activeFilter);
-});
-
-document.querySelectorAll(".product-pagination").forEach((pagination) => {
-  pagination.addEventListener("click", (event) => {
-    const button = event.target.closest("[data-page-number]");
-    if (!button || button.disabled) return;
-    const targetGrid = document.getElementById(pagination.dataset.paginationFor);
-    if (!targetGrid) return;
-    productPages.set(targetGrid.id, Number(button.dataset.pageNumber));
-    renderProducts(targetGrid, targetGrid === categoryProductGrid ? activeCategory : activeFilter);
-  });
 });
 
 document.addEventListener("click", (event) => {
@@ -946,21 +928,6 @@ document.addEventListener("kristal:order-completed", (event) => {
   renderActiveProducts();
 });
 
-document.querySelectorAll("[data-scroll-target]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const carousel = document.getElementById(button.dataset.scrollTarget);
-    if (!carousel) return;
-    carousel.scrollBy({
-      left: Number(button.dataset.scrollDirection) * carousel.clientWidth * 0.85,
-      behavior: "smooth",
-    });
-  });
-});
-
-document.querySelectorAll(".featured-product-grid, .hypermarket-gallery").forEach((carousel) => {
-  carousel.addEventListener("scroll", updateCarouselControls, { passive: true });
-});
-
 document.querySelector("#mobile-menu-button").addEventListener("click", (event) => {
   const menu = document.querySelector("#category-links");
   const isOpen = menu.classList.toggle("open");
@@ -1051,7 +1018,6 @@ if ("IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-mot
   observeRevealElements();
 }
 
-window.addEventListener("resize", updateCarouselControls, { passive: true });
 renderFeaturedProducts();
 restoreRoute();
 renderCart();

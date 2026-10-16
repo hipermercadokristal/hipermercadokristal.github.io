@@ -5,6 +5,7 @@
   const signupForm = document.querySelector("#customer-signup-form");
   const profileForm = document.querySelector("#customer-profile-form");
   const checkoutDialog = document.querySelector("#store-checkout-dialog");
+  const paymentDataDialog = document.querySelector("#payment-data-dialog");
   const checkoutForm = document.querySelector("#store-checkout-form");
   const ordersList = document.querySelector("#customer-orders-list");
   const currency = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
@@ -207,8 +208,9 @@
     document.querySelector("#checkout-mobile-payment").hidden = !mobilePayment;
     document.querySelector("#checkout-method-note").hidden = mobilePayment;
     checkoutForm.elements.payment_bank_code.required = mobilePayment;
-    checkoutForm.elements.payment_reference.required = mobilePayment;
-    checkoutForm.elements.payment_proof.required = mobilePayment;
+    const evidenceMode = document.querySelector('[data-evidence-tab][aria-selected="true"]')?.dataset.evidenceTab || "reference";
+    checkoutForm.elements.payment_reference.required = mobilePayment && evidenceMode === "reference";
+    checkoutForm.elements.payment_proof.required = mobilePayment && evidenceMode === "proof";
     checkoutForm.elements.payment_reference.setCustomValidity("");
     setStatus("#checkout-reference-status", "");
     if (method === "zelle") {
@@ -216,6 +218,32 @@
     } else if (method === "cash_pos") {
       setStatus("#checkout-method-note", "Pagarás en efectivo o punto de venta al recibir o retirar tu pedido.");
     }
+  }
+
+  function setPaymentEvidenceMode(mode) {
+    document.querySelectorAll("[data-evidence-tab]").forEach((tab) => {
+      const selected = tab.dataset.evidenceTab === mode;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+    });
+    document.querySelectorAll("[data-evidence-panel]").forEach((panel) => {
+      panel.hidden = panel.dataset.evidencePanel !== mode;
+    });
+    if (mode === "proof") checkoutForm.elements.payment_reference.value = "";
+    else checkoutForm.elements.payment_proof.value = "";
+    setStatus("#checkout-reference-status", "");
+    setCheckoutPaymentFields();
+  }
+
+  function openPaymentDataSheet() {
+    const bankSelect = checkoutForm.elements.payment_bank_code;
+    const bank = bankSelect.options[bankSelect.selectedIndex].textContent.trim();
+    document.querySelector("#payment-data-bank").textContent = bank;
+    document.querySelectorAll("[data-copy-payment]").forEach((button) => {
+      const valueElement = document.querySelector(`#payment-data-${button.dataset.copyPayment}`);
+      button.dataset.copyValue = valueElement.textContent.trim();
+    });
+    if (!paymentDataDialog.open) paymentDataDialog.showModal();
   }
 
   function setFulfillmentFields() {
@@ -239,6 +267,7 @@
     document.querySelector("#store-checkout-form").hidden = false;
     document.querySelector("#order-receipt").hidden = true;
     setStatus("#checkout-status", "");
+    setPaymentEvidenceMode("reference");
     setCheckoutPaymentFields();
     setFulfillmentFields();
     document.dispatchEvent(new CustomEvent("kristal:close-cart"));
@@ -273,7 +302,8 @@
     const submitButton = document.querySelector("#confirm-store-order");
     const formData = new FormData(checkoutForm);
     const paymentMethod = formData.get("payment_method");
-    const selectedProof = formData.get("payment_proof");
+    const evidenceMode = document.querySelector('[data-evidence-tab][aria-selected="true"]')?.dataset.evidenceTab || "reference";
+    const selectedProof = evidenceMode === "proof" ? formData.get("payment_proof") : null;
     let proofPath = null;
     const orderId = crypto.randomUUID();
     submitButton.disabled = true;
@@ -284,21 +314,23 @@
         throw new Error("No está disponible la tasa BCV para calcular el monto en bolívares. Elige otro método o confirma el monto con caja.");
       }
       if (paymentMethod === "mobile_payment") {
-        if (!/^[0-9]{4,20}$/.test(String(formData.get("payment_reference")).trim())) {
+        if (evidenceMode === "reference" && !/^[0-9]{4,20}$/.test(String(formData.get("payment_reference")).trim())) {
           throw new Error("La referencia bancaria debe tener entre 4 y 20 dígitos.");
         }
-        if (!(selectedProof instanceof File) || !selectedProof.size) {
+        if (evidenceMode === "proof" && (!(selectedProof instanceof File) || !selectedProof.size)) {
           throw new Error("Adjunta el comprobante de Pago Móvil.");
         }
-        if (!paymentProofTypes.has(selectedProof.type) || selectedProof.size > paymentProofMaxBytes) {
+        if (selectedProof && (!paymentProofTypes.has(selectedProof.type) || selectedProof.size > paymentProofMaxBytes)) {
           throw new Error("El comprobante debe ser JPG, PNG, WebP o PDF y no superar 5 MB.");
         }
-        proofPath = `${currentUser.id}/${orderId}/${safeFileName(selectedProof.name)}`;
-        const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(proofPath, selectedProof, {
-          contentType: selectedProof.type,
-          upsert: false,
-        });
-        if (uploadError) throw uploadError;
+        if (selectedProof) {
+          proofPath = `${currentUser.id}/${orderId}/${safeFileName(selectedProof.name)}`;
+          const { error: uploadError } = await supabase.storage.from("payment-proofs").upload(proofPath, selectedProof, {
+            contentType: selectedProof.type,
+            upsert: false,
+          });
+          if (uploadError) throw uploadError;
+        }
       }
 
       const { data, error } = await supabase.rpc("create_store_order", {
@@ -311,7 +343,9 @@
           : null,
         p_payment_method: paymentMethod,
         p_payment_bank_code: paymentMethod === "mobile_payment" ? formData.get("payment_bank_code") : null,
-        p_payment_reference: paymentMethod === "mobile_payment" ? String(formData.get("payment_reference")).trim() : null,
+        p_payment_reference: paymentMethod === "mobile_payment" && evidenceMode === "reference"
+          ? String(formData.get("payment_reference")).trim()
+          : null,
         p_payment_proof_path: proofPath,
         p_exchange_rate: exchangeRate,
         p_items: requestedItems.map(({ product_id, quantity }) => ({ product_id, quantity })),
@@ -329,9 +363,13 @@
       const receipt = document.querySelector("#order-receipt");
       receipt.dataset.orderId = order.order_id;
       receipt.dataset.paymentMethod = paymentMethod;
+      receipt.dataset.evidenceMode = evidenceMode;
       document.querySelector("#receipt-payment-check").hidden = paymentMethod !== "mobile_payment";
       document.querySelector("#receipt-reference-form").elements.payment_reference.value =
         String(formData.get("payment_reference") || "").trim();
+      document.querySelector("#receipt-reference-form").hidden =
+        paymentMethod !== "mobile_payment" || evidenceMode !== "reference";
+      document.querySelector("#receipt-reference-form").dataset.orderId = order.order_id;
       document.querySelector("#receipt-heading").textContent = "Pedido recibido";
       document.querySelector(".receipt-check").classList.remove("is-verified");
       setStatus("#receipt-verification-status", "");
@@ -391,7 +429,8 @@
       document.querySelector("#receipt-heading").textContent =
         verified ? "Pago verificado con éxito" : "Pedido recibido";
       document.querySelector(".receipt-check").classList.toggle("is-verified", verified);
-      document.querySelector("#receipt-reference-form").hidden = status !== "pending_verification";
+      document.querySelector("#receipt-reference-form").hidden =
+        status !== "pending_verification" || receipt.dataset.evidenceMode !== "reference";
       if (verified) {
         setStatus("#receipt-verification-status", "Pago verificado y confirmado por caja.");
       } else if (status === "rejected") {
@@ -466,6 +505,14 @@
       const items = itemsByOrder.get(order.id) || [];
       const date = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(order.created_at));
       const isMobilePaymentPending = order.payment_status === "pending_verification";
+      const qrPurpose = order.fulfillment === "delivery" && order.order_status === "delivering"
+        ? "delivery"
+        : order.fulfillment === "pickup"
+          && order.payment_method === "cash_pos"
+          && order.payment_status === "awaiting_in_store"
+          && !["delivered", "cancelled"].includes(order.order_status)
+          ? "pickup"
+          : "";
       return `<article class="customer-order-card">
         <header class="customer-order-header"><div><span class="eyebrow">PEDIDO</span><h2>${escapeHtml(order.id.slice(0, 8).toUpperCase())}</h2></div><time datetime="${escapeHtml(order.created_at)}">${escapeHtml(date)}</time></header>
         <p class="order-payment-status ${isMobilePaymentPending ? "pending" : ""}">${escapeHtml(paymentStatusLabels[order.payment_status] || "Estado de pago pendiente")}</p>
@@ -473,8 +520,40 @@
         <ul class="customer-order-items">${items.map((item) => `<li><span>${escapeHtml(item.product_name)} × ${item.quantity}</span><strong>${currency.format(Number(item.line_total_usd))}</strong></li>`).join("")}</ul>
         <div class="customer-order-total"><span>Total</span><strong>${currency.format(Number(order.total_usd))}${order.total_ves === null ? "" : `<small>${escapeHtml(formatBolivares(Number(order.total_ves)))} · referencial</small>`}</strong></div>
         <p class="customer-order-delivery">${order.fulfillment === "delivery" ? "Delivery" : "Retiro en tienda"}${order.fulfillment === "delivery" && order.delivery_address ? ` · ${escapeHtml(order.delivery_address)}` : ""}</p>
+        ${qrPurpose ? `<section class="order-qr-ticket" data-order-qr="${escapeHtml(order.id)}" data-qr-purpose="${qrPurpose}"><h3>${qrPurpose === "delivery" ? "Confirma la entrega" : "Ticket de retiro en caja"}</h3><img alt="${qrPurpose === "delivery" ? "Código QR de confirmación de entrega" : "Código QR para retirar el pedido"}" /><p role="status" aria-live="polite">Preparando código seguro…</p></section>` : ""}
       </article>`;
     }).join("");
+    renderOrderQrCodes(orders).catch((error) => {
+      console.error("No se pudieron preparar los códigos QR de los pedidos.", error);
+    });
+  }
+
+  async function renderOrderQrCodes(orders) {
+    const ticketSections = [...ordersList.querySelectorAll("[data-order-qr]")];
+    await Promise.all(ticketSections.map(async (section) => {
+      const status = section.querySelector('[role="status"]');
+      try {
+        if (typeof window.qrcode !== "function") throw new Error("No se cargó el generador QR. Revisa tu conexión e inténtalo de nuevo.");
+        const { data: token, error } = await supabase.rpc("issue_store_order_qr_code", {
+          p_order_id: section.dataset.orderQr,
+          p_purpose: section.dataset.qrPurpose,
+        });
+        if (error) throw error;
+        const scanUrl = new URL("/admin/", window.location.origin);
+        scanUrl.hash = new URLSearchParams({ scan: section.dataset.qrPurpose, token }).toString();
+        const qr = window.qrcode(0, "M");
+        qr.addData(scanUrl.toString());
+        qr.make();
+        section.querySelector("img").src = qr.createDataURL(5, 4);
+        status.textContent = section.dataset.qrPurpose === "delivery"
+          ? "Muestra este código al repartidor cuando recibas tu pedido."
+          : "Muestra este código en caja. Pagarás al retirar.";
+      } catch (error) {
+        console.error(`No se pudo generar el código QR del pedido ${section.dataset.orderQr}.`, error);
+        status.textContent = error.message || "No se pudo generar el código QR. Intenta actualizar tus pedidos.";
+        status.classList.add("error");
+      }
+    }));
   }
 
   async function loadOrders() {
@@ -487,7 +566,7 @@
     setStatus("#orders-status", "Cargando tus pedidos…");
     const { data: orders, error: ordersError } = await supabase
       .from("store_orders")
-      .select("id,fulfillment,delivery_address,payment_status,order_status,total_usd,total_ves,created_at")
+      .select("id,fulfillment,delivery_address,payment_method,payment_status,order_status,total_usd,total_ves,created_at")
       .eq("user_id", currentUser.id)
       .order("created_at", { ascending: false });
     if (ordersError) throw ordersError;
@@ -679,8 +758,36 @@
     setStatus("#customer-auth-status", "Has cerrado sesión.");
   });
   checkoutForm.addEventListener("change", (event) => {
-    if (event.target.name === "payment_method") setCheckoutPaymentFields();
+    if (event.target.name === "payment_method") {
+      setCheckoutPaymentFields();
+      if (event.target.value === "mobile_payment") openPaymentDataSheet();
+    }
     if (event.target.name === "fulfillment") setFulfillmentFields();
+  });
+  document.querySelectorAll("[data-evidence-tab]").forEach((tab) => {
+    tab.addEventListener("click", () => setPaymentEvidenceMode(tab.dataset.evidenceTab));
+    tab.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      event.preventDefault();
+      const tabs = [...document.querySelectorAll("[data-evidence-tab]")];
+      const nextIndex = (tabs.indexOf(tab) + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length;
+      tabs[nextIndex].focus();
+      setPaymentEvidenceMode(tabs[nextIndex].dataset.evidenceTab);
+    });
+  });
+  document.querySelector("#open-payment-details").addEventListener("click", openPaymentDataSheet);
+  document.querySelector("#payment-data-close").addEventListener("click", () => paymentDataDialog.close());
+  document.querySelector("#payment-data-done").addEventListener("click", () => paymentDataDialog.close());
+  document.querySelectorAll("[data-copy-payment]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(button.dataset.copyValue);
+        document.dispatchEvent(new CustomEvent("kristal:toast", { detail: { message: "¡Copiado al portapapeles!" } }));
+      } catch (error) {
+        console.error("No se pudieron copiar los datos de Pago Móvil.", error);
+        document.dispatchEvent(new CustomEvent("kristal:toast", { detail: { message: "No se pudo copiar. Mantén pulsado el dato para seleccionarlo." } }));
+      }
+    });
   });
   checkoutForm.elements.payment_reference.addEventListener("input", (event) => {
     const input = event.currentTarget;
@@ -700,7 +807,10 @@
   });
   document.querySelector("#receipt-reference-form").addEventListener("submit", updateReceiptPaymentReference);
   document.querySelector("#store-checkout-close").addEventListener("click", () => checkoutDialog.close());
-  checkoutDialog.addEventListener("close", () => document.body.classList.remove("checkout-open"));
+  checkoutDialog.addEventListener("close", () => {
+    document.body.classList.remove("checkout-open");
+    if (paymentDataDialog.open) paymentDataDialog.close();
+  });
   document.addEventListener("click", (event) => {
     if (event.target.closest("#order-receipt [data-app-route]") && checkoutDialog.open) checkoutDialog.close();
   });

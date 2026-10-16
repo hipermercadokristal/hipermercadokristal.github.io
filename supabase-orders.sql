@@ -49,6 +49,24 @@ create table if not exists public.store_orders (
   )
 );
 
+alter table public.store_orders
+  drop constraint if exists mobile_payment_requires_reference_and_bank,
+  drop constraint if exists mobile_payment_requires_proof,
+  drop constraint if exists mobile_payment_evidence_choice;
+
+alter table public.store_orders
+  add constraint mobile_payment_evidence_choice check (
+    payment_method <> 'mobile_payment'
+    or (
+      payment_bank_code in ('0102', '0105', '0108', '0134')
+      and (
+        (payment_reference is not null and btrim(payment_reference) ~ '^[0-9]{4,20}$' and payment_proof_path is null)
+        or (payment_reference is null and nullif(trim(payment_proof_path), '') is not null)
+        or (payment_reference is not null and btrim(payment_reference) ~ '^[0-9]{4,20}$' and nullif(trim(payment_proof_path), '') is not null)
+      )
+    )
+  );
+
 create table if not exists public.store_order_items (
   id uuid primary key default gen_random_uuid(),
   order_id uuid not null references public.store_orders(id) on delete cascade,
@@ -59,6 +77,17 @@ create table if not exists public.store_order_items (
   unit_price_usd numeric(10, 2) not null check (unit_price_usd >= 0),
   line_total_usd numeric(12, 2) not null check (line_total_usd >= 0)
 );
+
+create table if not exists public.store_order_qr_tokens (
+  order_id uuid not null references public.store_orders(id) on delete cascade,
+  purpose text not null check (purpose in ('pickup', 'delivery')),
+  token text not null unique,
+  expires_at timestamptz not null,
+  consumed_at timestamptz,
+  primary key (order_id, purpose)
+);
+alter table public.store_order_qr_tokens enable row level security;
+revoke all on public.store_order_qr_tokens from public, anon, authenticated;
 
 create index if not exists store_orders_user_created_idx
   on public.store_orders (user_id, created_at desc);
@@ -218,13 +247,15 @@ begin
     and (
       nullif(trim(coalesce(p_payment_bank_code, '')), '') is null
       or p_payment_bank_code not in ('0102', '0105', '0108', '0134')
-      or nullif(trim(p_payment_reference), '') is null
-      or length(trim(p_payment_reference)) > 40
-      or nullif(trim(p_payment_proof_path), '') is null
-      or p_payment_proof_path !~ ('^' || auth.uid()::text || '/' || p_order_id::text || '/[^/]+$')
+      or ((nullif(trim(p_payment_reference), '') is null) = (nullif(trim(p_payment_proof_path), '') is null))
+      or (nullif(trim(p_payment_reference), '') is not null and trim(p_payment_reference) !~ '^[0-9]{4,20}$')
+      or (
+        nullif(trim(p_payment_proof_path), '') is not null
+        and p_payment_proof_path !~ ('^' || auth.uid()::text || '/' || p_order_id::text || '/[^/]+$')
+      )
       or p_exchange_rate is null
     ) then
-    raise exception 'Pago Móvil requiere cuenta receptora, referencia, comprobante y tasa BCV.';
+    raise exception 'Pago Móvil requiere una cuenta receptora y exactamente una evidencia válida (referencia o comprobante), además de la tasa BCV.';
   end if;
   if p_payment_method <> 'mobile_payment'
     and (
@@ -234,7 +265,9 @@ begin
     ) then
     raise exception 'No se debe enviar comprobante ni referencia para este método de pago.';
   end if;
-  if p_payment_method = 'mobile_payment' and not exists (
+  if p_payment_method = 'mobile_payment'
+    and p_payment_proof_path is not null
+    and not exists (
     select 1 from storage.objects
     where bucket_id = 'payment-proofs' and name = p_payment_proof_path
   ) then
@@ -366,7 +399,8 @@ begin
     raise exception 'No se encontró el pedido.';
   end if;
   if v_order.payment_method <> 'mobile_payment'
-     or v_order.payment_status <> 'pending_verification' then
+     or v_order.payment_status <> 'pending_verification'
+     or v_order.payment_proof_path is not null then
     raise exception 'Solo se puede corregir la referencia de un Pago Móvil pendiente.';
   end if;
 
@@ -381,6 +415,167 @@ $$;
 
 revoke all on function public.update_mobile_payment_reference(uuid, text) from public, anon;
 grant execute on function public.update_mobile_payment_reference(uuid, text) to authenticated;
+
+create or replace function public.issue_store_order_qr_code(
+  p_order_id uuid,
+  p_purpose text
+)
+returns text
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_order public.store_orders%rowtype;
+  v_token text;
+begin
+  if auth.uid() is null then
+    raise exception 'Debes iniciar sesión para abrir el ticket.';
+  end if;
+  if p_purpose is null or p_purpose not in ('pickup', 'delivery') then
+    raise exception 'El tipo de código QR no es válido.';
+  end if;
+
+  select * into v_order
+  from public.store_orders
+  where id = p_order_id and user_id = auth.uid()
+  for update;
+  if not found then
+    raise exception 'No se encontró el pedido.';
+  end if;
+
+  if p_purpose = 'pickup' and not (
+    v_order.fulfillment = 'pickup'
+    and v_order.payment_method = 'cash_pos'
+    and v_order.payment_status = 'awaiting_in_store'
+    and v_order.order_status not in ('delivered', 'cancelled')
+  ) then
+    raise exception 'Este pedido no tiene un ticket de retiro en caja disponible.';
+  end if;
+  if p_purpose = 'delivery' and not (
+    v_order.fulfillment = 'delivery'
+    and v_order.order_status = 'delivering'
+  ) then
+    raise exception 'El código de entrega estará disponible cuando el pedido vaya en camino.';
+  end if;
+
+  select token into v_token
+  from public.store_order_qr_tokens
+  where order_id = p_order_id
+    and purpose = p_purpose
+    and expires_at > now()
+    and consumed_at is null;
+  if found then
+    return v_token;
+  end if;
+
+  v_token := encode(extensions.gen_random_bytes(32), 'hex');
+  insert into public.store_order_qr_tokens (order_id, purpose, token, expires_at, consumed_at)
+  values (p_order_id, p_purpose, v_token, now() + interval '24 hours', null)
+  on conflict (order_id, purpose) do update
+    set token = excluded.token,
+        expires_at = excluded.expires_at,
+        consumed_at = null;
+  return v_token;
+end;
+$$;
+
+create or replace function public.scan_store_pickup_ticket(p_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_result jsonb;
+begin
+  if coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') <> 'admin' then
+    raise exception 'Solo caja puede validar tickets de retiro.';
+  end if;
+
+  select jsonb_build_object(
+    'id', orders.id,
+    'customer_name', orders.customer_name,
+    'customer_phone', orders.customer_phone,
+    'total_usd', orders.total_usd,
+    'payment_status', orders.payment_status,
+    'order_status', orders.order_status,
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'product_name', items.product_name,
+        'quantity', items.quantity,
+        'line_total_usd', items.line_total_usd
+      ) order by items.product_name)
+      from public.store_order_items items
+      where items.order_id = orders.id
+    ), '[]'::jsonb)
+  )
+  into v_result
+  from public.store_order_qr_tokens tokens
+  join public.store_orders orders on orders.id = tokens.order_id
+  where tokens.token = p_token
+    and tokens.purpose = 'pickup'
+    and tokens.expires_at > now()
+    and tokens.consumed_at is null
+    and orders.fulfillment = 'pickup'
+    and orders.payment_method = 'cash_pos'
+    and orders.payment_status = 'awaiting_in_store'
+    and orders.order_status not in ('delivered', 'cancelled');
+
+  if v_result is null then
+    raise exception 'El ticket expiró, ya fue utilizado o no corresponde a un retiro pendiente.';
+  end if;
+  return v_result;
+end;
+$$;
+
+create or replace function public.complete_delivery_by_qr(p_token text)
+returns uuid
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+declare
+  v_order_id uuid;
+begin
+  if coalesce(auth.jwt() -> 'app_metadata' ->> 'role', '') not in ('admin', 'courier') then
+    raise exception 'Solo un repartidor autorizado puede confirmar la entrega.';
+  end if;
+
+  select orders.id into v_order_id
+  from public.store_order_qr_tokens tokens
+  join public.store_orders orders on orders.id = tokens.order_id
+  where tokens.token = p_token
+    and tokens.purpose = 'delivery'
+    and tokens.expires_at > now()
+    and tokens.consumed_at is null
+    and orders.fulfillment = 'delivery'
+    and orders.order_status = 'delivering'
+  for update of tokens, orders;
+
+  if v_order_id is null then
+    raise exception 'El código expiró, ya fue utilizado o el pedido no está en camino.';
+  end if;
+
+  update public.store_order_qr_tokens
+  set consumed_at = now()
+  where token = p_token and purpose = 'delivery' and consumed_at is null;
+  update public.store_orders
+  set order_status = 'delivered', updated_at = now()
+  where id = v_order_id and order_status = 'delivering';
+  if not found then
+    raise exception 'No se pudo completar el pedido; actualiza el estado e inténtalo de nuevo.';
+  end if;
+  return v_order_id;
+end;
+$$;
+
+revoke all on function public.issue_store_order_qr_code(uuid, text) from public, anon;
+revoke all on function public.scan_store_pickup_ticket(text) from public, anon;
+revoke all on function public.complete_delivery_by_qr(text) from public, anon;
+grant execute on function public.issue_store_order_qr_code(uuid, text) to authenticated;
+grant execute on function public.scan_store_pickup_ticket(text) to authenticated;
+grant execute on function public.complete_delivery_by_qr(text) to authenticated;
 
 do $$
 begin
