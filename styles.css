@@ -590,7 +590,7 @@ main { min-height: 55vh; padding-bottom: 40px; }
   .footer-contact h3 { grid-column: 1/-1; margin: 0; font-size: 12px; }
   .footer-contact > a { min-height: 36px; display: flex; align-items: center; gap: 5px; font-size: 10px; }
   .footer-contact .mobile-legal-link { display: flex !important; grid-column: 1/-1; min-height: 30px; border-top: 1px solid #edf1ed; color: #65746a; font-size: 10px; }
-  body.has-cart-items:not(.cart-open) { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+  body.has-cart-items:not(.cart-open) { padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)); }
   .mobile-cart-fab { position: fixed; z-index: 7; right: 16px; bottom: max(16px, env(safe-area-inset-bottom)); min-width: 158px; min-height: 56px; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 0 17px; border: 0; border-radius: 30px; background: var(--forest); color: #fff; box-shadow: 0 8px 24px #0f382247; font-size: 13px; font-weight: 800; cursor: pointer; animation: cart-fab-enter .22s ease-out; }
   .mobile-cart-fab[hidden] { display: none; }
   .mobile-cart-fab svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
@@ -778,11 +778,11 @@ main { min-height: 55vh; padding-bottom: 40px; }
 
 @media (max-width: 760px) {
   input, select, textarea { font-size: 16px; }
-  body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
-  body.has-cart-items:not(.cart-open) { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+  body { padding-top: env(safe-area-inset-top, 0px); padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
+  body.has-cart-items:not(.cart-open) { padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)); }
   .mobile-cart-fab { display: none; }
   .site-header { display: none; }
-  .mobile-app-bar { position: sticky; z-index: 20; top: 0; display: flex; min-height: 63px; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #e8eee9; background: #ffffffef; backdrop-filter: blur(14px); }
+  .mobile-app-bar { position: sticky; z-index: 20; top: env(safe-area-inset-top, 0px); display: flex; min-height: 63px; align-items: center; justify-content: space-between; gap: 12px; padding: 7px 16px; border-bottom: 1px solid #e8eee9; background: #ffffffef; backdrop-filter: blur(14px); }
   .mobile-app-brand { display: inline-flex; min-width: 0; align-items: center; gap: 10px; }
   .mobile-app-brand img { width: 43px; height: 43px; border-radius: 12px; object-fit: contain; }
   .mobile-app-brand span { display: grid; min-width: 0; gap: 3px; }
