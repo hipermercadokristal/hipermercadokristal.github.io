@@ -13,6 +13,22 @@ android {
         versionCode 1
         versionName "1.0.0"
     }
+
+    signingConfigs {
+        release {
+            storeFile file(System.getenv("ANDROID_KEYSTORE_PATH") ?: "release-key.p12")
+            storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            keyAlias "kristal"
+            keyPassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            storeType "PKCS12"
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+        }
+    }
 }
 
 dependencies {

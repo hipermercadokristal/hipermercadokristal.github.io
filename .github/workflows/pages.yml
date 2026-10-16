@@ -18,6 +18,9 @@ concurrency:
 jobs:
   android-apk:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -38,15 +41,34 @@ jobs:
         with:
           gradle-version: "8.9"
 
-      - name: Build Android APK
-        run: gradle --no-daemon assembleDebug
+      - name: Build signed release APK and Digital Asset Links
+        if: env.ANDROID_KEYSTORE_BASE64 != '' && env.ANDROID_KEYSTORE_PASSWORD != ''
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > release-key.p12
+          ANDROID_KEYSTORE_PATH="$PWD/release-key.p12" gradle --no-daemon assembleRelease
+          mkdir -p ../android-publish
+          cp app/build/outputs/apk/release/app-release.apk ../android-publish/app.apk
+          fingerprint="$(keytool -list -v -keystore release-key.p12 -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias kristal | awk -F': ' '/SHA256:/{print $2; exit}')"
+          if [ -z "$fingerprint" ]; then
+            echo "Could not read the release certificate SHA-256 fingerprint."
+            exit 1
+          fi
+          printf '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.hipermercadokristal.app","sha256_cert_fingerprints":["%s"]}}]\n' "$fingerprint" > ../android-publish/assetlinks.json
+          rm release-key.p12
         working-directory: android
+
+      - name: Build debug APK for testing when release secrets are not configured
+        if: env.ANDROID_KEYSTORE_BASE64 == '' || env.ANDROID_KEYSTORE_PASSWORD == ''
+        run: |
+          gradle --no-daemon assembleDebug
+          mkdir -p android-publish
+          cp android/app/build/outputs/apk/debug/app-debug.apk android-publish/app.apk
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: kristal-android-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          path: android-publish/
           if-no-files-found: error
           retention-days: 14
 
@@ -64,10 +86,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: kristal-android-apk
-          path: downloads
+          path: android-publish
 
       - name: Prepare Android APK download
-        run: mv downloads/app-debug.apk downloads/hipermercado-kristal.apk
+        run: |
+          mkdir -p downloads
+          mv android-publish/app.apk downloads/hipermercado-kristal.apk
+          if [ -f android-publish/assetlinks.json ]; then
+            mkdir -p .well-known
+            mv android-publish/assetlinks.json .well-known/assetlinks.json
+            touch .nojekyll
+          fi
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
