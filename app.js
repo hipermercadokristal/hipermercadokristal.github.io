@@ -11,6 +11,8 @@ const currency = new Intl.NumberFormat("es-VE", {
 const productGrid = document.querySelector("#product-grid");
 const categoryProductGrid = document.querySelector("#category-product-grid");
 const featuredProductGrid = document.querySelector("#featured-products");
+const featuredPreviousButton = document.querySelector("#featured-previous");
+const featuredNextButton = document.querySelector("#featured-next");
 const departmentFilter = document.querySelector("#product-department-filter");
 const homeView = document.querySelector("#home-view");
 const catalogView = document.querySelector("#catalog-view");
@@ -44,6 +46,8 @@ const cartItems = new Map();
 const favoriteItems = new Set();
 const productPages = new Map();
 let revealObserver = null;
+let featuredAutoplayTimer = 0;
+let featuredTouchResumeTimer = 0;
 let toastTimeout;
 let lastFocusedElement = null;
 let catalogLoadError = "";
@@ -302,10 +306,12 @@ function renderFeaturedProducts() {
   const featuredProducts = products.filter((product) => product.esDestacado);
   if (catalogLoadError) {
     featuredProductGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
+    updateFeaturedCarousel();
     return;
   }
   if (!featuredProducts.length) {
     featuredProductGrid.innerHTML = `<p class="empty-state">Estamos actualizando la selección de productos. <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener noreferrer">Consulta productos y ofertas vigentes por WhatsApp.</a></p>`;
+    updateFeaturedCarousel();
     return;
   }
   featuredProductGrid.innerHTML = featuredProducts
@@ -331,7 +337,64 @@ function renderFeaturedProducts() {
     .join("");
   featuredProductGrid.scrollLeft = scrollLeft;
   observeRevealElements(featuredProductGrid);
+  updateFeaturedCarousel();
 }
+
+function featuredCarouselStep() {
+  const firstCard = featuredProductGrid.querySelector(".featured-product-card");
+  if (!firstCard) return 0;
+  const gap = Number.parseFloat(getComputedStyle(featuredProductGrid).columnGap) || 0;
+  return firstCard.getBoundingClientRect().width + gap;
+}
+
+function updateFeaturedCarousel() {
+  const controls = featuredPreviousButton.parentElement;
+  const canScroll = featuredProductGrid.scrollWidth > featuredProductGrid.clientWidth + 1;
+  controls.hidden = !canScroll;
+  window.clearInterval(featuredAutoplayTimer);
+  featuredAutoplayTimer = 0;
+  if (!canScroll || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+  featuredAutoplayTimer = window.setInterval(() => {
+    const hovering = window.matchMedia("(hover: hover)").matches && featuredProductGrid.matches(":hover");
+    if (document.hidden || hovering || featuredProductGrid.contains(document.activeElement) || controls.contains(document.activeElement)) return;
+    const atEnd = featuredProductGrid.scrollLeft + featuredProductGrid.clientWidth >= featuredProductGrid.scrollWidth - 2;
+    featuredProductGrid.scrollTo({ left: atEnd ? 0 : featuredProductGrid.scrollLeft + featuredCarouselStep(), behavior: "smooth" });
+  }, 4500);
+}
+
+function moveFeaturedCarousel(direction) {
+  const step = featuredCarouselStep();
+  if (!step) return;
+  const atStart = featuredProductGrid.scrollLeft <= 1;
+  const atEnd = featuredProductGrid.scrollLeft + featuredProductGrid.clientWidth >= featuredProductGrid.scrollWidth - 2;
+  const left = direction > 0
+    ? (atEnd ? 0 : featuredProductGrid.scrollLeft + step)
+    : (atStart ? featuredProductGrid.scrollWidth : featuredProductGrid.scrollLeft - step);
+  featuredProductGrid.scrollTo({ left, behavior: "smooth" });
+}
+
+featuredPreviousButton.addEventListener("click", () => moveFeaturedCarousel(-1));
+featuredNextButton.addEventListener("click", () => moveFeaturedCarousel(1));
+featuredProductGrid.addEventListener("pointerenter", () => window.clearInterval(featuredAutoplayTimer));
+featuredProductGrid.addEventListener("pointerleave", updateFeaturedCarousel);
+featuredProductGrid.addEventListener("focusin", () => window.clearInterval(featuredAutoplayTimer));
+featuredPreviousButton.parentElement.addEventListener("focusin", () => window.clearInterval(featuredAutoplayTimer));
+featuredProductGrid.addEventListener("focusout", (event) => {
+  if (!featuredProductGrid.contains(event.relatedTarget)) updateFeaturedCarousel();
+});
+featuredPreviousButton.parentElement.addEventListener("focusout", (event) => {
+  if (!featuredPreviousButton.parentElement.contains(event.relatedTarget)) updateFeaturedCarousel();
+});
+featuredProductGrid.addEventListener("touchstart", () => {
+  window.clearInterval(featuredAutoplayTimer);
+  window.clearTimeout(featuredTouchResumeTimer);
+}, { passive: true });
+featuredProductGrid.addEventListener("touchend", () => {
+  featuredTouchResumeTimer = window.setTimeout(updateFeaturedCarousel, 5000);
+}, { passive: true });
+document.addEventListener("visibilitychange", updateFeaturedCarousel);
+window.addEventListener("resize", updateFeaturedCarousel);
 
 function changeProductPage(grid, requestedPage, { scroll = false } = {}) {
   const filter = grid === categoryProductGrid ? activeCategory : activeFilter;
@@ -813,7 +876,7 @@ searchInput.addEventListener("input", () => {
   renderActiveProducts();
 });
 
-document.querySelector(".product-filters").addEventListener("click", (event) => {
+document.querySelector("#catalog-view").addEventListener("click", (event) => {
   const button = event.target.closest("[data-filter]");
   if (!button) return;
   setActiveFilter(button.dataset.filter, { clearSearch: button.dataset.filter === "Todos" });

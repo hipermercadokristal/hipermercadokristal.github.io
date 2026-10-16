@@ -25,7 +25,7 @@
     cancelled: "Cancelado",
   };
   const paymentStatusLabels = {
-    pending_verification: "Pendiente de verificación por caja",
+    pending_verification: "Pendiente de verificación manual por caja",
     awaiting_instructions: "Pendiente de instrucciones de Zelle de caja",
     awaiting_in_store: "Pago al retirar en tienda",
     awaiting_delivery: "Pago al recibir el delivery",
@@ -406,7 +406,7 @@
         `Pedido: ${order.order_id}`,
         `Total: ${currency.format(Number(order.total_usd))}`,
         order.total_ves === null ? "" : `Equivalente referencial: ${formatBolivares(Number(order.total_ves))}`,
-        paymentMethod === "mobile_payment" ? "Pago Móvil: pendiente de verificación por caja." : "Por favor, confirmar coordinación del pago.",
+        paymentMethod === "mobile_payment" ? "Pago Móvil: pendiente de verificación manual por caja." : "Por favor, confirmar coordinación del pago.",
       ].filter(Boolean).join("\n");
       document.querySelector("#receipt-whatsapp").href = `https://wa.me/584128867088?text=${encodeURIComponent(message)}`;
       document.querySelector("#store-checkout-form").hidden = true;
@@ -547,7 +547,7 @@
         <ul class="customer-order-items">${items.map((item) => `<li><span>${escapeHtml(item.product_name)} × ${item.quantity}</span><strong>${currency.format(Number(item.line_total_usd))}</strong></li>`).join("")}</ul>
         <div class="customer-order-total"><span>Total</span><strong>${currency.format(Number(order.total_usd))}${order.total_ves === null ? "" : `<small>${escapeHtml(formatBolivares(Number(order.total_ves)))} · referencial</small>`}</strong></div>
         <p class="customer-order-delivery">${order.fulfillment === "delivery" ? "Delivery" : "Retiro en tienda"}${order.fulfillment === "delivery" && order.delivery_address ? ` · ${escapeHtml(order.delivery_address)}` : ""}</p>
-        ${qrPurpose ? `<section class="order-qr-ticket" data-order-qr="${escapeHtml(order.id)}" data-qr-purpose="${qrPurpose}"><h3>${qrPurpose === "delivery" ? "Confirma la entrega" : "Ticket de retiro en caja"}</h3><img alt="${qrPurpose === "delivery" ? "Código QR de confirmación de entrega" : "Código QR para retirar el pedido"}" /><p role="status" aria-live="polite">Preparando código seguro…</p></section>` : ""}
+        ${qrPurpose ? `<section class="order-qr-ticket" data-order-qr="${escapeHtml(order.id)}" data-qr-purpose="${qrPurpose}"><h3>${qrPurpose === "delivery" ? "Muestra este código QR al repartidor al recibir tu pedido" : "Ticket de retiro en caja"}</h3><img alt="${qrPurpose === "delivery" ? "Código QR de confirmación de entrega" : "Código QR para retirar el pedido"}" /><p role="status" aria-live="polite">Preparando código seguro…</p></section>` : ""}
       </article>`;
     }).join("");
     renderOrderQrCodes(orders).catch((error) => {
@@ -566,7 +566,7 @@
           p_purpose: section.dataset.qrPurpose,
         });
         if (error) throw error;
-        const scanUrl = new URL("/admin/", window.location.origin);
+        const scanUrl = new URL(section.dataset.qrPurpose === "delivery" ? "/delivery/" : "/admin/", window.location.origin);
         scanUrl.hash = new URLSearchParams({ scan: section.dataset.qrPurpose, token }).toString();
         const qr = window.qrcode(0, "M");
         qr.addData(scanUrl.toString());

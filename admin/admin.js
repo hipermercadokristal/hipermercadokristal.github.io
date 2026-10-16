@@ -32,6 +32,7 @@ const departmentNames = [
 let editingProduct = null;
 let categories = [];
 let missingDepartments = [];
+let deliveryCouriers = [];
 let adminOrdersChannel = null;
 let staffRole = "";
 imageInput.required = true;
@@ -62,9 +63,13 @@ function getInventoryImageUrl(url) {
 
 async function requireStaff(session) {
   const role = session?.user?.app_metadata?.role;
-  if (!["admin", "courier"].includes(role)) {
+  if (role === "courier") {
+    window.location.replace("/delivery/");
+    throw new Error("Abriendo el módulo de reparto…");
+  }
+  if (!["admin", "operator"].includes(role)) {
     await supabaseClient.auth.signOut();
-    throw new Error("Esta cuenta no tiene permisos de caja ni de reparto. Solicita al propietario que asigne el rol correspondiente.");
+    throw new Error("Esta cuenta no tiene permisos de administración ni de caja. Solicita al propietario que asigne el rol correspondiente.");
   }
   return role;
 }
@@ -131,13 +136,19 @@ const orderStatusLabels = {
   cancelled: "Cancelado",
 };
 const paymentStatusLabels = {
-  pending_verification: "Pendiente de verificar Pago Móvil",
+  pending_verification: "Pendiente de verificar Pago Móvil manualmente",
   awaiting_instructions: "Pendiente de instrucciones Zelle",
   awaiting_in_store: "Pago pendiente al retirar",
   awaiting_delivery: "Pago pendiente al entregar",
   verified: "Pago recibido",
   rejected: "Pago rechazado",
 };
+
+async function loadDeliveryCouriers() {
+  const { data, error } = await supabaseClient.rpc("list_delivery_couriers");
+  if (error) throw error;
+  deliveryCouriers = data || [];
+}
 
 function buildWhatsAppOrderLink(order, items) {
   const lines = [
@@ -156,14 +167,15 @@ async function loadAdminOrders() {
   setMessage(adminOrdersStatus, "Cargando pedidos…");
   const { data: orders, error } = await supabaseClient
     .from("store_orders")
-    .select("id,user_id,customer_name,customer_phone,fulfillment,delivery_address,payment_method,payment_bank_code,payment_reference,payment_proof_path,payment_status,order_status,total_usd,total_ves,created_at")
+    .select("id,user_id,assigned_courier_id,customer_name,customer_phone,fulfillment,delivery_address,payment_method,payment_bank_code,payment_reference,payment_proof_path,payment_status,order_status,total_usd,total_ves,created_at")
+    .not("order_status", "in", "(delivered,cancelled)")
     .order("created_at", { ascending: false })
     .limit(100);
   if (error) throw error;
   if (!orders.length) {
     adminOrdersList.replaceChildren();
     emptyOrders.hidden = false;
-    setMessage(adminOrdersStatus, "No hay pedidos registrados.", true);
+    setMessage(adminOrdersStatus, "No hay pedidos abiertos en la bandeja.", true);
     return;
   }
   emptyOrders.hidden = true;
@@ -195,17 +207,42 @@ async function loadAdminOrders() {
       }
     }
     const paymentAction = order.payment_method === "mobile_payment" && order.payment_status === "pending_verification"
-      ? `<div class="order-payment-actions"><button type="button" data-order-action="verify" data-id="${escapeHtml(order.id)}">Aprobar pago</button><button class="delete-button" type="button" data-order-action="reject" data-id="${escapeHtml(order.id)}">Rechazar pago</button></div>`
+      ? `<div class="order-payment-actions"><button type="button" data-order-action="verify" data-id="${escapeHtml(order.id)}">Confirmar pago manualmente</button><button class="delete-button" type="button" data-order-action="reject" data-id="${escapeHtml(order.id)}">Rechazar pago</button></div>`
       : !["verified", "rejected"].includes(order.payment_status)
         ? `<div class="order-payment-actions"><button type="button" data-order-action="verify" data-id="${escapeHtml(order.id)}">${order.payment_method === "zelle" ? "Confirmar Zelle recibido" : "Confirmar efectivo/POS recibido"}</button></div>`
-        : `<span class="order-payment-result">Pago: ${escapeHtml(paymentStatusLabels[order.payment_status] || order.payment_status)}</span>`;
-    const availableStatuses = Object.entries(orderStatusLabels).filter(([value]) =>
-      order.fulfillment === "delivery" || value !== "delivering",
-    );
-    const statusOptions = availableStatuses.map(([value, label]) => {
+        : "";
+    const courier = deliveryCouriers.find((item) => item.id === order.assigned_courier_id);
+    const allowedNextStatuses = {
+      received: ["preparing", "cancelled"],
+      preparing: ["ready", "cancelled"],
+      ready: ["preparing", "cancelled"],
+      delivering: ["cancelled"],
+    }[order.order_status] || [];
+    if (
+      order.fulfillment === "pickup"
+      && order.order_status === "ready"
+      && ["verified", "awaiting_in_store"].includes(order.payment_status)
+    ) allowedNextStatuses.push("delivered");
+    const statusOptions = allowedNextStatuses.map((value) => {
+      const label = orderStatusLabels[value];
       const fulfillmentLabel = value === "ready" && order.fulfillment === "delivery" ? "Listo para enviar" : label;
-      return `<option value="${value}"${order.order_status === value ? " selected" : ""}>${fulfillmentLabel}</option>`;
-    }).join("");
+      return `<option value="${value}">${fulfillmentLabel}</option>`;
+    });
+    const currentStatusLabel = order.order_status === "delivering" && order.fulfillment === "delivery"
+      ? "En camino · lo completa el repartidor"
+      : orderStatusLabels[order.order_status];
+    statusOptions.unshift(`<option value="${escapeHtml(order.order_status)}" selected disabled>${escapeHtml(currentStatusLabel)}</option>`);
+    const assignmentControls = order.fulfillment === "delivery" && ["ready", "delivering"].includes(order.order_status)
+      ? `<div class="delivery-assignment">
+          <label>Repartidor<select data-courier-select="${escapeHtml(order.id)}">
+            <option value="">Selecciona un repartidor</option>
+            ${deliveryCouriers.map((item) => `<option value="${escapeHtml(item.id)}"${item.id === order.assigned_courier_id ? " selected" : ""}>${escapeHtml(item.full_name)}${item.phone ? ` · ${escapeHtml(item.phone)}` : ""}</option>`).join("")}
+          </select></label>
+          <button type="button" data-order-action="assign" data-id="${escapeHtml(order.id)}"${deliveryCouriers.length ? "" : " disabled"}>${order.order_status === "delivering" ? "Reasignar delivery" : "Asignar y enviar"}</button>
+          ${courier ? `<span>Asignado a ${escapeHtml(courier.full_name)}</span>` : ""}
+          ${deliveryCouriers.length ? "" : "<span>No hay cuentas activas con rol de repartidor.</span>"}
+        </div>`
+      : "";
     const date = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(order.created_at));
     return `<article class="admin-order-card" data-order-id="${escapeHtml(order.id)}">
       <header class="admin-order-heading"><div><span class="eyebrow">${escapeHtml(date)}</span><h3>Pedido ${escapeHtml(order.id.slice(0, 8).toUpperCase())}</h3></div><strong>${currency.format(Number(order.total_usd))}${order.total_ves === null ? "" : `<small>Bs. ${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(order.total_ves))} · referencial</small>`}</strong></header>
@@ -214,7 +251,9 @@ async function loadAdminOrders() {
       ${order.payment_method === "mobile_payment" ? `<p>Banco: ${escapeHtml(order.payment_bank_code || "—")} · Referencia: ${escapeHtml(order.payment_reference || "—")}</p>` : ""}
       <ul class="admin-order-items">${orderItems.map((item) => `<li>${escapeHtml(item.product_name)} × ${item.quantity} <span>${currency.format(Number(item.line_total_usd))}</span></li>`).join("")}</ul>
       <div class="admin-order-proof">${proofLink}${proofError ? `<span role="alert">${escapeHtml(proofError)}</span>` : ""}</div>
+      <div class="order-payment-state${order.payment_status === "verified" ? " verified" : ""}">${order.payment_status === "verified" ? "Pagado" : escapeHtml(paymentStatusLabels[order.payment_status] || "Estado de pago pendiente")}</div>
       ${paymentAction}
+      ${assignmentControls}
       <div class="admin-order-status-controls"><label>Estado del pedido<select data-order-status>${statusOptions}</select></label><button type="button" data-order-action="status" data-id="${escapeHtml(order.id)}">Guardar estado</button></div>
       <a class="order-whatsapp-link" href="${buildWhatsAppOrderLink(order, orderItems)}" target="_blank" rel="noopener noreferrer">Preparar aviso por WhatsApp</a>
     </article>`;
@@ -228,28 +267,42 @@ async function handleAdminOrderAction(event) {
   if (!button) return;
   const orderId = button.dataset.id;
   const action = button.dataset.orderAction;
-  const update = action === "verify"
-    ? { payment_status: "verified" }
-    : action === "reject"
-      ? { payment_status: "rejected" }
-      : { order_status: button.closest(".admin-order-card").querySelector("[data-order-status]").value };
+  const card = button.closest(".admin-order-card");
   if (action === "verify") {
-    const card = button.closest(".admin-order-card");
     const paymentText = card.querySelector(".admin-order-heading h3").textContent;
-    const confirmationMessage = button.textContent === "Aprobar pago"
+    const confirmationMessage = button.textContent === "Confirmar pago manualmente"
       ? `¿Verificaste el abono bancario de ${paymentText} y deseas aprobarlo?`
       : `¿Confirmas que recibiste el pago de ${paymentText}?`;
     if (!window.confirm(confirmationMessage)) return;
   }
   if (action === "reject" && !window.confirm("¿Confirmas que el comprobante no corresponde a un pago válido?")) return;
+  let request;
+  if (action === "verify" || action === "reject") {
+    request = supabaseClient.rpc("set_store_order_payment_status", {
+      p_order_id: orderId,
+      p_decision: action === "verify" ? "approve" : "reject",
+    });
+  } else if (action === "assign") {
+    const courierId = card.querySelector("[data-courier-select]").value;
+    if (!courierId) {
+      setMessage(adminOrdersStatus, "Selecciona un repartidor antes de asignar el pedido.");
+      return;
+    }
+    request = supabaseClient.rpc("assign_store_order_courier", {
+      p_order_id: orderId,
+      p_courier_id: courierId,
+    });
+  } else {
+    request = supabaseClient.rpc("set_store_order_status", {
+      p_order_id: orderId,
+      p_order_status: card.querySelector("[data-order-status]").value,
+    });
+  }
 
   button.disabled = true;
   setMessage(adminOrdersStatus, "Guardando cambios…");
   try {
-    const { error } = await supabaseClient
-      .from("store_orders")
-      .update({ ...update, updated_at: new Date().toISOString() })
-      .eq("id", orderId);
+    const { error } = await request;
     if (error) throw error;
     await loadAdminOrders();
   } catch (error) {
@@ -275,13 +328,14 @@ function subscribeToAdminOrders() {
 
 async function initializeAdminOrders() {
   try {
+    await loadDeliveryCouriers();
     await loadAdminOrders();
     subscribeToAdminOrders();
   } catch (error) {
     console.error("No se pudo cargar la bandeja de pedidos.", error);
     setMessage(
       adminOrdersStatus,
-      `No se pudo cargar la bandeja: ${error.message || "error de conexión"}. Verifica que supabase-orders.sql esté aplicado.`,
+      `No se pudo cargar la bandeja: ${error.message || "error de conexión"}. Ejecuta supabase-orders.sql y luego supabase-delivery-roles.sql en Supabase SQL Editor.`,
       false,
     );
   }
@@ -291,14 +345,13 @@ function setStaffView(role) {
   staffRole = role;
   setAuthenticatedView(true);
   const isAdmin = role === "admin";
-  document.querySelector("#dashboard-heading").textContent = isAdmin ? "Inventario de productos" : "Operaciones de reparto";
+  document.querySelector("#dashboard-heading").textContent = isAdmin ? "Administración de la tienda" : "Caja · Bandeja de pedidos";
   document.querySelector("#admin-product-form-panel").hidden = !isAdmin;
   document.querySelector("#admin-inventory-panel").hidden = !isAdmin;
-  document.querySelector("#order-inbox-panel").hidden = !isAdmin;
-  document.querySelector("#staff-scan-panel").hidden = false;
-  document.querySelector("#staff-scan-heading").textContent = isAdmin ? "Validar ticket o entrega" : "Confirmar entrega";
-  document.querySelector("#staff-scan-purpose").querySelector('option[value="pickup"]').hidden = !isAdmin;
-  if (!isAdmin) document.querySelector("#staff-scan-purpose").value = "delivery";
+  document.querySelector("#order-inbox-panel").hidden = false;
+  document.querySelector("#staff-scan-panel").hidden = !isAdmin;
+  document.querySelector("#staff-scan-heading").textContent = "Validar ticket de retiro";
+  document.querySelector("#staff-scan-purpose").value = "pickup";
 }
 
 async function processStaffScan(purpose, token) {
@@ -346,14 +399,18 @@ async function enterStaffDashboard(session) {
   if (role === "admin") {
     await loadCategories();
     await loadInventory();
-    await initializeAdminOrders();
   }
+  await initializeAdminOrders();
   const scanParams = new URLSearchParams(location.hash.slice(1));
   if (scanParams.has("scan") || scanParams.has("token")) {
     const purpose = scanParams.get("scan");
     const token = scanParams.get("token");
+    if (purpose === "delivery") {
+      window.location.replace(`/delivery/${location.hash}`);
+      return;
+    }
     history.replaceState(history.state, "", `${location.pathname}${location.search}`);
-    document.querySelector("#staff-scan-purpose").value = purpose === "delivery" ? "delivery" : "pickup";
+    document.querySelector("#staff-scan-purpose").value = "pickup";
     document.querySelector("#staff-scan-token").value = token || "";
     await processStaffScan(purpose, token);
   }

@@ -26,13 +26,13 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=app-login-gate-20261016" />
+    <link rel="stylesheet" href="styles.css?v=featured-carousel-20261016" />
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
     <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
     <script src="app.js" defer></script>
-    <script src="app-orders.js" defer></script>
+    <script src="/client/app-orders.js" defer></script>
     <script src="pwa.js" defer></script>
   </head>
   <body id="inicio">
@@ -173,6 +173,10 @@
               <p>Selección de productos para descubrir y agregar al carrito</p>
               <small class="price-reference-note">Agrega productos y finaliza tu pedido con el método de entrega y pago que prefieras.</small>
             </div>
+            <div class="carousel-controls" aria-label="Controles de productos destacados">
+              <button class="carousel-arrow" id="featured-previous" type="button" aria-label="Productos destacados anteriores">‹</button>
+              <button class="carousel-arrow" id="featured-next" type="button" aria-label="Productos destacados siguientes">›</button>
+            </div>
           </header>
           <div class="product-grid featured-product-grid" id="featured-products" role="region" aria-roledescription="carrusel" aria-label="Lo Más Destacado" tabindex="0"></div>
         </div>
@@ -216,7 +220,10 @@
             <h2 id="products-heading">Explora nuestros productos</h2>
             <p>Precios en USD. Agrega productos al carrito y elige cómo pagar y recibir tu pedido.</p>
           </div>
-          <a class="text-link filter-link" href="https://wa.me/584128867088" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp <span aria-hidden="true">↗</span></a>
+          <div class="catalog-heading-actions">
+            <a class="text-link filter-link" href="https://wa.me/584128867088" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp <span aria-hidden="true">↗</span></a>
+            <button class="filter-chip catalog-favorites-button" type="button" data-filter="Favoritos">Mis favoritos</button>
+          </div>
         </div>
         <div class="product-filters">
           <label class="department-filter-label" for="product-department-filter">Departamento</label>
@@ -234,7 +241,6 @@
             <option value="Mascotas">Mascotas</option>
             <option value="Congelados">Congelados</option>
           </select>
-          <button class="filter-chip" type="button" data-filter="Favoritos">Mis favoritos</button>
         </div>
         <div class="product-catalog">
           <div class="product-grid" id="product-grid" role="region" aria-live="polite" aria-label="Productos"></div>

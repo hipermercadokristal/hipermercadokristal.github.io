@@ -1,10 +1,10 @@
-const CACHE_NAME = "hipermercado-kristal-v14";
+const CACHE_NAME = "hipermercado-kristal-v16";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/styles.css",
   "/app.js",
-  "/app-orders.js",
+  "/client/app-orders.js",
   "/pwa.js",
   "/manifest.webmanifest",
   "/assets/kristal-logo.png",
@@ -13,6 +13,10 @@ const APP_SHELL = [
   "/assets/app-icons/icon-512.png",
   "/assets/app-icons/icon-180.png",
   "/assets/vendor/qrcode-generator-2.0.4.min.js",
+  "/delivery/",
+  "/delivery/index.html",
+  "/delivery/delivery.css",
+  "/delivery/delivery.js",
   "/restaurante/",
   "/restaurante/index.html",
   "/restaurante/restaurante.css",
@@ -62,7 +66,11 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request).catch(async () => {
-        const fallbackPath = url.pathname.startsWith("/restaurante/") ? "/restaurante/" : "/";
+        const fallbackPath = url.pathname.startsWith("/delivery/")
+          ? "/delivery/"
+          : url.pathname.startsWith("/restaurante/")
+            ? "/restaurante/"
+            : "/";
         const cachedApp = await caches.match(fallbackPath) || await caches.match("/");
         if (cachedApp) return cachedApp;
         throw new Error("No hay una versión guardada de la tienda para abrir sin conexión.");

@@ -80,8 +80,16 @@ td:first-child { min-width: 210px; font-weight: 700; }
 .order-payment-actions button, .admin-order-status-controls button { min-height: 38px; padding: 8px 11px; border: 1px solid #dce6dd; border-radius: 6px; background: #14552e; color: white; font-size: 12px; font-weight: 800; }
 .order-payment-actions .delete-button { border-color: #f0d9d6; background: #fff; color: #a13d34; }
 .order-payment-result { color: #63736a; font-size: 12px; font-weight: 700; }
+.order-payment-state { display: inline-flex; margin-top: 11px; padding: 5px 9px; border: 1px solid #eadfbc; border-radius: 20px; background: #fff9e8; color: #735714; font-size: 11px; font-weight: 800; }
+.order-payment-state.verified { border-color: #cfe6d4; background: #eaf6ec; color: #176332; }
 .admin-order-status-controls label { display: grid; flex: 1 1 180px; gap: 5px; color: #526259; font-size: 11px; font-weight: 800; }
 .admin-order-status-controls select { min-width: 0; }
+.delivery-assignment { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; margin-top: 12px; padding: 12px; border: 1px solid #e2ebe3; border-radius: 9px; background: #f7faf7; }
+.delivery-assignment label { display: grid; flex: 1 1 220px; gap: 5px; color: #526259; font-size: 11px; font-weight: 800; }
+.delivery-assignment select { width: 100%; min-height: 38px; }
+.delivery-assignment button { min-height: 38px; padding: 8px 11px; border: 0; border-radius: 6px; background: #14552e; color: #fff; font-size: 12px; font-weight: 800; }
+.delivery-assignment button:disabled { opacity: .55; cursor: not-allowed; }
+.delivery-assignment > span { flex-basis: 100%; color: #53635a; font-size: 11px; }
 .order-whatsapp-link { display: inline-block; margin-top: 13px; font-size: 12px; }
 @media (max-width: 640px) {
   .admin-shell { width: calc(100% - 24px); padding-top: 16px; }

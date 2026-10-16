@@ -16,7 +16,8 @@ La instalación requiere que la tienda esté publicada por HTTPS. La app conserv
 2. Ejecuta `supabase-seed.sql` una sola vez si deseas importar el catálogo de 53 productos que ya mostraba la versión estática. El seed conserva sus rutas de fotos locales en `assets/products/`; verifica precios y disponibilidad antes de publicar. Las nuevas fotos agregadas desde el panel sí se suben al bucket de Supabase.
 3. En **Project Settings → API**, copia la **Project URL** y la clave pública **anon/publishable** en `supabase-config.js`. Esas credenciales públicas pueden estar en el frontend; **nunca** pegues una clave `service_role` o secret en este repositorio.
 4. Ejecuta `supabase-orders.sql` después de crear `productos` y `categorias`. Crea el historial y detalle de pedidos, perfiles de clientes, políticas RLS, el bucket privado `payment-proofs`, la función segura que calcula el pedido con precios vigentes, el reporte de evidencia (referencia o foto), los códigos QR privados de retiro/entrega y sus funciones de validación, además de la publicación Realtime. Si ya habías ejecutado una versión anterior, vuelve a ejecutar el archivo actualizado; el script es idempotente.
-5. En **Authentication → Settings**, permite el registro de clientes. Si está activada la confirmación por correo, cada cliente deberá validar su dirección antes de iniciar sesión. Para habilitar **Continuar con Google**, crea credenciales OAuth de tipo aplicación web en Google Cloud Console y agrega `https://fregeynuqwlwsyaslgor.supabase.co/auth/v1/callback` como URI de redirección autorizada. Confirma que corresponde al callback mostrado en **Authentication → Providers → Google**. Activa Google en Supabase con el Client ID y Client Secret, establece `https://hipermercadokristal.github.io/` como **Site URL** y añádelo a **Authentication → URL Configuration → Redirect URLs**. El callback OAuth de la tienda regresa a la raíz para evitar el 404 de rutas profundas en GitHub Pages; después de que Supabase confirma la sesión, la app abre Perfil. Estas credenciales deben configurarse en el panel de Supabase/Google, no en el código. En **Authentication → Users**, crea/invita al propietario y asigna solo a esa cuenta el rol `admin` en `app_metadata` desde SQL Editor (sustituye el correo):
+5. Ejecuta `supabase-delivery-roles.sql` después de `supabase-orders.sql`. Añade la asignación de repartidores, políticas RLS para cada rol y funciones seguras de aprobación de pagos, avance de pedidos y finalización por QR. Vuelve a ejecutar este archivo si actualizas la migración; es idempotente.
+6. En **Authentication → Settings**, permite el registro de clientes. Si está activada la confirmación por correo, cada cliente deberá validar su dirección antes de iniciar sesión. Para habilitar **Continuar con Google**, crea credenciales OAuth de tipo aplicación web en Google Cloud Console y agrega `https://fregeynuqwlwsyaslgor.supabase.co/auth/v1/callback` como URI de redirección autorizada. Confirma que corresponde al callback mostrado en **Authentication → Providers → Google**. Activa Google en Supabase con el Client ID y Client Secret, establece `https://hipermercadokristal.github.io/` como **Site URL** y añádelo a **Authentication → URL Configuration → Redirect URLs**. El callback OAuth de la tienda regresa a la raíz para evitar el 404 de rutas profundas en GitHub Pages; después de que Supabase confirma la sesión, la app abre Perfil. Estas credenciales deben configurarse en el panel de Supabase/Google, no en el código. En **Authentication → Users**, crea/invita al propietario y asigna su rol `admin` en `app_metadata` desde SQL Editor (sustituye el correo):
 
    ```sql
    update auth.users
@@ -24,7 +25,15 @@ La instalación requiere que la tienda esté publicada por HTTPS. La app conserv
    where email = 'propietario@ejemplo.com';
    ```
 
-   Cierra y vuelve a iniciar sesión después de asignar el rol para renovar el token. Para crear una cuenta separada de repartidor, crea/invita primero su usuario y asigna el rol `courier` (no `admin`) sustituyendo el correo:
+   Cierra y vuelve a iniciar sesión después de asignar el rol para renovar el token. Invita a cada cajero/operador y asígnale el rol `operator` (no `admin`):
+
+   ```sql
+   update auth.users
+   set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"operator"}'::jsonb
+   where email = 'cajero@ejemplo.com';
+   ```
+
+   Crea/invita también una cuenta separada para cada repartidor y asígnale el rol `courier`:
 
    ```sql
    update auth.users
@@ -32,12 +41,14 @@ La instalación requiere que la tienda esté publicada por HTTPS. La app conserv
    where email = 'repartidor@ejemplo.com';
    ```
 
-   El repartidor solo puede confirmar entregas mediante un QR válido; no recibe acceso al inventario ni a la bandeja de caja. El rol de caja para tickets de retiro sigue siendo `admin`. El registro público no permite asignar o cambiar roles. Google proporciona nombre y correo; el cliente debe completar y guardar su teléfono en **Perfil** para hacer pedidos.
-6. Abre `/admin/` para administrar el inventario y la bandeja de pedidos. Los clientes crean su cuenta desde **Perfil**; sus perfiles y pedidos quedan aislados por RLS. Desde la bandeja, caja abre el comprobante privado, verifica el abono en la cuenta bancaria y luego aprueba o rechaza el pago. También actualiza el estado de preparación/entrega y puede preparar manualmente un aviso por WhatsApp; no hay aprobación bancaria ni envío automático por API.
+   Para actualizar cada rol desde SQL, usa el correo correspondiente (no asignes `admin` a cuentas de clientes o repartidores). El registro público no permite asignar o cambiar roles. Google proporciona nombre y correo; el cliente debe completar y guardar su teléfono en **Perfil** para hacer pedidos.
+7. El propietario administra el inventario en `/admin/`; las cuentas `operator` entran al mismo URL y solo ven la bandeja de caja. La caja verifica en el banco las referencias o comprobantes de Pago Móvil antes de aprobar/rechazar, confirma los pagos recibidos y prepara pedidos. No hay una pasarela bancaria automática conectada; el estado verde `Pagado` aparece cuando una cuenta autorizada lo confirma. La asignación a delivery está disponible cuando el pedido está listo y el pago está autorizado.
 
-El catálogo carga más productos automáticamente al desplazarse, y las franjas de destacados/fotos se recorren con gesto táctil. El checkout admite retiro, delivery, Pago Móvil, Zelle y efectivo/POS. Pago Móvil abre una hoja con los datos receptores y accesos para copiarlos. El cliente elige **una sola** evidencia: referencia bancaria de 4 a 20 dígitos o foto/PDF privado del comprobante; el SQL permite ambas opciones nuevas y conserva pedidos antiguos que ya tuvieran ambos datos. Caja confirma manualmente en `/admin/`. **“Ya pagué · consultar estado” consulta el estado de la tienda, no consulta al banco.** Para Zelle, caja proporciona las instrucciones. El recibo confirma el registro del pedido, pero no es factura fiscal ni prueba de pago; nunca marques un Pago Móvil como verificado solo por la referencia o imagen.
+Los pedidos de **retiro + efectivo/POS** muestran un ticket QR temporal de 24 horas que caja valida desde `/admin/`. En pedidos delivery, caja asigna un repartidor activo desde la bandeja; esa acción cambia el estado a **En camino**. Entonces el cliente ve un QR temporal en **Mis pedidos**. El repartidor inicia sesión en `/delivery/`, ve únicamente los pedidos asignados a su cuenta y usa **Escanear QR de entrega** para abrir la cámara. Supabase verifica rol, asignación, estado y vigencia del token y lo consume al marcar el pedido como entregado. El identificador de pedido no se usa como credencial QR. No compartas ni fotografíes esos códigos.
 
-Los pedidos de **retiro + efectivo/POS** muestran un ticket QR temporal de 24 horas; caja lo abre con la cámara del teléfono o introduce su token en `/admin/`, revisa los artículos y registra el cobro desde la bandeja. En los pedidos delivery, cuando caja cambia el pedido a **En camino**, el cliente verá un QR de confirmación en **Mis pedidos**. El repartidor debe iniciar sesión en `/admin/` con su cuenta `courier` y escanear el QR con la cámara nativa del teléfono; el enlace se valida mediante una función protegida de Supabase y el código se consume al marcar la entrega. No compartas ni fotografíes esos códigos: son tickets de uso temporal.
+El catálogo del cliente se sirve desde la raíz (`/`) para conservar las rutas existentes de GitHub Pages; su lógica de pedidos está separada en `client/`. Caja/administración y reparto tienen vistas independientes en `/admin/` y `/delivery/`.
+
+La selección **Lo Más Destacado** se consulta del catálogo de Supabase y funciona como carrusel con avance automático, controles, desplazamiento táctil y pausa al interactuar. Respeta la preferencia de movimiento reducido del dispositivo.
 
 Las rutas `/admin/`, `/perfil` y `/pedidos` siguen el enrutamiento de raíz existente de la tienda; la publicación debe servir el sitio desde la raíz del dominio configurado.
 

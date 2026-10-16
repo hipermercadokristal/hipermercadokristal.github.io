@@ -6,11 +6,11 @@
     <meta name="theme-color" content="#0f3822" />
     <title>Administración | Hipermercado Kristal</title>
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="admin.css?v=store-orders-20260612" />
+    <link rel="stylesheet" href="admin.css?v=delivery-roles-20261016" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
-    <script src="admin.js?v=store-orders-20260612" defer></script>
+    <script src="admin.js?v=delivery-roles-20261016" defer></script>
   </head>
   <body>
     <main class="admin-shell">
@@ -19,7 +19,7 @@
         <img src="../assets/kristal-logo.png" alt="Hipermercado Kristal" />
         <p class="eyebrow">ACCESO PRIVADO</p>
         <h1 id="login-heading">Administración</h1>
-        <p class="intro">Inicia sesión para gestionar el inventario de la tienda.</p>
+        <p class="intro">El acceso a inventario, caja y pedidos depende del rol seguro asignado a tu cuenta.</p>
         <form id="login-form">
           <label for="login-email">Correo electrónico</label>
           <input id="login-email" name="email" type="email" autocomplete="username" required />
@@ -35,7 +35,7 @@
           <div>
             <p class="eyebrow">HIPERMERCADO KRISTAL</p>
             <h1 id="dashboard-heading">Inventario de productos</h1>
-            <p class="intro">Los cambios se publican en la tienda al guardarlos.</p>
+            <p class="intro">Los permisos y acciones disponibles dependen del rol de tu cuenta.</p>
           </div>
           <button class="secondary-button" id="sign-out-button" type="button">Cerrar sesión</button>
         </header>
@@ -45,12 +45,11 @@
           <div class="panel-heading">
             <div><p class="eyebrow">TICKETS Y ENTREGAS</p><h2 id="staff-scan-heading">Validar código QR</h2></div>
           </div>
-          <p class="intro">La cámara del teléfono puede abrir el enlace del QR. También puedes pegar aquí el código cuando una app de escaneo lo entregue como texto.</p>
+          <p class="intro">Valida aquí tickets de retiro en caja. La confirmación de entregas se hace desde el módulo de reparto.</p>
           <form id="staff-scan-form">
             <label for="staff-scan-purpose">Tipo de código</label>
             <select id="staff-scan-purpose" name="purpose">
               <option value="pickup">Ticket de retiro en caja</option>
-              <option value="delivery">Confirmación de entrega</option>
             </select>
             <label for="staff-scan-token">Código del pedido</label>
             <input id="staff-scan-token" name="token" autocomplete="off" required />

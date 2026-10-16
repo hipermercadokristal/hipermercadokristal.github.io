@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f3822" />
+    <meta name="description" content="Módulo privado de entregas para repartidores de Hipermercado Kristal." />
+    <title>Reparto | Hipermercado Kristal</title>
+    <link rel="icon" type="image/png" href="/assets/kristal-favicon.png" />
+    <link rel="stylesheet" href="/delivery/delivery.css?v=delivery-roles-v1" />
+    <script src="/supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="/supabase-client.js"></script>
+    <script src="/delivery/delivery.js?v=delivery-roles-v1" defer></script>
+  </head>
+  <body>
+    <main class="delivery-shell">
+      <header class="delivery-header">
+        <a href="/" aria-label="Hipermercado Kristal, inicio"><img src="/assets/app-icons/icon-192.png" alt="" /><span><strong>Kristal Reparto</strong><small>Entregas asignadas</small></span></a>
+        <button id="delivery-sign-out" type="button" hidden>Cerrar sesión</button>
+      </header>
+
+      <section class="delivery-auth panel" id="delivery-auth">
+        <p class="eyebrow">ACCESO DE PERSONAL</p>
+        <h1>Iniciar sesión</h1>
+        <p>Usa la cuenta de repartidor que te asignó la tienda.</p>
+        <form id="delivery-login-form">
+          <label>Correo electrónico<input name="email" type="email" autocomplete="username" required /></label>
+          <label>Contraseña<input name="password" type="password" autocomplete="current-password" required /></label>
+          <button class="primary-button" type="submit">Entrar a reparto</button>
+        </form>
+        <p class="status" id="delivery-auth-status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="delivery-dashboard" id="delivery-dashboard" hidden>
+        <div class="dashboard-heading">
+          <div><p class="eyebrow">RUTA DE HOY</p><h1>Mis entregas</h1><p>Solo aparecen los pedidos asignados a tu cuenta.</p></div>
+          <button class="primary-button scan-launch" id="delivery-scan-open" type="button">Escanear QR de entrega</button>
+        </div>
+        <section class="scanner panel" id="delivery-scanner" hidden aria-label="Escáner de entrega">
+          <div class="scanner-heading"><h2>Escanear QR del cliente</h2><button id="delivery-scan-close" type="button" aria-label="Cerrar cámara">Cerrar</button></div>
+          <p>Apunta la cámara al código QR que el cliente muestra en “Mis pedidos”.</p>
+          <video id="delivery-camera" playsinline muted></video>
+          <p class="status" id="delivery-scan-status" role="status" aria-live="polite"></p>
+        </section>
+        <p class="status" id="delivery-orders-status" role="status" aria-live="polite"></p>
+        <section class="delivery-order-list" id="delivery-order-list" aria-live="polite"></section>
+      </section>
+    </main>
+  </body>
+</html>
