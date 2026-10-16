@@ -13,6 +13,7 @@
   const exchangeRateUrl = "https://ve.dolarapi.com/v1/dolares/oficial";
   const exchangeRateStorageKey = "restaurant-kristal-bcv-rate";
   const pendingCheckoutStorageKey = "kristal-pending-checkout-v1";
+  const oauthReturnStorageKey = "kristal-oauth-return-to-profile";
   const paymentProofMaxBytes = 5 * 1024 * 1024;
   const paymentProofTypes = new Set(["image/jpeg", "image/png", "image/webp", "application/pdf"]);
   const orderStatusLabels = {
@@ -160,6 +161,17 @@
   function setAuthenticatedUser(user) {
     if (currentUser?.id !== user?.id) ordersRequest += 1;
     currentUser = user;
+    if (user) {
+      try {
+        if (sessionStorage.getItem(oauthReturnStorageKey) === "1") {
+          sessionStorage.removeItem(oauthReturnStorageKey);
+          document.dispatchEvent(new CustomEvent("kristal:navigate", { detail: { path: "/perfil" } }));
+        }
+      } catch (error) {
+        console.error("No se pudo completar la navegación después del acceso con Google.", error);
+        setStatus("#customer-auth-status", "Iniciaste sesión, pero no se pudo abrir Perfil. Usa la navegación de la app.", true);
+      }
+    }
     customerAuthCard.hidden = Boolean(user);
     profileForm.hidden = !user;
     if (!user) {
@@ -657,14 +669,20 @@
     button.disabled = true;
     setStatus("#customer-auth-status", "Conectando con Google…");
     try {
+      sessionStorage.setItem(oauthReturnStorageKey, "1");
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/perfil`,
+          redirectTo: `${window.location.origin}/`,
         },
       });
       if (error) throw error;
     } catch (error) {
+      try {
+        sessionStorage.removeItem(oauthReturnStorageKey);
+      } catch (storageError) {
+        console.error("No se pudo limpiar el retorno pendiente de Google.", storageError);
+      }
       console.error("No se pudo iniciar el acceso con Google.", error);
       setStatus("#customer-auth-status", error.message || "No se pudo iniciar el acceso con Google.", true);
       button.disabled = false;
