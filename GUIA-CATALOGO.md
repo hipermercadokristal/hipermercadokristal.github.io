@@ -6,7 +6,7 @@ El sitio consulta los productos en Supabase y por eso debe abrirse desde un serv
 
 ## Instalar la tienda como app
 
-La tienda se puede instalar en el teléfono o computadora desde el botón **Instalar app** de la franja superior. En Android y navegadores compatibles, el botón abre la confirmación de instalación; en iPhone/iPad, usa **Compartir → Añadir a pantalla de inicio** desde Safari. La app se abre en una ventana independiente con el nombre y el logo de Hipermercado Kristal. También puede instalarse desde el menú del navegador.
+En teléfonos, el botón **Instalar App de Hipermercado Kristal** aparece encima de la navegación inferior; en computadora está disponible en la franja superior. En Android y navegadores compatibles, al tocarlo se abre la confirmación nativa de instalación. Safari en iPhone/iPad no ofrece el evento `beforeinstallprompt`, por lo que muestra las instrucciones para **Compartir → Añadir a pantalla de inicio**. La app se abre en una ventana independiente con el nombre y el logo de Hipermercado Kristal.
 
 La instalación requiere que la tienda esté publicada por HTTPS. La app conserva la estructura de la tienda para abrirla sin conexión, pero consultar el catálogo, iniciar sesión, registrar pedidos, adjuntar comprobantes y recibir actualizaciones requiere Internet.
 

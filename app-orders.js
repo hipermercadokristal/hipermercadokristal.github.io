@@ -673,6 +673,8 @@
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
+          // The Google OAuth provider redirects to Supabase's /auth/v1/callback; redirectTo is the app's post-login URL.
+          // Keep the app destination at the root because GitHub Pages does not serve arbitrary deep routes directly.
           redirectTo: `${window.location.origin}/`,
         },
       });

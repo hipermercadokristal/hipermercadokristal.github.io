@@ -1,9 +1,22 @@
 const installAppButtons = [...document.querySelectorAll("[data-install-app]")];
+const mobileInstallBanner = document.querySelector("#mobile-install-banner");
+const mobileViewport = window.matchMedia("(max-width: 767px)");
 let deferredInstallPrompt = null;
+
+function isAppInstalled() {
+  return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+}
+
+function updateMobileInstallBanner() {
+  const visible = mobileViewport.matches && !isAppInstalled();
+  mobileInstallBanner.hidden = !visible;
+  document.body.classList.toggle("install-banner-visible", visible);
+}
 
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
+  updateMobileInstallBanner();
 });
 
 async function installApp() {
@@ -46,14 +59,18 @@ window.addEventListener("appinstalled", () => {
   installAppButtons.forEach((button) => {
     button.hidden = true;
   });
+  updateMobileInstallBanner();
   showToast("Hipermercado Kristal quedó instalada en tu dispositivo.");
 });
 
-if (window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true) {
+if (isAppInstalled()) {
   installAppButtons.forEach((button) => {
     button.hidden = true;
   });
 }
+
+updateMobileInstallBanner();
+window.addEventListener("resize", updateMobileInstallBanner);
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
