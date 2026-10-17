@@ -118,6 +118,7 @@
     if (!a || !b) return 0;
     if (a === b) return 1;
     if (Math.abs(a.length - b.length) > 2) return 0;
+    let twoRowsBack = null;
     let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
     for (let i = 1; i <= a.length; i += 1) {
       const current = [i];
@@ -127,7 +128,13 @@
           previous[j] + 1,
           previous[j - 1] + Number(a[i - 1] !== b[j - 1]),
         );
+        if (twoRowsBack && i > 1 && j > 1
+          && a[i - 1] === b[j - 2]
+          && a[i - 2] === b[j - 1]) {
+          current[j] = Math.min(current[j], twoRowsBack[j - 2] + 1);
+        }
       }
+      twoRowsBack = previous;
       previous = current;
     }
     return 1 - previous[b.length] / Math.max(a.length, b.length);
@@ -355,7 +362,11 @@
       const existingByBarcode = new Map();
       const existingByIdentity = new Map();
       const existingByFamily = new Map();
+      const existingByCategory = new Map();
       existingProducts.forEach((product) => {
+        const categoryProducts = existingByCategory.get(product.categoria_id) || [];
+        categoryProducts.push(product);
+        existingByCategory.set(product.categoria_id, categoryProducts);
         if (product.codigo_barras) existingByBarcode.set(product.codigo_barras, product);
         const identity = getProductIdentity(product.nombre, product.presentacion);
         if (identity) {
@@ -378,10 +389,31 @@
       preparedRows.forEach((row, index) => {
         const identity = getProductIdentity(row.name, row.presentation);
         const categoryId = categoryIdByDepartment.get(row.departmentKey);
+        const categoryProducts = existingByCategory.get(categoryId) || [];
         const familyIdentity = getProductFamilyIdentity(row.name);
         const familyMatches = existingByFamily.get(familyIdentity) || [];
-        const imageSources = [...familyMatches].sort((left, right) => preferExistingProduct(left, right, categoryId));
-        imageSourceByRow[index] = imageSources.find((product) => !isPlaceholder(product)) || null;
+        const findImageSources = (products) => products
+          .filter((product) => !isPlaceholder(product))
+          .map((product) => ({
+            product,
+            similarity: getNameSimilarity(getNameOnly(product.nombre), row.name),
+            sameFamily: Boolean(familyIdentity && getProductFamilyIdentity(product.nombre) === familyIdentity),
+          }))
+          .filter(({ similarity, sameFamily }) => sameFamily || similarity >= 0.92);
+        const categoryImageSources = findImageSources(categoryProducts);
+        const imageSources = (categoryImageSources.length
+          ? categoryImageSources
+          : findImageSources(existingProducts))
+          .sort((left, right) => Number(right.sameFamily) - Number(left.sameFamily)
+            || right.similarity - left.similarity
+            || preferExistingProduct(left.product, right.product, categoryId));
+        const bestImage = imageSources[0];
+        const imageIsUnambiguous = bestImage && (
+          imageSources.length === 1
+          || bestImage.sameFamily
+          || bestImage.similarity - imageSources[1].similarity >= 0.08
+        );
+        imageSourceByRow[index] = bestImage && imageIsUnambiguous ? bestImage.product : null;
         const exactMatches = (existingByIdentity.get(identity) || [])
           .filter((product) => !usedProductIds.has(product.id) && product.categoria_id === categoryId)
           .sort((left, right) => preferExistingProduct(left, right, categoryId));
@@ -390,9 +422,8 @@
             && product.categoria_id === categoryId
             && isSamePresentation(product, row))
           .sort((left, right) => preferExistingProduct(left, right, categoryId));
-        const fuzzyMatches = existingProducts
+        const fuzzyMatches = categoryProducts
           .filter((product) => !usedProductIds.has(product.id)
-            && product.categoria_id === categoryId
             && isSamePresentation(product, row))
           .map((product) => ({
             product,
