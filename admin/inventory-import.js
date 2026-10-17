@@ -111,6 +111,31 @@
       === getNormalizedPresentation(rightProduct.name, rightProduct.presentation);
   }
 
+  function getNameSimilarity(left, right) {
+    const a = normalize(left);
+    const b = normalize(right);
+    if (!a || !b) return 0;
+    if (a === b) return 1;
+    if (Math.abs(a.length - b.length) > 2) return 0;
+    let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
+    for (let i = 1; i <= a.length; i += 1) {
+      const current = [i];
+      for (let j = 1; j <= b.length; j += 1) {
+        current[j] = Math.min(
+          current[j - 1] + 1,
+          previous[j] + 1,
+          previous[j - 1] + Number(a[i - 1] !== b[j - 1]),
+        );
+      }
+      previous = current;
+    }
+    return 1 - previous[b.length] / Math.max(a.length, b.length);
+  }
+
+  function getNameOnly(name) {
+    return getNameAndPresentation(name, "").name;
+  }
+
   async function loadExistingProducts() {
     const pageSize = 1000;
     const products = [];
@@ -196,6 +221,7 @@
       }
     }
     const seenBarcodes = new Set();
+    const seenProductIdentities = new Set();
     preparedRows = inputRows.map(({ cells, rowNumber }) => {
       const barcode = String(cells[fields.barcode] ?? "").trim();
       const sourceName = String(cells[fields.name] ?? "").trim();
@@ -203,6 +229,10 @@
         ? String(cells[fields.presentation] ?? "").trim()
         : "";
       const { name, presentation } = getNameAndPresentation(sourceName, explicitPresentation);
+      const familyIdentity = getProductFamilyIdentity(name);
+      const productIdentity = familyIdentity
+        ? `${familyIdentity}|${normalize(presentation || getNameAndPresentation(name, "").presentation)}`
+        : getProductIdentity(name, presentation);
       const departmentInput = String(cells[fields.department] ?? "").trim();
       const departmentKey = normalize(departmentInput);
       const existingCategory = categoryByName.get(departmentKey);
@@ -216,6 +246,8 @@
       if (!barcode || barcode.length > 80) errors.push("código");
       else if (seenBarcodes.has(barcode)) errors.push("código duplicado");
       else seenBarcodes.add(barcode);
+      if (productIdentity && seenProductIdentities.has(productIdentity)) errors.push("producto y presentación duplicados en el archivo");
+      else if (productIdentity) seenProductIdentities.add(productIdentity);
       if (!name || name.length > 140) errors.push("descripción");
       if (!departmentKey) errors.push("departamento vacío");
       else if (!existingCategory && departmentName.length > 120) errors.push("departamento supera 120 caracteres");
@@ -330,7 +362,7 @@
 
       const matchedProducts = preparedRows.map((row) => existingByBarcode.get(row.barcode) || null);
       const usedProductIds = new Set(matchedProducts.filter(Boolean).map((product) => product.id));
-      const placeholderDuplicates = [];
+      const duplicateProducts = new Map();
       const imageSourceByRow = [];
       preparedRows.forEach((row, index) => {
         const identity = getProductIdentity(row.name, row.presentation);
@@ -345,28 +377,58 @@
         const sameVariantMatches = familyMatches
           .filter((product) => !usedProductIds.has(product.id) && isSamePresentation(product, row))
           .sort((left, right) => preferExistingProduct(left, right, categoryId));
+        const fuzzyMatches = existingProducts
+          .filter((product) => !usedProductIds.has(product.id)
+            && product.categoria_id === categoryId
+            && isSamePresentation(product, row))
+          .map((product) => ({
+            product,
+            similarity: getNameSimilarity(getNameOnly(product.nombre), row.name),
+          }))
+          .filter(({ similarity }) => similarity >= 0.92)
+          .sort((left, right) => right.similarity - left.similarity
+            || preferExistingProduct(left.product, right.product, categoryId));
         const barcodeMatch = matchedProducts[index];
-        const preferredVariant = exactMatches[0] || sameVariantMatches[0];
+        let preferredVariant = exactMatches[0] || sameVariantMatches[0] || null;
+        if (!preferredVariant && fuzzyMatches.length) {
+          const hasUnambiguousBestMatch = fuzzyMatches.length === 1
+            || fuzzyMatches[0].similarity - fuzzyMatches[1].similarity >= 0.08;
+          if (hasUnambiguousBestMatch) preferredVariant = fuzzyMatches[0].product;
+        }
         if (barcodeMatch && isPlaceholder(barcodeMatch) && preferredVariant && !isPlaceholder(preferredVariant)) {
           matchedProducts[index] = preferredVariant;
-          placeholderDuplicates.push(barcodeMatch);
-          usedProductIds.add(preferredVariant.id);
-          return;
-        }
-        if (barcodeMatch) return;
-        if (preferredVariant) {
+          duplicateProducts.set(barcodeMatch.id, barcodeMatch);
+        } else if (!barcodeMatch && preferredVariant) {
           matchedProducts[index] = preferredVariant;
-          usedProductIds.add(preferredVariant.id);
         }
+        const canonical = matchedProducts[index];
+        if (!canonical) return;
+        usedProductIds.add(canonical.id);
+        [...(existingByIdentity.get(identity) || []), ...sameVariantMatches, ...(barcodeMatch ? [barcodeMatch] : [])]
+          .forEach((product) => {
+            if (product.id !== canonical.id) duplicateProducts.set(product.id, product);
+          });
       });
 
-      if (placeholderDuplicates.length) {
-        const duplicateIds = [...new Set(placeholderDuplicates.map((product) => product.id))];
-        setStatus(`Consolidando ${duplicateIds.length} copia${duplicateIds.length === 1 ? "" : "s"} provisional${duplicateIds.length === 1 ? "" : "es"} duplicada${duplicateIds.length === 1 ? "" : "s"}…`);
+      if (duplicateProducts.size) {
+        const duplicateIds = [...duplicateProducts.keys()];
+        setStatus(`Consolidando ${duplicateIds.length} producto${duplicateIds.length === 1 ? "" : "s"} duplicado${duplicateIds.length === 1 ? "" : "s"}…`);
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        if (userError) throw userError;
+        if (!user) throw new Error("La sesión de administración expiró. Inicia sesión de nuevo para consolidar duplicados.");
+        const importedBarcodes = new Set(preparedRows.map((row) => row.barcode));
+        const duplicateUpdates = [...duplicateProducts.values()].map((product) => ({
+          ...product,
+          deleted_at: new Date().toISOString(),
+          deleted_by: user.id,
+          disponible: false,
+          es_destacado: false,
+          codigo_barras: importedBarcodes.has(product.codigo_barras) ? null : product.codigo_barras,
+          updated_at: new Date().toISOString(),
+        }));
         const { error } = await supabase
           .from("productos")
-          .update({ codigo_barras: null, disponible: false, es_destacado: false, updated_at: new Date().toISOString() })
-          .in("id", duplicateIds);
+          .upsert(duplicateUpdates, { onConflict: "id" });
         if (error) throw error;
         consolidatedDuplicateCount = duplicateIds.length;
       }
@@ -413,7 +475,7 @@
           setStatus(`Inventario actualizado: ${importedCount} de ${products.length} productos…`);
         }
       }
-      setStatus(`Importación completada: ${updatedCount} productos actualizados y ${createdCount} nuevos.${placeholderDuplicates.length ? ` Se ocultaron ${new Set(placeholderDuplicates.map((product) => product.id)).size} copias provisionales duplicadas.` : ""} Los productos sin foto quedan listos para completar desde el inventario.`, false, true);
+      setStatus(`Importación completada: ${updatedCount} productos actualizados y ${createdCount} nuevos.${consolidatedDuplicateCount ? ` Se archivaron ${consolidatedDuplicateCount} duplicados; se conservó el historial de pedidos.` : ""} Los productos sin foto quedan listos para completar desde el inventario.`, false, true);
       form.reset();
       preparedRows = [];
       previewRows.replaceChildren();
@@ -423,7 +485,7 @@
       console.error("No se pudo completar la importación del inventario.", error);
       const partialProgress = [];
       if (importedCount) partialProgress.push(`Se procesaron ${importedCount} productos`);
-      if (consolidatedDuplicateCount) partialProgress.push(`se ocultaron ${consolidatedDuplicateCount} copias provisionales duplicadas`);
+      if (consolidatedDuplicateCount) partialProgress.push(`se archivaron ${consolidatedDuplicateCount} productos duplicados`);
       setStatus(
         partialProgress.length
           ? `${partialProgress.join(" y ")} antes del error. Corrige el problema e importa nuevamente; se buscan coincidencias por código, nombre y presentación. ${error.message || ""}`

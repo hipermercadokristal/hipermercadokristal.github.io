@@ -15,7 +15,7 @@
     <script src="../assets/vendor/xlsx-0.20.3.min.js"></script>
     <script src="../admin/staff-pwa.js?v=staff-pwa-20261017" defer></script>
     <script src="../staff-collapsible.js?v=staff-collapsible-v1-20261017" defer></script>
-    <script src="../admin/inventory-import.js?v=inventory-family-images-v1-20261017" defer></script>
+    <script src="../admin/inventory-import.js?v=inventory-smart-matching-v1-20261017" defer></script>
     <script src="admin.js?v=staff-navigation-v1-20261017" defer></script>
   </head>
   <body>
@@ -162,7 +162,7 @@
           <div class="panel-heading">
             <div><p class="eyebrow">CRYSTAL SOFTWARE</p><h2 id="inventory-import-heading">Importar inventario</h2></div>
           </div>
-          <p class="intro">Carga Excel o CSV con código de barras, descripción, departamento/categoría y precios USD/VES. El stock es opcional; si falta o está vacío, no se controla. Si la descripción termina en un peso o contenido como “500g”, se guardará en Presentación. Se actualizan por código de barras o por nombre/presentación equivalentes; productos de la misma familia en otro tamaño quedan separados y reutilizan la foto disponible. Las copias provisionales anteriores se consolidan para evitar productos repetidos. Primero revisa la vista previa.</p>
+          <p class="intro">Carga Excel o CSV con código de barras, descripción, departamento/categoría y precios USD/VES. El stock es opcional; si falta o está vacío, no se controla. Si la descripción termina en un peso o contenido como “500g”, se guardará en Presentación. Se actualiza primero por código de barras y luego por nombre/presentación normalizados, con coincidencia aproximada prudente para nombres casi iguales. Las variantes de tamaño quedan separadas y reutilizan la foto disponible. Los duplicados exactos anteriores se archivan conservando el historial de pedidos. Primero revisa la vista previa.</p>
           <form id="inventory-import-form">
             <label class="field" for="inventory-import-file">Archivo de inventario
               <input id="inventory-import-file" name="file" type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required />
