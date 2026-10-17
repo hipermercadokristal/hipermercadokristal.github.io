@@ -3,6 +3,7 @@
   const authSection = document.querySelector("#delivery-auth");
   const dashboard = document.querySelector("#delivery-dashboard");
   const loginForm = document.querySelector("#delivery-login-form");
+  const googleSignInButton = document.querySelector("#delivery-google-sign-in");
   const authStatus = document.querySelector("#delivery-auth-status");
   const ordersStatus = document.querySelector("#delivery-orders-status");
   const orderList = document.querySelector("#delivery-order-list");
@@ -17,6 +18,8 @@
   let scanTimer = 0;
   let scanBusy = false;
   let scanStarted = false;
+  let qrCanvas = null;
+  let qrContext = null;
 
   function setStatus(element, message, kind = "") {
     element.textContent = message;
@@ -161,8 +164,23 @@
     if (!scanStarted) return;
     try {
       if (!scanBusy && camera.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-        const codes = await detector.detect(camera);
-        const value = codes[0]?.rawValue;
+        let value = "";
+        if (detector) {
+          const codes = await detector.detect(camera);
+          value = codes[0]?.rawValue || "";
+        }
+        if (!value && window.jsQR) {
+          if (!qrCanvas) {
+            qrCanvas = document.createElement("canvas");
+            qrContext = qrCanvas.getContext("2d", { willReadFrequently: true });
+          }
+          const scale = Math.min(1, 640 / camera.videoWidth);
+          qrCanvas.width = Math.round(camera.videoWidth * scale);
+          qrCanvas.height = Math.round(camera.videoHeight * scale);
+          qrContext.drawImage(camera, 0, 0, qrCanvas.width, qrCanvas.height);
+          const frame = qrContext.getImageData(0, 0, qrCanvas.width, qrCanvas.height);
+          value = window.jsQR(frame.data, frame.width, frame.height, { inversionAttempts: "attemptBoth" })?.data || "";
+        }
         if (value) {
           const token = tokenFromQrValue(value);
           if (!token) throw new Error("El QR no contiene un token válido.");
@@ -186,13 +204,20 @@
       scanner.hidden = false;
       return;
     }
-    if (!("BarcodeDetector" in window)) {
-      setStatus(scanStatus, "Este navegador no tiene lector QR compatible. Actualiza Chrome en el teléfono para habilitar el escáner.", "error");
+    if (!("BarcodeDetector" in window) && !window.jsQR) {
+      setStatus(scanStatus, "No se pudo cargar el lector QR. Comprueba tu conexión e inténtalo de nuevo.", "error");
       scanner.hidden = false;
       return;
     }
     try {
-      const detector = new BarcodeDetector({ formats: ["qr_code"] });
+      let detector = null;
+      if ("BarcodeDetector" in window) {
+        try {
+          detector = new BarcodeDetector({ formats: ["qr_code"] });
+        } catch (error) {
+          console.warn("Se usará el lector QR compatible como alternativa.", error);
+        }
+      }
       scanner.hidden = false;
       setStatus(scanStatus, "Solicitando acceso a la cámara…");
       mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -202,7 +227,7 @@
       camera.srcObject = mediaStream;
       await camera.play();
       scanStarted = true;
-      setStatus(scanStatus, "Apunta la cámara al QR de entrega del cliente.");
+      setStatus(scanStatus, "Apunta la cámara al QR de entrega del cliente. Mantén el código centrado y bien iluminado.");
       detectQr(detector);
     } catch (error) {
       console.error("No se pudo iniciar el escáner de entrega.", error);
@@ -217,6 +242,7 @@
     if (role !== "courier") {
       dashboard.hidden = true;
       authSection.hidden = false;
+      await supabase.auth.signOut();
       setStatus(authStatus, "Esta cuenta no tiene rol de repartidor. Solicita a la tienda que lo asigne.", "error");
       return;
     }
@@ -277,6 +303,27 @@
       setStatus(authStatus, error.message || "No se pudo iniciar sesión.", "error");
     } finally {
       button.disabled = false;
+    }
+  });
+
+  googleSignInButton.addEventListener("click", async () => {
+    if (!supabase) {
+      setStatus(authStatus, "No se pudo conectar con Supabase. Inténtalo de nuevo más tarde.", "error");
+      return;
+    }
+    googleSignInButton.disabled = true;
+    setStatus(authStatus, "Conectando con Google…");
+    try {
+      const redirectTo = new URL(window.location.pathname, window.location.origin).toString();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo },
+      });
+      if (error) throw error;
+    } catch (error) {
+      console.error("No se pudo iniciar sesión con Google en reparto.", error);
+      setStatus(authStatus, error.message || "No se pudo iniciar sesión con Google.", "error");
+      googleSignInButton.disabled = false;
     }
   });
 

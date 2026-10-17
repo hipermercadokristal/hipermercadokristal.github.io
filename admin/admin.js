@@ -717,6 +717,29 @@ loginForm.addEventListener("submit", async (event) => {
   }
 });
 
+document.querySelector("#google-sign-in-button")?.addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  if (!supabaseClient) {
+    setMessage(authStatus, "Configura Supabase antes de iniciar sesión.");
+    return;
+  }
+
+  button.disabled = true;
+  setMessage(authStatus, "Conectando con Google…");
+  try {
+    const redirectTo = new URL(window.location.pathname, window.location.origin).toString();
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo },
+    });
+    if (error) throw error;
+  } catch (error) {
+    console.error("No se pudo iniciar sesión con Google.", error);
+    setMessage(authStatus, error.message || "No se pudo iniciar sesión con Google.");
+    button.disabled = false;
+  }
+});
+
 productForm?.addEventListener("submit", saveProduct);
 document.querySelector("#staff-scan-form")?.addEventListener("submit", (event) => {
   event.preventDefault();

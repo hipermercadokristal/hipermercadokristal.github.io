@@ -30,6 +30,7 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .primary-button:hover { background: #0f4324; }
 .secondary-button { border: 1px solid #dce6dd; background: #fff; color: #31543b; }
 .auth-card .primary-button { width: 100%; margin-top: 4px; }
+.auth-card .google-sign-in-button { width: 100%; margin-top: 12px; }
 .status-message { min-height: 19px; margin: 12px 0 0; color: #a1382c; font-size: 13px; line-height: 1.5; }
 .status-message.success { color: #246738; }
 .status-message:empty { display: none; }

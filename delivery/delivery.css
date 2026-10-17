@@ -23,6 +23,7 @@ h2 { margin-bottom: 0; color: var(--forest); font-size: 19px; }
 .delivery-auth input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #dce5de; border-radius: 9px; background: #fff; }
 .primary-button { min-height: 46px; padding: 0 16px; border: 0; border-radius: 9px; background: var(--forest); color: #fff; font-weight: 800; }
 .primary-button:disabled { opacity: .65; cursor: wait; }
+.google-sign-in-button { width: 100%; margin-top: 12px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--forest); font-weight: 800; }
 .status { min-height: 18px; margin: 10px 0 0; color: #53635a; font-size: 12px; }
 .status.error { color: #a13d34; }
 .status.success { color: #176332; }

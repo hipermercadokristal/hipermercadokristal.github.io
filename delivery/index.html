@@ -7,11 +7,12 @@
     <meta name="description" content="Módulo privado de entregas para repartidores de Hipermercado Kristal." />
     <title>Reparto | Hipermercado Kristal</title>
     <link rel="icon" type="image/png" href="/assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="/delivery/delivery.css?v=delivery-roles-v1" />
+    <link rel="stylesheet" href="/delivery/delivery.css?v=delivery-google-qr-20261017" />
     <script src="/supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/supabase-client.js"></script>
-    <script src="/delivery/delivery.js?v=delivery-roles-v1" defer></script>
+    <script src="/assets/vendor/jsqr-1.4.0.min.js"></script>
+    <script src="/delivery/delivery.js?v=delivery-google-qr-20261017" defer></script>
   </head>
   <body>
     <main class="delivery-shell">
@@ -29,6 +30,7 @@
           <label>Contraseña<input name="password" type="password" autocomplete="current-password" required /></label>
           <button class="primary-button" type="submit">Entrar a reparto</button>
         </form>
+        <button class="secondary-button google-sign-in-button" id="delivery-google-sign-in" type="button">Continuar con Google</button>
         <p class="status" id="delivery-auth-status" role="status" aria-live="polite"></p>
       </section>
 
