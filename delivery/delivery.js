@@ -8,6 +8,8 @@
   const scanner = document.querySelector("#delivery-scanner");
   const availabilitySelect = document.querySelector("#delivery-availability");
   const availabilityStatus = document.querySelector("#delivery-availability-status");
+  const deliveryPages = [...document.querySelectorAll("[data-delivery-screen]")];
+  const pageLinks = [...document.querySelectorAll("[data-delivery-page]")];
   const camera = document.querySelector("#delivery-camera");
   const scanStatus = document.querySelector("#delivery-qr-status");
   const manualCodeStatus = document.querySelector("#delivery-manual-code-status");
@@ -18,6 +20,7 @@
     on_route: "En ruta",
     offline: "Fuera de servicio",
   };
+  const deliveryPageNames = new Set(["ruta", "escanear", "estado"]);
   let currentUser = null;
   let adminPreview = false;
   let ordersChannel = null;
@@ -27,6 +30,38 @@
   let scanStarted = false;
   let qrCanvas = null;
   let qrContext = null;
+
+  function showDeliveryPage(pageName, { updateHistory = false } = {}) {
+    const page = deliveryPageNames.has(pageName) ? pageName : "ruta";
+    if (adminPreview && page !== "ruta") {
+      showDeliveryPage("ruta", { updateHistory });
+      return;
+    }
+    deliveryPages.forEach((section) => {
+      section.hidden = section.dataset.deliveryScreen !== page;
+    });
+    pageLinks.forEach((link) => {
+      if (adminPreview && link.dataset.deliveryPage !== "ruta") {
+        link.hidden = true;
+        return;
+      }
+      link.hidden = false;
+      if (link.dataset.deliveryPage === page) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    });
+    document.title = `${page === "ruta" ? "Hoja de ruta" : page === "escanear" ? "Confirmar entrega" : "Mi estado"} | Kristal Reparto`;
+    if (updateHistory && location.hash !== `#${page}`) {
+      history.pushState({ deliveryPage: page }, "", `#${page}`);
+    }
+    if (page !== "escanear" && scanStarted) stopScanner();
+    window.scrollTo(0, 0);
+  }
+
+  function routeFromLocation() {
+    const hash = location.hash.slice(1);
+    if (hash.startsWith("scan=delivery&token=")) return "escanear";
+    showDeliveryPage(hash, { updateHistory: !deliveryPageNames.has(hash) });
+  }
 
   function setStatus(element, message, kind = "") {
     element.textContent = message;
@@ -362,8 +397,9 @@
       document.querySelector("#delivery-status-panel").hidden = true;
       document.querySelector("#delivery-status-link").hidden = true;
       document.querySelector("#delivery-scan-open").hidden = true;
+      document.querySelector("#delivery-camera-launch").hidden = true;
       document.querySelector("#delivery-manual-code-form").hidden = true;
-      document.querySelector("#delivery-orders h1").textContent = "Vista previa de Delivery";
+      document.querySelector("#delivery-orders-heading").textContent = "Vista previa de Delivery";
       document.querySelector("#delivery-orders-description").textContent = "Vista de solo lectura para Administración. La confirmación y disponibilidad son exclusivas del repartidor asignado.";
       document.querySelector(".delivery-nav").style.gridTemplateColumns = "1fr";
     }
@@ -378,8 +414,11 @@
     const params = new URLSearchParams(location.hash.slice(1));
     if (!adminPreview && params.get("scan") === "delivery" && params.has("token")) {
       history.replaceState(history.state, "", `${location.pathname}${location.search}`);
+      showDeliveryPage("escanear");
       scanner.hidden = false;
       await completeDelivery(params.get("token"));
+    } else {
+      routeFromLocation();
     }
   }
 
@@ -408,7 +447,13 @@
     });
   }
 
-  document.querySelector("#delivery-scan-open").addEventListener("click", openScanner);
+  pageLinks.forEach((link) => link.addEventListener("click", (event) => {
+    event.preventDefault();
+    showDeliveryPage(link.dataset.deliveryPage, { updateHistory: true });
+  }));
+  window.addEventListener("hashchange", routeFromLocation);
+  window.addEventListener("popstate", routeFromLocation);
+  document.querySelector("#delivery-camera-launch").addEventListener("click", openScanner);
   document.querySelector("#delivery-scan-close").addEventListener("click", stopScanner);
   document.querySelector("#delivery-manual-code-form").addEventListener("submit", completeDeliveryByCode);
   document.querySelector("#delivery-code-input").addEventListener("input", (event) => {

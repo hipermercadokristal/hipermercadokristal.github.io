@@ -8,14 +8,14 @@
     <title>Reparto | Hipermercado Kristal</title>
     <link rel="manifest" href="/delivery/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="/assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="/delivery/delivery.css?v=staff-navigation-v1-20261017" />
+    <link rel="stylesheet" href="/delivery/delivery.css?v=delivery-pages-v1-20261017" />
     <script src="/supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/supabase-client.js"></script>
     <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/assets/vendor/jsqr-1.4.0.min.js"></script>
     <script src="/staff-collapsible.js?v=staff-collapsible-v1-20261017" defer></script>
-    <script src="/delivery/delivery.js?v=staff-navigation-v1-20261017" defer></script>
+    <script src="/delivery/delivery.js?v=delivery-pages-v1-20261017" defer></script>
     <script src="/delivery/delivery-pwa.js?v=delivery-install-platforms-20261017" defer></script>
   </head>
   <body>
@@ -38,41 +38,68 @@
 
       <section class="delivery-dashboard" id="delivery-dashboard" hidden>
         <nav class="delivery-nav" aria-label="Navegación de reparto">
-          <a href="#delivery-orders">Hoja de ruta</a>
-          <button class="delivery-nav-scan" id="delivery-scan-open" type="button">Escanear QR</button>
-          <a id="delivery-status-link" href="#delivery-status-panel">Mi estado</a>
+          <a href="#ruta" data-delivery-page="ruta" aria-current="page">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6.5 8.5 4l7 3 5.5-2.5v13L15.5 20l-7-3L3 19.5zM8.5 4v13m7-10v13" /></svg>
+            <span>Hoja de ruta</span>
+          </a>
+          <a href="#escanear" data-delivery-page="escanear" id="delivery-scan-open">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5a1 1 0 0 1 1-1h3m8 0h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3m-8 0H5a1 1 0 0 1-1-1v-3M8 8h8v8H8z" /></svg>
+            <span>Escanear QR</span>
+          </a>
+          <a href="#estado" data-delivery-page="estado" id="delivery-status-link">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
+            <span>Mi estado</span>
+          </a>
         </nav>
-        <section class="delivery-status-panel panel" id="delivery-status-panel" aria-labelledby="delivery-status-heading">
-          <div><p class="eyebrow">PERFIL DE REPARTO</p><h2 id="delivery-status-heading">Mi disponibilidad</h2></div>
-          <label for="delivery-availability">Estado
-            <select id="delivery-availability">
-              <option value="available">Disponible</option>
-              <option value="on_route">En ruta</option>
-              <option value="offline">Fuera de servicio</option>
-            </select>
-          </label>
-          <p class="status" id="delivery-availability-status" role="status" aria-live="polite"></p>
+        <section class="delivery-page" id="delivery-page-ruta" data-delivery-screen="ruta" aria-labelledby="delivery-orders-heading">
+          <header class="delivery-page-heading">
+            <p class="eyebrow">RUTA DE HOY</p>
+            <h1 id="delivery-orders-heading">Mis entregas</h1>
+            <p id="delivery-orders-description">Solo aparecen los pedidos asignados a tu cuenta.</p>
+          </header>
+          <p class="status" id="delivery-orders-status" role="status" aria-live="polite"></p>
+          <section class="delivery-order-list" id="delivery-order-list" aria-label="Pedidos asignados" aria-live="polite"></section>
         </section>
-        <div class="dashboard-heading" id="delivery-orders">
-          <div><p class="eyebrow">RUTA DE HOY</p><h1>Mis entregas</h1><p id="delivery-orders-description">Solo aparecen los pedidos asignados a tu cuenta.</p></div>
-        </div>
-        <section class="scanner panel" id="delivery-scanner" hidden aria-label="Escáner de entrega">
-          <div class="scanner-heading"><h2>Escanear QR del cliente</h2><button id="delivery-scan-close" type="button" aria-label="Cerrar cámara">Cerrar</button></div>
-          <p>Apunta la cámara al código QR que el cliente muestra en “Mis pedidos”.</p>
-          <video id="delivery-camera" playsinline muted></video>
-          <p class="status" id="delivery-qr-status" role="status" aria-live="polite"></p>
+        <section class="delivery-page" id="delivery-page-escanear" data-delivery-screen="escanear" aria-labelledby="delivery-scan-heading" hidden>
+          <header class="delivery-page-heading">
+            <p class="eyebrow">CONFIRMAR ENTREGA</p>
+            <h1 id="delivery-scan-heading">Escanear QR</h1>
+            <p>Valida la entrega leyendo el QR del cliente o ingresa su código manual de 4 caracteres.</p>
+          </header>
+          <button class="primary-button delivery-camera-launch" id="delivery-camera-launch" type="button">Abrir cámara y escanear QR</button>
+          <section class="scanner panel" id="delivery-scanner" hidden aria-label="Escáner de entrega">
+            <div class="scanner-heading"><h2>Escanear QR del cliente</h2><button id="delivery-scan-close" type="button" aria-label="Cerrar cámara">Cerrar cámara</button></div>
+            <p>Apunta la cámara al código QR que el cliente muestra en “Mis pedidos”.</p>
+            <video id="delivery-camera" playsinline muted></video>
+            <p class="status" id="delivery-qr-status" role="status" aria-live="polite"></p>
+          </section>
+          <form class="delivery-manual-code panel" id="delivery-manual-code-form" aria-label="Confirmar entrega con código">
+            <div><p class="eyebrow">ALTERNATIVA AL ESCÁNER</p><h2>Ingresar código</h2><p>Si no puedes escanear, pide al cliente el código de 4 caracteres que aparece en sus pedidos.</p></div>
+            <label for="delivery-code-input">Código de entrega</label>
+            <div class="delivery-code-entry">
+              <input id="delivery-code-input" name="delivery_code" type="text" minlength="4" maxlength="4" pattern="[A-HJ-NP-Z2-9]{4}" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" aria-describedby="delivery-manual-code-status" required />
+              <button class="primary-button" type="submit">Verificar entrega</button>
+            </div>
+            <p class="status" id="delivery-manual-code-status" role="status" aria-live="polite"></p>
+          </form>
         </section>
-        <form class="delivery-manual-code panel" id="delivery-manual-code-form" aria-label="Confirmar entrega con código">
-          <div><p class="eyebrow">ALTERNATIVA AL ESCÁNER</p><h2>Confirmar con código</h2><p>Si no puedes escanear, pide al cliente el código de 4 caracteres que aparece en sus pedidos.</p></div>
-          <label for="delivery-code-input">Código de entrega</label>
-          <div class="delivery-code-entry">
-            <input id="delivery-code-input" name="delivery_code" type="text" minlength="4" maxlength="4" pattern="[A-HJ-NP-Z2-9]{4}" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" aria-describedby="delivery-manual-code-status" required />
-            <button class="primary-button" type="submit">Verificar entrega</button>
-          </div>
-          <p class="status" id="delivery-manual-code-status" role="status" aria-live="polite"></p>
-        </form>
-        <p class="status" id="delivery-orders-status" role="status" aria-live="polite"></p>
-        <section class="delivery-order-list" id="delivery-order-list" aria-label="Pedidos asignados" aria-live="polite"></section>
+        <section class="delivery-page" id="delivery-page-estado" data-delivery-screen="estado" aria-labelledby="delivery-status-heading" hidden>
+          <header class="delivery-page-heading">
+            <p class="eyebrow">PERFIL DE REPARTO</p>
+            <h1 id="delivery-status-heading">Mi disponibilidad</h1>
+            <p>Actualiza tu estado para que la tienda sepa si puedes recibir entregas.</p>
+          </header>
+          <section class="delivery-status-panel panel" id="delivery-status-panel">
+            <label for="delivery-availability">Estado de reparto
+              <select id="delivery-availability">
+                <option value="available">Disponible</option>
+                <option value="on_route">En ruta</option>
+                <option value="offline">Fuera de servicio</option>
+              </select>
+            </label>
+            <p class="status" id="delivery-availability-status" role="status" aria-live="polite"></p>
+          </section>
+        </section>
       </section>
     </main>
   </body>
