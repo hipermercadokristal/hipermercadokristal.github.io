@@ -7,14 +7,14 @@
     <title>Caja | Hipermercado Kristal</title>
     <link rel="manifest" href="/caja/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="../admin/admin.css?v=staff-navigation-v1-20261017" />
+    <link rel="stylesheet" href="../admin/admin.css?v=cashier-order-queues-v1-20261017" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
     <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="../admin/staff-pwa.js?v=staff-pwa-20261017" defer></script>
     <script src="../staff-collapsible.js?v=staff-collapsible-v1-20261017" defer></script>
-    <script src="../admin/admin.js?v=staff-navigation-v1-20261017" defer></script>
+    <script src="../admin/admin.js?v=cashier-order-queues-v1-20261017" defer></script>
   </head>
   <body>
     <main class="admin-shell" data-staff-page="cashier">
@@ -59,15 +59,34 @@
           <div id="staff-document-search-results" aria-live="polite"></div>
         </section>
 
-        <section class="panel order-inbox-panel" id="order-inbox-panel" aria-labelledby="order-inbox-heading">
+        <section class="panel order-inbox-panel cashier-order-inbox" id="order-inbox-panel" aria-labelledby="order-inbox-heading">
           <div class="panel-heading">
             <div><p class="eyebrow">CAJA</p><h2 id="order-inbox-heading">Bandeja de pedidos</h2></div>
             <button class="secondary-button" id="refresh-orders-button" type="button">Actualizar pedidos</button>
           </div>
           <p class="intro">Revisa referencias y comprobantes antes de confirmar un pago. Aquí no se administra el inventario.</p>
           <p class="status-message" id="orders-admin-status" role="status" aria-live="polite"></p>
-          <div class="admin-orders-list" id="admin-orders-list"></div>
-          <p class="empty-inventory" id="empty-orders" hidden>No hay pedidos registrados.</p>
+          <details class="staff-collapsible cashier-order-queue" data-order-queue="active">
+            <summary>Pedidos activos <span class="cashier-queue-count" id="active-orders-count">0</span></summary>
+            <div class="cashier-queue-content">
+              <div class="admin-orders-list" id="active-orders-list"></div>
+              <p class="empty-inventory" id="active-orders-empty" hidden>No hay pedidos activos.</p>
+            </div>
+          </details>
+          <details class="staff-collapsible cashier-order-queue" data-order-queue="cancelled">
+            <summary>Pedidos cancelados <span class="cashier-queue-count" id="cancelled-orders-count">0</span></summary>
+            <div class="cashier-queue-content">
+              <div class="admin-orders-list" id="cancelled-orders-list"></div>
+              <p class="empty-inventory" id="cancelled-orders-empty" hidden>No hay pedidos cancelados.</p>
+            </div>
+          </details>
+          <details class="staff-collapsible cashier-order-queue" data-order-queue="completed">
+            <summary>Pedidos completados <span class="cashier-queue-count" id="completed-orders-count">0</span></summary>
+            <div class="cashier-queue-content">
+              <div class="admin-orders-list" id="completed-orders-list"></div>
+              <p class="empty-inventory" id="completed-orders-empty" hidden>No hay pedidos completados.</p>
+            </div>
+          </details>
         </section>
       </section>
     </main>

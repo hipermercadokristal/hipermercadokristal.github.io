@@ -14,6 +14,24 @@ const cancelEditButton = document.querySelector("#cancel-edit-button");
 const adminOrdersList = document.querySelector("#admin-orders-list");
 const adminOrdersStatus = document.querySelector("#orders-admin-status");
 const emptyOrders = document.querySelector("#empty-orders");
+const cashierOrderQueues = {
+  active: {
+    list: document.querySelector("#active-orders-list"),
+    empty: document.querySelector("#active-orders-empty"),
+    count: document.querySelector("#active-orders-count"),
+  },
+  cancelled: {
+    list: document.querySelector("#cancelled-orders-list"),
+    empty: document.querySelector("#cancelled-orders-empty"),
+    count: document.querySelector("#cancelled-orders-count"),
+  },
+  completed: {
+    list: document.querySelector("#completed-orders-list"),
+    empty: document.querySelector("#completed-orders-empty"),
+    count: document.querySelector("#completed-orders-count"),
+  },
+};
+const cashierQueueLists = Object.values(cashierOrderQueues).map((queue) => queue.list).filter(Boolean);
 const staffPage = document.querySelector("[data-staff-page]")?.dataset.staffPage || "admin";
 const deletedProductRows = document.querySelector("#deleted-product-rows");
 const emptyDeletedProducts = document.querySelector("#empty-deleted-products");
@@ -376,20 +394,31 @@ function buildWhatsAppOrderLink(order, items) {
 
 async function loadAdminOrders() {
   setMessage(adminOrdersStatus, "Cargando pedidos…");
-  const { data: orders, error } = await supabaseClient
+  let ordersRequest = supabaseClient
     .from("store_orders")
     .select("id,user_id,assigned_courier_id,customer_name,customer_phone,customer_document,fulfillment,delivery_address,delivery_reference,delivery_fee_usd,delivery_latitude,delivery_longitude,payment_method,payment_bank_code,payment_reference,payment_proof_path,payment_status,order_status,total_usd,total_ves,created_at")
-    .not("order_status", "in", "(delivered,cancelled)")
     .order("created_at", { ascending: false })
-    .limit(100);
+    .limit(staffPage === "cashier" ? 300 : 100);
+  if (staffPage !== "cashier") {
+    ordersRequest = ordersRequest.not("order_status", "in", "(delivered,cancelled)");
+  }
+  const { data: orders, error } = await ordersRequest;
   if (error) throw error;
   if (!orders.length) {
-    adminOrdersList.replaceChildren();
-    emptyOrders.hidden = false;
-    setMessage(adminOrdersStatus, "No hay pedidos abiertos en la bandeja.", true);
+    if (staffPage === "cashier") {
+      for (const queue of Object.values(cashierOrderQueues)) {
+        queue.list.replaceChildren();
+        queue.count.textContent = "0";
+        queue.empty.hidden = false;
+      }
+    } else {
+      adminOrdersList.replaceChildren();
+      emptyOrders.hidden = false;
+    }
+    setMessage(adminOrdersStatus, staffPage === "cashier" ? "No hay pedidos registrados." : "No hay pedidos abiertos en la bandeja.", true);
     return;
   }
-  emptyOrders.hidden = true;
+  if (staffPage !== "cashier") emptyOrders.hidden = true;
   const orderIds = orders.map((order) => order.id);
   const { data: items, error: itemsError } = await supabaseClient
     .from("store_order_items")
@@ -417,7 +446,10 @@ async function loadAdminOrders() {
         proofLink = `<a class="order-proof-link" href="${escapeHtml(signed.signedUrl)}" target="_blank" rel="noopener noreferrer">Ver comprobante</a>`;
       }
     }
-    const paymentAction = order.payment_method === "mobile_payment" && order.payment_status === "pending_verification"
+    const isClosedOrder = ["delivered", "cancelled"].includes(order.order_status);
+    const paymentAction = isClosedOrder
+      ? ""
+      : order.payment_method === "mobile_payment" && order.payment_status === "pending_verification"
       ? `<div class="order-payment-actions"><button type="button" data-order-action="verify" data-id="${escapeHtml(order.id)}">Confirmar pago manualmente</button><button class="delete-button" type="button" data-order-action="reject" data-id="${escapeHtml(order.id)}">Rechazar pago</button></div>`
       : !["verified", "rejected"].includes(order.payment_status)
         ? `<div class="order-payment-actions"><button type="button" data-order-action="verify" data-id="${escapeHtml(order.id)}">${order.payment_method === "zelle" ? "Confirmar Zelle recibido" : "Confirmar efectivo/POS recibido"}</button></div>`
@@ -466,11 +498,27 @@ async function loadAdminOrders() {
       <div class="order-payment-state${order.payment_status === "verified" ? " verified" : ""}">${order.payment_status === "verified" ? "Pagado" : escapeHtml(paymentStatusLabels[order.payment_status] || "Estado de pago pendiente")}</div>
       ${paymentAction}
       ${assignmentControls}
-      <div class="admin-order-status-controls"><label>Estado del pedido<select data-order-status>${statusOptions}</select></label><button type="button" data-order-action="status" data-id="${escapeHtml(order.id)}">Guardar estado</button></div>
+      ${isClosedOrder ? "" : `<div class="admin-order-status-controls"><label>Estado del pedido<select data-order-status>${statusOptions}</select></label><button type="button" data-order-action="status" data-id="${escapeHtml(order.id)}">Guardar estado</button></div>`}
       <a class="order-whatsapp-link" href="${buildWhatsAppOrderLink(order, orderItems)}" target="_blank" rel="noopener noreferrer">Preparar aviso por WhatsApp</a>
     </article>`;
   }));
-  adminOrdersList.innerHTML = orderCards.join("");
+  if (staffPage === "cashier") {
+    const groupedOrders = { active: [], cancelled: [], completed: [] };
+    orders.forEach((order, index) => {
+      const queueName = order.order_status === "cancelled"
+        ? "cancelled"
+        : order.order_status === "delivered" ? "completed" : "active";
+      groupedOrders[queueName].push(orderCards[index]);
+    });
+    for (const [queueName, queue] of Object.entries(cashierOrderQueues)) {
+      const cards = groupedOrders[queueName];
+      queue.list.innerHTML = cards.join("");
+      queue.count.textContent = String(cards.length);
+      queue.empty.hidden = cards.length > 0;
+    }
+  } else {
+    adminOrdersList.innerHTML = orderCards.join("");
+  }
   setMessage(adminOrdersStatus, `${orders.length} pedidos recientes.`);
 }
 
@@ -945,6 +993,7 @@ document.querySelector("#refresh-orders-button")?.addEventListener("click", () =
   });
 });
 adminOrdersList?.addEventListener("click", handleAdminOrderAction);
+cashierQueueLists.forEach((list) => list.addEventListener("click", handleAdminOrderAction));
 document.querySelector("#sign-out-button")?.addEventListener("click", async () => {
   try {
     const { error } = await supabaseClient.auth.signOut();

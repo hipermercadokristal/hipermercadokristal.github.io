@@ -79,6 +79,9 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .staff-collapsible > summary::after { margin-left: auto; color: #315c40; content: "+"; font-size: 22px; line-height: 1; }
 .staff-collapsible[open] > summary { border-bottom: 1px solid #e6eee7; }
 .staff-collapsible[open] > summary::after { content: "−"; }
+.cashier-order-queue > summary { justify-content: flex-start; }
+.cashier-queue-count { min-width: 26px; padding: 3px 8px; border-radius: 999px; background: #eaf3ec; color: #205a34; font-size: 11px; text-align: center; }
+.cashier-queue-content { padding: 16px; }
 .staff-collapsible > .panel { margin: 0; padding: 20px; border: 0; border-radius: 0; box-shadow: none; }
 .staff-collapsible > .panel > .panel-heading > div:first-child { display: none; }
 .staff-collapsible > .sales-summary { display: grid; padding: 14px; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
