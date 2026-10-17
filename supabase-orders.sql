@@ -432,8 +432,8 @@ begin
   if auth.uid() is null then
     raise exception 'Debes iniciar sesión para abrir el ticket.';
   end if;
-  if p_purpose is null or p_purpose not in ('pickup', 'delivery') then
-    raise exception 'El tipo de código QR no es válido.';
+  if p_purpose is distinct from 'delivery' then
+    raise exception 'El código QR solo está disponible para pedidos a domicilio.';
   end if;
 
   select * into v_order
@@ -444,14 +444,6 @@ begin
     raise exception 'No se encontró el pedido.';
   end if;
 
-  if p_purpose = 'pickup' and not (
-    v_order.fulfillment = 'pickup'
-    and v_order.payment_method = 'cash_pos'
-    and v_order.payment_status = 'awaiting_in_store'
-    and v_order.order_status not in ('delivered', 'cancelled')
-  ) then
-    raise exception 'Este pedido no tiene un ticket de retiro en caja disponible.';
-  end if;
   if p_purpose = 'delivery' and not (
     v_order.fulfillment = 'delivery'
     and v_order.order_status = 'delivering'
@@ -571,10 +563,9 @@ end;
 $$;
 
 revoke all on function public.issue_store_order_qr_code(uuid, text) from public, anon;
-revoke all on function public.scan_store_pickup_ticket(text) from public, anon;
+revoke all on function public.scan_store_pickup_ticket(text) from public, anon, authenticated;
 revoke all on function public.complete_delivery_by_qr(text) from public, anon;
 grant execute on function public.issue_store_order_qr_code(uuid, text) to authenticated;
-grant execute on function public.scan_store_pickup_ticket(text) to authenticated;
 grant execute on function public.complete_delivery_by_qr(text) to authenticated;
 
 do $$

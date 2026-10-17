@@ -21,8 +21,6 @@ const emptyDeletedProducts = document.querySelector("#empty-deleted-products");
 const staffRoleForm = document.querySelector("#staff-role-form");
 const documentSearchForm = document.querySelector("#staff-document-search-form");
 const documentSearchResults = document.querySelector("#staff-document-search-results");
-const pickupScanner = document.querySelector("#staff-pickup-scanner");
-const pickupCamera = document.querySelector("#staff-pickup-camera");
 const salesSummary = document.querySelector("#sales-summary");
 const currency = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
 const bolivares = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -45,11 +43,6 @@ let missingDepartments = [];
 let deliveryCouriers = [];
 let adminOrdersChannel = null;
 let staffRole = "";
-let pickupMediaStream = null;
-let pickupScanTimer = 0;
-let pickupScanRunning = false;
-let pickupQrCanvas = null;
-let pickupQrContext = null;
 if (imageInput) imageInput.required = true;
 
 function escapeHtml(value) {
@@ -435,147 +428,6 @@ function setStaffView(role) {
   document.querySelector("#order-inbox-panel").hidden = isAdmin;
   const scanPanel = document.querySelector("#staff-scan-panel");
   if (scanPanel) scanPanel.hidden = isAdmin;
-  const scanHeading = document.querySelector("#staff-scan-heading");
-  if (scanHeading) scanHeading.textContent = "Validar ticket de retiro";
-  const scanPurpose = document.querySelector("#staff-scan-purpose");
-  if (scanPurpose) scanPurpose.value = "pickup";
-}
-
-async function processStaffScan(purpose, token) {
-  const result = document.querySelector("#staff-scan-result");
-  const status = document.querySelector("#staff-scan-status");
-  if (!["pickup", "delivery"].includes(purpose) || !token) {
-    setMessage(status, "El código QR no contiene un tipo o token válido.");
-    return;
-  }
-  if (purpose === "pickup" && staffRole !== "operator") {
-    setMessage(status, "Solo caja puede validar tickets de retiro.");
-    return;
-  }
-
-  result.replaceChildren();
-  setMessage(status, "Validando código con Supabase…");
-  try {
-    if (purpose === "delivery") {
-      const { data: orderId, error } = await supabaseClient.rpc("complete_delivery_by_qr", { p_token: token });
-      if (error) throw error;
-      setMessage(status, `Entrega confirmada. Pedido ${String(orderId).slice(0, 8).toUpperCase()} marcado como entregado.`, true);
-      if (staffRole === "admin" || staffRole === "operator") await loadAdminOrders();
-    } else {
-      const { data, error } = await supabaseClient.rpc("scan_store_pickup_ticket", { p_token: token });
-      if (error) throw error;
-      const items = Array.isArray(data.items) ? data.items : [];
-      result.innerHTML = `<article class="scanned-pickup-ticket">
-        <h3>Pedido ${escapeHtml(String(data.id).slice(0, 8).toUpperCase())}</h3>
-        <p><strong>${escapeHtml(data.customer_name)}</strong> · ${escapeHtml(data.customer_phone)}</p>
-        <ul>${items.map((item) => `<li>${escapeHtml(item.product_name)} × ${Number(item.quantity)}</li>`).join("")}</ul>
-        <p>Total: <strong>${currency.format(Number(data.total_usd))}</strong></p>
-        <p>${data.order_status === "ready"
-          ? "Confirma que recibiste el pago antes de entregar el pedido."
-          : "El pedido todavía no está listo para retirar."}</p>
-        ${data.order_status === "ready"
-          ? `<button class="primary-button" type="button" data-complete-pickup-qr="${escapeHtml(token)}">Confirmar cobro y entrega</button>`
-          : ""}
-      </article>`;
-      setMessage(status, data.order_status === "ready"
-        ? "Ticket válido. Comprueba los artículos, recibe el pago y confirma la entrega."
-        : "Ticket válido, pero el pedido aún no está listo para entregar.");
-    }
-  } catch (error) {
-    console.error("No se pudo validar el código del pedido.", error);
-    setMessage(status, error.message || "No se pudo validar el código. Revisa el estado del pedido e inténtalo de nuevo.");
-  }
-}
-
-function stopPickupScanner() {
-  pickupScanRunning = false;
-  window.clearTimeout(pickupScanTimer);
-  pickupMediaStream?.getTracks().forEach((track) => track.stop());
-  pickupMediaStream = null;
-  if (pickupCamera) pickupCamera.srcObject = null;
-  if (pickupScanner) pickupScanner.hidden = true;
-}
-
-function pickupTokenFromQrValue(rawValue) {
-  const value = String(rawValue || "").trim();
-  if (/^[a-f0-9]{64}$/i.test(value)) return value;
-  const url = new URL(value);
-  if (url.origin !== window.location.origin || !["/", "/caja/", "/cashier/"].includes(url.pathname)) {
-    throw new Error("Este QR no corresponde a un ticket de retiro de Hipermercado Kristal.");
-  }
-  const params = new URLSearchParams(url.hash.slice(1));
-  if (params.get("scan") !== "pickup") throw new Error("Este QR no es un ticket de retiro.");
-  const token = params.get("token") || "";
-  if (!/^[a-f0-9]{64}$/i.test(token)) throw new Error("El ticket no contiene un código válido.");
-  return token;
-}
-
-async function detectPickupQr(detector) {
-  if (!pickupScanRunning) return;
-  try {
-    if (pickupCamera.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
-      let value = "";
-      if (detector) value = (await detector.detect(pickupCamera))[0]?.rawValue || "";
-      if (!value && window.jsQR && pickupCamera.videoWidth > 0) {
-        if (!pickupQrCanvas) {
-          pickupQrCanvas = document.createElement("canvas");
-          pickupQrContext = pickupQrCanvas.getContext("2d", { willReadFrequently: true });
-        }
-        const scale = Math.min(1, 640 / pickupCamera.videoWidth);
-        pickupQrCanvas.width = Math.round(pickupCamera.videoWidth * scale);
-        pickupQrCanvas.height = Math.round(pickupCamera.videoHeight * scale);
-        pickupQrContext.drawImage(pickupCamera, 0, 0, pickupQrCanvas.width, pickupQrCanvas.height);
-        const frame = pickupQrContext.getImageData(0, 0, pickupQrCanvas.width, pickupQrCanvas.height);
-        value = window.jsQR(frame.data, frame.width, frame.height)?.data || "";
-      }
-      if (value) {
-        const token = pickupTokenFromQrValue(value);
-        stopPickupScanner();
-        await processStaffScan("pickup", token);
-        return;
-      }
-    }
-  } catch (error) {
-    console.error("No se pudo leer o validar el QR de retiro.", error);
-    setMessage(document.querySelector("#staff-scan-status"), error.message || "No se pudo leer el QR.");
-  }
-  if (pickupScanRunning) pickupScanTimer = window.setTimeout(() => detectPickupQr(detector), 250);
-}
-
-async function openPickupScanner() {
-  if (staffRole !== "operator") return;
-  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
-    setMessage(document.querySelector("#staff-scan-status"), "La cámara requiere HTTPS y permiso del navegador.");
-    pickupScanner.hidden = false;
-    return;
-  }
-  if (!("BarcodeDetector" in window) && !window.jsQR) {
-    setMessage(document.querySelector("#staff-scan-status"), "No se cargó el lector QR. Recarga Caja e inténtalo de nuevo.");
-    pickupScanner.hidden = false;
-    return;
-  }
-  try {
-    let detector = null;
-    if ("BarcodeDetector" in window) {
-      try { detector = new BarcodeDetector({ formats: ["qr_code"] }); }
-      catch (error) { console.warn("Se usará el lector QR alternativo.", error); }
-    }
-    pickupScanner.hidden = false;
-    pickupMediaStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: { ideal: "environment" } },
-      audio: false,
-    });
-    pickupCamera.srcObject = pickupMediaStream;
-    await pickupCamera.play();
-    pickupScanRunning = true;
-    setMessage(document.querySelector("#staff-scan-status"), "Apunta la cámara al QR de retiro del cliente.");
-    detectPickupQr(detector);
-  } catch (error) {
-    console.error("No se pudo iniciar la cámara de Caja.", error);
-    stopPickupScanner();
-    pickupScanner.hidden = false;
-    setMessage(document.querySelector("#staff-scan-status"), error.message || "No se pudo abrir la cámara. Revisa los permisos.");
-  }
 }
 
 async function searchPickupByDocument(event) {
@@ -611,15 +463,13 @@ async function searchPickupByDocument(event) {
 }
 
 async function completePickup(rpcName, params, button) {
-  const isQrCompletion = rpcName === "complete_store_pickup_by_qr";
-  const status = document.querySelector(isQrCompletion ? "#staff-scan-status" : "#staff-document-search-status");
+  const status = document.querySelector("#staff-document-search-status");
   button.disabled = true;
   try {
     const { data: orderId, error } = await supabaseClient.rpc(rpcName, params);
     if (error) throw error;
     setMessage(status, `Pedido ${String(orderId).slice(0, 8).toUpperCase()} cobrado y entregado correctamente.`, true);
     documentSearchResults?.replaceChildren();
-    document.querySelector("#staff-scan-result")?.replaceChildren();
   } catch (error) {
     console.error("No se pudo confirmar el retiro en caja.", error);
     setMessage(status, error.message || "No se pudo confirmar el retiro. Comprueba el pedido e inténtalo de nuevo.");
@@ -647,22 +497,6 @@ async function enterStaffDashboard(session) {
     });
   }
   if (staffPage === "cashier") await initializeAdminOrders();
-  const scanParams = new URLSearchParams(location.hash.slice(1));
-  if (scanParams.has("scan") || scanParams.has("token")) {
-    const purpose = scanParams.get("scan");
-    const token = scanParams.get("token");
-    if (purpose === "delivery") {
-      window.location.replace(`/delivery/${location.hash}`);
-      return;
-    }
-    if (staffPage !== "cashier") return;
-    history.replaceState(history.state, "", `${location.pathname}${location.search}`);
-    const scanPurpose = document.querySelector("#staff-scan-purpose");
-    if (scanPurpose) scanPurpose.value = "pickup";
-    const scanToken = document.querySelector("#staff-scan-token");
-    if (scanToken) scanToken.value = token || "";
-    await processStaffScan(purpose, token);
-  }
 }
 
 function resetProductForm() {
@@ -941,10 +775,6 @@ document.querySelector("#google-sign-in-button")?.addEventListener("click", asyn
 });
 
 productForm?.addEventListener("submit", saveProduct);
-document.querySelector("#staff-scan-form")?.addEventListener("submit", (event) => {
-  event.preventDefault();
-  processStaffScan(event.currentTarget.elements.purpose.value, event.currentTarget.elements.token.value.trim());
-});
 documentSearchForm?.addEventListener("submit", searchPickupByDocument);
 documentSearchResults?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-complete-pickup-order]");
@@ -953,16 +783,6 @@ documentSearchResults?.addEventListener("click", (event) => {
     p_document: documentSearchForm.elements.document.value.trim(),
     p_order_id: button.dataset.completePickupOrder,
   }, button);
-});
-document.querySelector("#staff-scan-result")?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-complete-pickup-qr]");
-  if (button) completePickup("complete_store_pickup_by_qr", { p_token: button.dataset.completePickupQr }, button);
-});
-document.querySelector("#staff-scan-open")?.addEventListener("click", openPickupScanner);
-document.querySelector("#staff-scan-close")?.addEventListener("click", stopPickupScanner);
-window.addEventListener("pagehide", stopPickupScanner);
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden && pickupScanRunning) stopPickupScanner();
 });
 window.addEventListener("kristal:inventory-imported", () => {
   loadInventory().catch((error) => {
@@ -998,7 +818,6 @@ document.querySelector("#refresh-orders-button")?.addEventListener("click", () =
 adminOrdersList?.addEventListener("click", handleAdminOrderAction);
 document.querySelector("#sign-out-button")?.addEventListener("click", async () => {
   try {
-    stopPickupScanner();
     const { error } = await supabaseClient.auth.signOut();
     if (error) throw error;
     if (adminOrdersChannel) {
@@ -1007,9 +826,6 @@ document.querySelector("#sign-out-button")?.addEventListener("click", async () =
     }
     setAuthenticatedView(false);
     staffRole = "";
-    document.querySelector("#staff-scan-result")?.replaceChildren();
-    const scanStatus = document.querySelector("#staff-scan-status");
-    if (scanStatus) setMessage(scanStatus, "");
     loginForm.reset();
   } catch (error) {
     console.error("No se pudo cerrar la sesión administrativa.", error);

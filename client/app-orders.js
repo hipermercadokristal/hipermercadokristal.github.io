@@ -564,12 +564,7 @@
       const isMobilePaymentPending = order.payment_status === "pending_verification";
       const qrPurpose = order.fulfillment === "delivery" && order.order_status === "delivering"
         ? "delivery"
-        : order.fulfillment === "pickup"
-          && order.payment_method === "cash_pos"
-          && order.payment_status === "awaiting_in_store"
-          && !["delivered", "cancelled"].includes(order.order_status)
-          ? "pickup"
-          : "";
+        : "";
       return `<article class="customer-order-card">
         <header class="customer-order-header"><div><span class="eyebrow">PEDIDO</span><h2>${escapeHtml(order.id.slice(0, 8).toUpperCase())}</h2></div><time datetime="${escapeHtml(order.created_at)}">${escapeHtml(date)}</time></header>
         <p class="order-payment-status ${isMobilePaymentPending ? "pending" : ""}">${escapeHtml(paymentStatusLabels[order.payment_status] || "Estado de pago pendiente")}</p>
@@ -577,7 +572,7 @@
         <ul class="customer-order-items">${items.map((item) => `<li><span>${escapeHtml(item.product_name)} × ${item.quantity}</span><strong>${currency.format(Number(item.line_total_usd))}</strong></li>`).join("")}</ul>
         <div class="customer-order-total"><span>Total</span><strong>${currency.format(Number(order.total_usd))}${order.total_ves === null ? "" : `<small>${escapeHtml(formatBolivares(Number(order.total_ves)))} · referencial</small>`}</strong></div>
         <p class="customer-order-delivery">${order.fulfillment === "delivery" ? "Delivery" : "Retiro en tienda"}${order.fulfillment === "delivery" && order.delivery_address ? ` · ${escapeHtml(order.delivery_address)}` : ""}${order.fulfillment === "delivery" && order.delivery_reference ? ` · Referencia: ${escapeHtml(order.delivery_reference)}` : ""}</p>
-        ${qrPurpose ? `<section class="order-qr-ticket" data-order-qr="${escapeHtml(order.id)}" data-qr-purpose="${qrPurpose}"><h3>${qrPurpose === "delivery" ? "Muestra este código QR al repartidor al recibir tu pedido" : "Ticket de retiro en caja"}</h3><img alt="${qrPurpose === "delivery" ? "Código QR de confirmación de entrega" : "Código QR para retirar el pedido"}" /><p role="status" aria-live="polite">Preparando código seguro…</p></section>` : ""}
+        ${qrPurpose ? `<section class="order-qr-ticket" data-order-qr="${escapeHtml(order.id)}" data-qr-purpose="${qrPurpose}"><h3>Muestra este código QR al repartidor al recibir tu pedido</h3><img alt="Código QR de confirmación de entrega" /><p role="status" aria-live="polite">Preparando código seguro…</p></section>` : ""}
       </article>`;
     }).join("");
     renderOrderQrCodes(orders).catch((error) => {
@@ -596,15 +591,13 @@
           p_purpose: section.dataset.qrPurpose,
         });
         if (error) throw error;
-        const scanUrl = new URL(section.dataset.qrPurpose === "delivery" ? "/delivery/" : "/caja/", window.location.origin);
+        const scanUrl = new URL("/delivery/", window.location.origin);
         scanUrl.hash = new URLSearchParams({ scan: section.dataset.qrPurpose, token }).toString();
         const qr = window.qrcode(0, "M");
         qr.addData(scanUrl.toString());
         qr.make();
         section.querySelector("img").src = qr.createDataURL(5, 4);
-        status.textContent = section.dataset.qrPurpose === "delivery"
-          ? "Muestra este código al repartidor cuando recibas tu pedido."
-          : "Muestra este código en caja. Pagarás al retirar.";
+        status.textContent = "Muestra este código al repartidor cuando recibas tu pedido.";
       } catch (error) {
         console.error(`No se pudo generar el código QR del pedido ${section.dataset.orderQr}.`, error);
         status.textContent = error.message || "No se pudo generar el código QR. Intenta actualizar tus pedidos.";

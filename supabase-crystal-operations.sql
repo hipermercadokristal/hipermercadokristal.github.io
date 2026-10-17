@@ -356,14 +356,12 @@ $$;
 
 revoke all on function public.create_store_order_with_location(uuid, text, text, text, text, text, text, text, text, numeric, jsonb, text, text, numeric, numeric) from public, anon;
 revoke all on function public.find_store_pickup_orders_by_document(text) from public, anon;
-revoke all on function public.scan_store_pickup_ticket(text) from public, anon;
-revoke all on function public.complete_store_pickup_by_qr(text) from public, anon;
+revoke all on function public.scan_store_pickup_ticket(text) from public, anon, authenticated;
+revoke all on function public.complete_store_pickup_by_qr(text) from public, anon, authenticated;
 revoke all on function public.complete_store_pickup_by_document(text, uuid) from public, anon;
 revoke all on function public.admin_store_sales_summary() from public, anon;
 grant execute on function public.create_store_order_with_location(uuid, text, text, text, text, text, text, text, text, numeric, jsonb, text, text, numeric, numeric) to authenticated;
 grant execute on function public.find_store_pickup_orders_by_document(text) to authenticated;
-grant execute on function public.scan_store_pickup_ticket(text) to authenticated;
-grant execute on function public.complete_store_pickup_by_qr(text) to authenticated;
 grant execute on function public.complete_store_pickup_by_document(text, uuid) to authenticated;
 grant execute on function public.admin_store_sales_summary() to authenticated;
 
