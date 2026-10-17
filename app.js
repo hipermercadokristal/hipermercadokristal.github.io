@@ -169,6 +169,7 @@ async function refreshProducts() {
     .from("productos")
     .select("id,nombre,precio,precio_oferta,es_destacado,disponible,imagen_url,presentacion,categorias(nombre,departamento)")
     .eq("disponible", true)
+    .is("deleted_at", null)
     .order("nombre");
   if (error) throw error;
 
