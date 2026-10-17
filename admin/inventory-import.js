@@ -77,6 +77,40 @@
       : { name: cleanName, presentation: "" };
   }
 
+  function getProductIdentity(name, presentation) {
+    const parsed = getNameAndPresentation(name, "");
+    const normalizedName = normalize(parsed.name);
+    const normalizedPresentation = normalize(presentation || parsed.presentation);
+    return normalizedName ? `${normalizedName}|${normalizedPresentation}` : "";
+  }
+
+  async function loadExistingProducts() {
+    const pageSize = 1000;
+    const products = [];
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabase
+        .from("productos")
+        .select("id,nombre,codigo_barras,categoria_id,imagen_url,imagen_path,presentacion,precio_oferta,es_destacado,disponible,stock,stock_tracked,created_at")
+        .is("deleted_at", null)
+        .order("id")
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      products.push(...data);
+      if (data.length < pageSize) return products;
+    }
+  }
+
+  function isPlaceholder(product) {
+    return String(product.imagen_url || "").includes("imported-product-placeholder.svg");
+  }
+
+  function preferExistingProduct(left, right, categoryId) {
+    const leftScore = Number(!isPlaceholder(left)) * 2 + Number(left.categoria_id === categoryId);
+    const rightScore = Number(!isPlaceholder(right)) * 2 + Number(right.categoria_id === categoryId);
+    if (leftScore !== rightScore) return rightScore - leftScore;
+    return String(left.created_at || "").localeCompare(String(right.created_at || ""));
+  }
+
   function findFieldIndex(headers, keys) {
     const normalizedHeaders = headers.map(normalize);
     for (const key of keys) {
@@ -211,6 +245,7 @@
     previewButton.disabled = true;
     setStatus("Preparando actualización del inventario…");
     let importedCount = 0;
+    let consolidatedDuplicateCount = 0;
     try {
       const missingDepartments = new Map();
       preparedRows.forEach((row) => {
@@ -245,20 +280,56 @@
         throw new Error(`No se encontró una categoría válida para: ${[...new Set(unresolvedProducts.map((row) => row.departmentName))].join(", ")}.`);
       }
 
-      const barcodes = preparedRows.map((row) => row.barcode);
+      setStatus("Buscando productos existentes por código, nombre y presentación…");
+      const existingProducts = await loadExistingProducts();
       const existingByBarcode = new Map();
-      for (let index = 0; index < barcodes.length; index += 500) {
-        const { data, error } = await supabase
+      const existingByIdentity = new Map();
+      existingProducts.forEach((product) => {
+        if (product.codigo_barras) existingByBarcode.set(product.codigo_barras, product);
+        const identity = getProductIdentity(product.nombre, product.presentacion);
+        if (!identity) return;
+        const matches = existingByIdentity.get(identity) || [];
+        matches.push(product);
+        existingByIdentity.set(identity, matches);
+      });
+
+      const matchedProducts = preparedRows.map((row) => existingByBarcode.get(row.barcode) || null);
+      const usedProductIds = new Set(matchedProducts.filter(Boolean).map((product) => product.id));
+      const placeholderDuplicates = [];
+      preparedRows.forEach((row, index) => {
+        const identity = getProductIdentity(row.name, row.presentation);
+        const matches = (existingByIdentity.get(identity) || [])
+          .filter((product) => !usedProductIds.has(product.id))
+          .sort((left, right) => preferExistingProduct(left, right, categoryIdByDepartment.get(row.departmentKey)));
+        const barcodeMatch = matchedProducts[index];
+        if (barcodeMatch && isPlaceholder(barcodeMatch) && matches.length && !isPlaceholder(matches[0])) {
+          matchedProducts[index] = matches[0];
+          placeholderDuplicates.push(barcodeMatch);
+          usedProductIds.add(matches[0].id);
+          return;
+        }
+        if (barcodeMatch) return;
+        if (matches.length) {
+          matchedProducts[index] = matches[0];
+          usedProductIds.add(matches[0].id);
+        }
+      });
+
+      if (placeholderDuplicates.length) {
+        const duplicateIds = [...new Set(placeholderDuplicates.map((product) => product.id))];
+        setStatus(`Consolidando ${duplicateIds.length} copia${duplicateIds.length === 1 ? "" : "s"} provisional${duplicateIds.length === 1 ? "" : "es"} duplicada${duplicateIds.length === 1 ? "" : "s"}…`);
+        const { error } = await supabase
           .from("productos")
-          .select("codigo_barras,imagen_url,imagen_path,presentacion,precio_oferta,es_destacado,disponible,stock,stock_tracked")
-          .in("codigo_barras", barcodes.slice(index, index + 500));
+          .update({ codigo_barras: null, disponible: false, es_destacado: false, updated_at: new Date().toISOString() })
+          .in("id", duplicateIds);
         if (error) throw error;
-        data.forEach((product) => existingByBarcode.set(product.codigo_barras, product));
+        consolidatedDuplicateCount = duplicateIds.length;
       }
 
-      const products = preparedRows.map((row) => {
-        const existing = existingByBarcode.get(row.barcode);
+      const products = preparedRows.map((row, index) => {
+        const existing = matchedProducts[index];
         return {
+          ...(existing ? { id: existing.id } : {}),
           codigo_barras: row.barcode,
           nombre: row.name,
           categoria_id: categoryIdByDepartment.get(row.departmentKey),
@@ -279,15 +350,23 @@
           updated_at: new Date().toISOString(),
         };
       });
+      const updatedCount = products.filter((product) => product.id).length;
+      const createdCount = products.length - updatedCount;
+      const productGroups = [
+        products.filter((product) => product.id),
+        products.filter((product) => !product.id),
+      ];
 
-      for (let index = 0; index < products.length; index += 200) {
-        const batch = products.slice(index, index + 200);
-        const { error } = await supabase.from("productos").upsert(batch, { onConflict: "codigo_barras" });
-        if (error) throw error;
-        importedCount += batch.length;
-        setStatus(`Inventario actualizado: ${importedCount} de ${products.length} productos…`);
+      for (const group of productGroups) {
+        for (let index = 0; index < group.length; index += 200) {
+          const batch = group.slice(index, index + 200);
+          const { error } = await supabase.from("productos").upsert(batch, { onConflict: "id" });
+          if (error) throw error;
+          importedCount += batch.length;
+          setStatus(`Inventario actualizado: ${importedCount} de ${products.length} productos…`);
+        }
       }
-      setStatus(`${importedCount} productos importados o actualizados. Los productos sin foto quedan listos para completar desde el inventario.`, false, true);
+      setStatus(`Importación completada: ${updatedCount} productos actualizados y ${createdCount} nuevos.${placeholderDuplicates.length ? ` Se ocultaron ${new Set(placeholderDuplicates.map((product) => product.id)).size} copias provisionales duplicadas.` : ""} Los productos sin foto quedan listos para completar desde el inventario.`, false, true);
       form.reset();
       preparedRows = [];
       previewRows.replaceChildren();
@@ -295,9 +374,12 @@
       window.dispatchEvent(new CustomEvent("kristal:inventory-imported"));
     } catch (error) {
       console.error("No se pudo completar la importación del inventario.", error);
+      const partialProgress = [];
+      if (importedCount) partialProgress.push(`Se procesaron ${importedCount} productos`);
+      if (consolidatedDuplicateCount) partialProgress.push(`se ocultaron ${consolidatedDuplicateCount} copias provisionales duplicadas`);
       setStatus(
-        importedCount
-          ? `Se actualizaron ${importedCount} productos antes del error. Corrige el problema e importa nuevamente; los registros se actualizan por código de barras. ${error.message || ""}`
+        partialProgress.length
+          ? `${partialProgress.join(" y ")} antes del error. Corrige el problema e importa nuevamente; se buscan coincidencias por código, nombre y presentación. ${error.message || ""}`
           : error.message || "No se pudo importar el inventario.",
         true,
       );
