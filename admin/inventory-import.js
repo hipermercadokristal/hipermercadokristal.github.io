@@ -84,6 +84,33 @@
     return normalizedName ? `${normalizedName}|${normalizedPresentation}` : "";
   }
 
+  function getProductFamilyIdentity(name) {
+    const parsedName = getNameAndPresentation(name, "").name;
+    const words = String(parsedName ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (words.includes("leche")) {
+      const milkDescriptors = new Set(["completa", "descremada", "entera", "en", "liquida", "polvo", "semidescremada"]);
+      const familyWords = words.filter((word) => !milkDescriptors.has(word));
+      return familyWords.length > 1 ? familyWords.join(" ") : "";
+    }
+    return "";
+  }
+
+  function getNormalizedPresentation(name, presentation) {
+    return normalize(presentation || getNameAndPresentation(name, "").presentation);
+  }
+
+  function isSamePresentation(leftProduct, rightProduct) {
+    return getNormalizedPresentation(leftProduct.nombre, leftProduct.presentacion)
+      === getNormalizedPresentation(rightProduct.name, rightProduct.presentation);
+  }
+
   async function loadExistingProducts() {
     const pageSize = 1000;
     const products = [];
@@ -284,34 +311,52 @@
       const existingProducts = await loadExistingProducts();
       const existingByBarcode = new Map();
       const existingByIdentity = new Map();
+      const existingByFamily = new Map();
       existingProducts.forEach((product) => {
         if (product.codigo_barras) existingByBarcode.set(product.codigo_barras, product);
         const identity = getProductIdentity(product.nombre, product.presentacion);
-        if (!identity) return;
-        const matches = existingByIdentity.get(identity) || [];
-        matches.push(product);
-        existingByIdentity.set(identity, matches);
+        if (identity) {
+          const matches = existingByIdentity.get(identity) || [];
+          matches.push(product);
+          existingByIdentity.set(identity, matches);
+        }
+        const familyIdentity = getProductFamilyIdentity(product.nombre);
+        if (familyIdentity) {
+          const family = existingByFamily.get(familyIdentity) || [];
+          family.push(product);
+          existingByFamily.set(familyIdentity, family);
+        }
       });
 
       const matchedProducts = preparedRows.map((row) => existingByBarcode.get(row.barcode) || null);
       const usedProductIds = new Set(matchedProducts.filter(Boolean).map((product) => product.id));
       const placeholderDuplicates = [];
+      const imageSourceByRow = [];
       preparedRows.forEach((row, index) => {
         const identity = getProductIdentity(row.name, row.presentation);
-        const matches = (existingByIdentity.get(identity) || [])
+        const categoryId = categoryIdByDepartment.get(row.departmentKey);
+        const familyIdentity = getProductFamilyIdentity(row.name);
+        const familyMatches = existingByFamily.get(familyIdentity) || [];
+        const imageSources = [...familyMatches].sort((left, right) => preferExistingProduct(left, right, categoryId));
+        imageSourceByRow[index] = imageSources.find((product) => !isPlaceholder(product)) || null;
+        const exactMatches = (existingByIdentity.get(identity) || [])
           .filter((product) => !usedProductIds.has(product.id))
-          .sort((left, right) => preferExistingProduct(left, right, categoryIdByDepartment.get(row.departmentKey)));
+          .sort((left, right) => preferExistingProduct(left, right, categoryId));
+        const sameVariantMatches = familyMatches
+          .filter((product) => !usedProductIds.has(product.id) && isSamePresentation(product, row))
+          .sort((left, right) => preferExistingProduct(left, right, categoryId));
         const barcodeMatch = matchedProducts[index];
-        if (barcodeMatch && isPlaceholder(barcodeMatch) && matches.length && !isPlaceholder(matches[0])) {
-          matchedProducts[index] = matches[0];
+        const preferredVariant = exactMatches[0] || sameVariantMatches[0];
+        if (barcodeMatch && isPlaceholder(barcodeMatch) && preferredVariant && !isPlaceholder(preferredVariant)) {
+          matchedProducts[index] = preferredVariant;
           placeholderDuplicates.push(barcodeMatch);
-          usedProductIds.add(matches[0].id);
+          usedProductIds.add(preferredVariant.id);
           return;
         }
         if (barcodeMatch) return;
-        if (matches.length) {
-          matchedProducts[index] = matches[0];
-          usedProductIds.add(matches[0].id);
+        if (preferredVariant) {
+          matchedProducts[index] = preferredVariant;
+          usedProductIds.add(preferredVariant.id);
         }
       });
 
@@ -328,6 +373,8 @@
 
       const products = preparedRows.map((row, index) => {
         const existing = matchedProducts[index];
+        const imageSource = imageSourceByRow[index];
+        const imageProduct = existing && !isPlaceholder(existing) ? existing : imageSource;
         return {
           ...(existing ? { id: existing.id } : {}),
           codigo_barras: row.barcode,
@@ -345,8 +392,8 @@
             ? existing.precio_oferta
             : null,
           presentacion: row.presentation || existing?.presentacion || null,
-          imagen_url: existing?.imagen_url || "assets/products/imported-product-placeholder.svg",
-          imagen_path: existing?.imagen_path || null,
+          imagen_url: imageProduct?.imagen_url || "assets/products/imported-product-placeholder.svg",
+          imagen_path: imageProduct?.imagen_path || null,
           updated_at: new Date().toISOString(),
         };
       });
