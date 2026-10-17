@@ -32,6 +32,15 @@
       .replace(/[^a-z0-9]/g, "");
   }
 
+  function formatDepartmentName(value) {
+    return String(value ?? "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLocaleLowerCase("es-VE")
+      .replace(/(^|[\s-])(\p{L})/gu, (_match, separator, letter) =>
+        `${separator}${letter.toLocaleUpperCase("es-VE")}`);
+  }
+
   function escapeHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, (character) => ({
       "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -105,7 +114,9 @@
     for (const category of categories) {
       const name = normalize(category.nombre);
       const department = normalize(category.departamento);
-      categoryByName.set(name, category);
+      if (!categoryByName.has(name) || name === department) {
+        categoryByName.set(name, category);
+      }
       if (name === department || !categoryByName.has(department)) {
         categoryByName.set(department, category);
       }
@@ -114,17 +125,21 @@
     preparedRows = inputRows.map(({ cells, rowNumber }) => {
       const barcode = String(cells[fields.barcode] ?? "").trim();
       const name = String(cells[fields.name] ?? "").trim();
-      const departmentName = String(cells[fields.department] ?? "").trim();
+      const departmentInput = String(cells[fields.department] ?? "").trim();
+      const departmentKey = normalize(departmentInput);
+      const existingCategory = categoryByName.get(departmentKey);
+      const departmentName = existingCategory?.departamento
+        || (departmentKey ? formatDepartmentName(departmentInput) : "");
       const priceUsd = parseNumber(cells[fields.usd]);
       const priceVes = parseNumber(cells[fields.ves]);
       const stock = parseNumber(cells[fields.stock]);
-      const category = categoryByName.get(normalize(departmentName));
       const errors = [];
       if (!barcode || barcode.length > 80) errors.push("código");
       else if (seenBarcodes.has(barcode)) errors.push("código duplicado");
       else seenBarcodes.add(barcode);
       if (!name || name.length > 140) errors.push("descripción");
-      if (!category) errors.push("departamento no existe");
+      if (!departmentKey) errors.push("departamento vacío");
+      else if (!existingCategory && departmentName.length > 120) errors.push("departamento supera 120 caracteres");
       if (!Number.isFinite(priceUsd) || priceUsd <= 0) errors.push("precio USD");
       if (!Number.isFinite(priceVes) || priceVes < 0) errors.push("precio VES");
       if (!Number.isFinite(stock) || stock < 0 || stock > 100000000) errors.push("stock");
@@ -133,7 +148,8 @@
         barcode,
         name,
         departmentName,
-        categoryId: category?.id || null,
+        categoryId: existingCategory?.id || null,
+        departmentKey,
         priceUsd,
         priceVes,
         stock,
@@ -153,7 +169,7 @@
       <td data-label="USD">${Number.isFinite(row.priceUsd) ? row.priceUsd.toFixed(2) : "—"}</td>
       <td data-label="VES">${Number.isFinite(row.priceVes) ? row.priceVes.toFixed(2) : "—"}</td>
       <td data-label="Stock">${Number.isFinite(row.stock) ? row.stock : "—"}</td>
-      <td data-label="Resultado" class="${row.error ? "import-row-error" : ""}">${escapeHtml(row.error || "Listo")}</td>
+      <td data-label="Resultado" class="${row.error ? "import-row-error" : ""}">${escapeHtml(row.error || (row.categoryId ? "Listo" : "Se creará el departamento"))}</td>
     </tr>`).join("");
     previewWrap.hidden = false;
     const invalidCount = preparedRows.filter((row) => row.error).length;
@@ -174,6 +190,34 @@
     setStatus("Preparando actualización del inventario…");
     let importedCount = 0;
     try {
+      const missingDepartments = new Map();
+      preparedRows.forEach((row) => {
+        if (!row.categoryId && row.departmentKey && !missingDepartments.has(row.departmentKey)) {
+          missingDepartments.set(row.departmentKey, row.departmentName);
+        }
+      });
+      const categoryIdByDepartment = new Map(
+        preparedRows
+          .filter((row) => row.categoryId)
+          .map((row) => [row.departmentKey, row.categoryId]),
+      );
+      if (missingDepartments.size) {
+        setStatus(`Creando ${missingDepartments.size} departamento${missingDepartments.size === 1 ? "" : "s"} nuevo${missingDepartments.size === 1 ? "" : "s"}…`);
+        const { data: resolvedDepartments, error: categoryError } = await supabase.rpc(
+          "resolve_inventory_departments",
+          { p_names: [...missingDepartments.values()] },
+        );
+        if (categoryError) throw categoryError;
+        (resolvedDepartments || []).forEach((department) => {
+          categoryIdByDepartment.set(department.normalized_department, department.category_id);
+        });
+        const unresolvedDepartments = [...missingDepartments.keys()]
+          .filter((key) => !categoryIdByDepartment.has(key));
+        if (unresolvedDepartments.length) {
+          throw new Error(`Supabase no devolvió la categoría creada para: ${unresolvedDepartments.map((key) => missingDepartments.get(key)).join(", ")}.`);
+        }
+      }
+
       const barcodes = preparedRows.map((row) => row.barcode);
       const existingByBarcode = new Map();
       for (let index = 0; index < barcodes.length; index += 500) {
@@ -190,7 +234,7 @@
         return {
           codigo_barras: row.barcode,
           nombre: row.name,
-          categoria_id: row.categoryId,
+          categoria_id: row.categoryId || categoryIdByDepartment.get(row.departmentKey),
           precio: row.priceUsd,
           precio_ves: row.priceVes,
           stock: row.stock,
