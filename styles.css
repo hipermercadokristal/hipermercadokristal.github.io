@@ -66,6 +66,15 @@ button { color: inherit; }
 .category-links a:hover, .category-links a[aria-current="page"] { color: var(--forest); }
 .category-links a.selected { color: var(--forest); font-weight: 800; }
 .category-links a:first-child { display: flex; align-items: center; gap: 8px; color: var(--forest); font-weight: 800; }
+.staff-access-menu { position: relative; flex: none; }
+.staff-access-menu summary { display: flex; min-height: 42px; align-items: center; gap: 7px; color: var(--forest); font-size: 12px; font-weight: 800; cursor: pointer; list-style: none; white-space: nowrap; }
+.staff-access-menu summary::-webkit-details-marker { display: none; }
+.staff-access-menu summary span { color: #78847e; font-size: 15px; }
+.staff-access-panel { position: absolute; z-index: 12; top: calc(100% + 2px); right: 0; display: none; min-width: 220px; padding: 9px; border: 1px solid #e5ebe6; border-radius: 10px; background: #fff; box-shadow: 0 16px 36px #18352a1c; }
+.staff-access-menu[open] .staff-access-panel { display: grid; gap: 3px; }
+.staff-access-panel p { margin: 2px 8px 6px; color: #78847e; font-size: 10px; line-height: 1.5; white-space: normal; }
+.staff-access-panel a { min-height: 40px; display: flex; align-items: center; padding: 0 9px; border-radius: 6px; color: #45584d; font-size: 12px; font-weight: 700; }
+.staff-access-panel a:hover { background: #f3f8f3; color: var(--forest); }
 .departments-menu { position: relative; flex: none; }
 .departments-menu summary { display: flex; align-items: center; gap: 8px; min-height: 42px; color: var(--forest); font-size: 12px; font-weight: 800; cursor: pointer; list-style: none; }
 .departments-menu summary::-webkit-details-marker { display: none; }
@@ -474,6 +483,10 @@ main { min-height: 55vh; padding-bottom: 40px; }
   .category-links { position: absolute; z-index: 12; top: 100%; right: 0; left: 0; display: none; flex-direction: column; align-items: stretch; gap: 0; width: auto; padding: 8px 17px; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 8px 8px; background: #fff; box-shadow: 0 10px 20px #18352a12; }
   .category-links.open { display: flex; }
   .category-links a, .category-links a:first-child { min-height: 44px; display: flex; align-items: center; border-bottom: 1px solid #f1f3f1; font-size: 12px; }
+  .category-links .staff-access-menu { width: 100%; }
+  .staff-access-menu summary { min-height: 44px; border-bottom: 1px solid #f1f3f1; }
+  .staff-access-panel { position: static; min-width: 0; padding: 6px; border: 0; border-radius: 0; box-shadow: none; }
+  .staff-access-panel a { min-height: 40px; padding-left: 12px; }
   .category-links .departments-menu { width: 100%; }
   .departments-menu summary { min-height: 44px; border-bottom: 1px solid #f1f3f1; }
   .department-menu-panel { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); width: auto; padding: 6px; border: 0; border-radius: 0; box-shadow: none; }
