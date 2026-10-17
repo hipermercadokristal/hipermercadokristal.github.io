@@ -26,6 +26,8 @@ try {
 const productGrid = document.querySelector("#product-grid");
 const categoryProductGrid = document.querySelector("#category-product-grid");
 const featuredProductGrid = document.querySelector("#featured-products");
+const dailyOffersGrid = document.querySelector("#daily-offers");
+const dailyOffersTimer = document.querySelector("#daily-offers-timer");
 const featuredPreviousButton = document.querySelector("#featured-previous");
 const featuredNextButton = document.querySelector("#featured-next");
 const departmentFilter = document.querySelector("#product-department-filter");
@@ -55,9 +57,15 @@ const infoDialog = document.querySelector("#info-dialog");
 const shippingProgressMessage = document.querySelector("#shipping-progress-message");
 const headerBCVRate = document.querySelector("#header-bcv-rate");
 const headerBCVDate = document.querySelector("#header-bcv-date");
+const currencySwitchButtons = [...document.querySelectorAll("[data-display-currency]")];
+const welcomeHero = document.querySelector(".welcome-hero");
+const welcomeEyebrow = document.querySelector("#welcome-eyebrow");
+const welcomeTitle = document.querySelector("#welcome-title");
+const welcomeDescription = document.querySelector("#welcome-description");
 let activeFilter = "Todos";
 let activeView = "home";
 let activeCategory = "";
+let displayCurrency = "USD";
 let cartTotal = 0;
 const cartItems = new Map();
 const favoriteItems = new Set();
@@ -68,6 +76,37 @@ let featuredTouchResumeTimer = 0;
 let toastTimeout;
 let lastFocusedElement = null;
 let catalogLoadError = "";
+let heroSlideIndex = 0;
+let heroAutoplayTimer = 0;
+let dailyOfferClockTimer = 0;
+const heroSlides = [
+  {
+    eyebrow: "COMPRA LOCAL · VILLA BRUZUAL",
+    title: "Tu mercado de cada día, más cerca",
+    description: "Explora el catálogo de Hipermercado Kristal, revisa precios y arma tu compra desde donde estés.",
+    action: "Explorar catálogo",
+    route: "/catalogo",
+  },
+  {
+    eyebrow: "DESPENSA PARA CADA DÍA",
+    title: "Arma tu compra de despensa",
+    description: "Encuentra harinas, aceites, pastas y más productos de alacena para combinarlos en tu carrito.",
+    action: "Ver víveres",
+    route: "/departamento/viveres-y-alacena",
+  },
+  {
+    eyebrow: "PROMOCIONES PUBLICADAS POR KRISTAL",
+    title: "Explora las ofertas disponibles",
+    description: "Los descuentos se muestran cuando tienen un precio de oferta publicado por la tienda.",
+    action: "Ver ofertas",
+    route: "/catalogo?filtro=ofertas",
+  },
+];
+try {
+  displayCurrency = localStorage.getItem("kristal-display-currency") === "VES" ? "VES" : "USD";
+} catch (error) {
+  console.error("No se pudo recuperar la moneda de visualización guardada.", error);
+}
 
 window.addEventListener("kristal:bcv-rate", (event) => {
   const { rate, date, stale } = event.detail || {};
@@ -134,6 +173,148 @@ function displayPriceInVES(price) {
   const rateLabel = bcvRateIsStale ? "Tasa BCV anterior" : "Tasa BCV";
   return `<small class="product-ves-price">${escapeHtml(`Bs. ${bolivares.format(price * bcvRate)}`)} · ${rateLabel}${date ? ` · ${escapeHtml(date)}` : ""}</small>`;
 }
+
+function formatPriceForDisplay(price, code = displayCurrency) {
+  if (code === "VES" && Number.isFinite(bcvRate) && bcvRate > 0) {
+    return `Bs. ${bolivares.format(price * bcvRate)}`;
+  }
+  return currency.format(price);
+}
+
+function renderProductPrices(product) {
+  const hasOffer = Number.isFinite(product.oldPrice) && product.oldPrice > product.price;
+  const discount = hasOffer ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
+  const canShowVES = Number.isFinite(bcvRate) && bcvRate > 0;
+  const selectedCurrency = displayCurrency === "VES" && canShowVES ? "VES" : "USD";
+  const regularPrice = hasOffer
+    ? `<span class="regular-price">${formatPriceForDisplay(product.oldPrice, selectedCurrency)}</span>`
+    : "";
+  const currentPrice = Number.isFinite(product.price)
+    ? `<span class="current-price">${formatPriceForDisplay(product.price, selectedCurrency)}</span>`
+    : '<span class="current-price">Precio por confirmar</span>';
+  const secondaryPrice = selectedCurrency === "USD"
+    ? displayPriceInVES(product.price)
+    : `<small class="product-secondary-price">${currency.format(product.price)} · Referencia USD</small>`;
+  return {
+    discount,
+    markup: `<div class="product-prices${selectedCurrency === "VES" ? " prices-ves-primary" : ""}">${regularPrice}${currentPrice}</div>${secondaryPrice}`,
+  };
+}
+
+function renderProductCard(product, { featured = false, dailyOffer = false } = {}) {
+  const { discount, markup: prices } = renderProductPrices(product);
+  const hasOffer = discount > 0;
+  const isFavorite = favoriteItems.has(product.id);
+  const badge = hasOffer ? `-${discount}%` : product.esDestacado ? "DESTACADO" : "";
+  const cardClass = `product-card${featured ? " featured-product-card" : ""}${dailyOffer ? " daily-offer-card" : ""}`;
+  return `<article class="${cardClass}" data-product-card="${escapeHtml(product.id)}" data-reveal>
+    ${badge ? `<span class="product-badge ${hasOffer ? "sale" : "popular"}">${badge}</span>` : ""}
+    <button class="favorite-button${isFavorite ? " active" : ""}" type="button" aria-label="${isFavorite ? "Quitar" : "Añadir"} ${escapeHtml(product.name)} ${isFavorite ? "de" : "a"} favoritos" aria-pressed="${isFavorite}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.8c0 5.3-8.8 10-8.8 10s-8.8-4.7-8.8-10A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z" /></svg></button>
+    <div class="product-image-wrap">
+      <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.alt)}" loading="lazy" />
+    </div>
+    <span class="product-category">${escapeHtml(product.category)}</span>
+    <h3 class="product-name">${escapeHtml(product.name)}</h3>
+    <span class="product-presentation">${escapeHtml(product.detail)}</span>
+    ${prices}
+    <div class="product-cart-control">${productCartControl(product)}</div>
+  </article>`;
+}
+
+function updateDailyOfferTimer() {
+  if (!dailyOffersTimer || !dailyOffersGrid?.querySelector(".daily-offer-card")) {
+    if (dailyOffersTimer) dailyOffersTimer.textContent = "";
+    return;
+  }
+  const now = new Date();
+  const nextRefresh = new Date(now);
+  nextRefresh.setHours(24, 0, 0, 0);
+  const secondsRemaining = Math.max(0, Math.floor((nextRefresh - now) / 1000));
+  const hours = String(Math.floor(secondsRemaining / 3600)).padStart(2, "0");
+  const minutes = String(Math.floor((secondsRemaining % 3600) / 60)).padStart(2, "0");
+  const seconds = String(secondsRemaining % 60).padStart(2, "0");
+  dailyOffersTimer.textContent = `Cierre del día en ${hours}:${minutes}:${seconds}`;
+}
+
+function setHeroSlide(index) {
+  if (!welcomeHero) return;
+  heroSlideIndex = (index + heroSlides.length) % heroSlides.length;
+  const slide = heroSlides[heroSlideIndex];
+  welcomeHero.dataset.slide = String(heroSlideIndex);
+  welcomeEyebrow.textContent = slide.eyebrow;
+  welcomeTitle.textContent = slide.title;
+  welcomeDescription.textContent = slide.description;
+  const callToAction = document.querySelector("#welcome-catalog-cta");
+  callToAction.href = slide.route;
+  document.querySelector("#welcome-catalog-cta-label").textContent = slide.action;
+  welcomeHero.querySelectorAll("[data-hero-slide]").forEach((button) => {
+    const current = Number(button.dataset.heroSlide) === heroSlideIndex;
+    if (current) button.setAttribute("aria-current", "true");
+    else button.removeAttribute("aria-current");
+  });
+}
+
+function startHeroCarousel() {
+  window.clearInterval(heroAutoplayTimer);
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  heroAutoplayTimer = window.setInterval(() => {
+    if (document.hidden || homeView.hidden || welcomeHero.matches(":hover") || welcomeHero.contains(document.activeElement)) return;
+    setHeroSlide(heroSlideIndex + 1);
+  }, 6500);
+}
+
+welcomeHero?.addEventListener("click", (event) => {
+  const directSlide = event.target.closest("[data-hero-slide]");
+  if (directSlide) {
+    setHeroSlide(Number(directSlide.dataset.heroSlide));
+    startHeroCarousel();
+    return;
+  }
+  const directionButton = event.target.closest("[data-hero-direction]");
+  if (directionButton) {
+    setHeroSlide(heroSlideIndex + Number(directionButton.dataset.heroDirection));
+    startHeroCarousel();
+  }
+});
+welcomeHero?.addEventListener("pointerenter", () => window.clearInterval(heroAutoplayTimer));
+welcomeHero?.addEventListener("pointerleave", startHeroCarousel);
+welcomeHero?.addEventListener("focusin", () => window.clearInterval(heroAutoplayTimer));
+welcomeHero?.addEventListener("focusout", (event) => {
+  if (!welcomeHero.contains(event.relatedTarget)) startHeroCarousel();
+});
+startHeroCarousel();
+updateDailyOfferTimer();
+dailyOfferClockTimer = window.setInterval(updateDailyOfferTimer, 1000);
+
+document.querySelectorAll("[data-department-direction]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const carousel = document.querySelector("#department-card-carousel");
+    const firstCard = carousel?.querySelector(".department-feature-card");
+    if (!carousel || !firstCard) return;
+    const gap = Number.parseFloat(getComputedStyle(carousel).columnGap) || 0;
+    carousel.scrollBy({
+      left: (firstCard.getBoundingClientRect().width + gap) * Number(button.dataset.departmentDirection),
+      behavior: "smooth",
+    });
+  });
+});
+
+currencySwitchButtons.forEach((button) => {
+  const selected = button.dataset.displayCurrency === displayCurrency;
+  button.setAttribute("aria-pressed", String(selected));
+  button.addEventListener("click", () => {
+    displayCurrency = button.dataset.displayCurrency;
+    currencySwitchButtons.forEach((choice) => {
+      choice.setAttribute("aria-pressed", String(choice === button));
+    });
+    try {
+      localStorage.setItem("kristal-display-currency", displayCurrency);
+    } catch (error) {
+      console.error("No se pudo guardar la moneda de visualización.", error);
+    }
+    renderActiveProducts();
+  });
+});
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => ({
@@ -264,7 +445,7 @@ function setCurrentNavigation(view, category = "") {
   });
 }
 
-function productCartControl(product, { featured = false } = {}) {
+function productCartControl(product) {
   const quantity = cartItems.get(product.id) || 0;
   const canPurchase = Number.isFinite(product.price) && !product.consultarWhatsApp;
   if (!canPurchase) {
@@ -273,7 +454,7 @@ function productCartControl(product, { featured = false } = {}) {
   if (quantity) {
     return `<span class="quantity-control" aria-label="Cantidad en carrito: ${quantity}"><button class="quantity-button" type="button" data-action="decrease" data-product="${escapeHtml(product.id)}" aria-label="Quitar uno de ${escapeHtml(product.name)}">−</button><span>${quantity}</span><button class="quantity-button" type="button" data-action="increase" data-product="${escapeHtml(product.id)}" aria-label="Agregar uno de ${escapeHtml(product.name)}">+</button></span>`;
   }
-  return `<button class="add-button" type="button" data-action="increase" data-product="${escapeHtml(product.id)}"><span aria-hidden="true">+</span> ${featured ? "Compra rápida" : "Agregar al carrito"}</button>`;
+  return `<button class="add-button" type="button" data-action="increase" data-product="${escapeHtml(product.id)}"><span aria-hidden="true">+</span> Agregar al carrito</button>`;
 }
 
 function visibleProductsFor(filter) {
@@ -354,34 +535,7 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
   productPages.set(targetGrid.id, currentPage);
   const pageProducts = visibleProducts.slice((currentPage - 1) * PRODUCTS_PER_PAGE, currentPage * PRODUCTS_PER_PAGE);
 
-  targetGrid.innerHTML = pageProducts
-    .map((product) => {
-      const hasOffer = Number.isFinite(product.oldPrice) && product.oldPrice > product.price;
-      const badgeClass = hasOffer ? "product-badge sale" : "product-badge popular";
-      const badge = hasOffer ? "OFERTA" : product.esDestacado ? "DESTACADO" : "";
-      const regularPrice = hasOffer
-        ? `<span class="regular-price">${currency.format(product.oldPrice)}</span>`
-        : "";
-      const currentPrice = Number.isFinite(product.price)
-        ? `<span class="current-price">${currency.format(product.price)}</span>`
-        : '<span class="current-price">Precio por confirmar</span>';
-      const isFavorite = favoriteItems.has(product.id);
-      return `
-        <article class="product-card" data-product-card="${escapeHtml(product.id)}" data-reveal>
-          ${badge ? `<span class="${badgeClass}">${badge}</span>` : ""}
-          <button class="favorite-button${isFavorite ? " active" : ""}" type="button" aria-label="${isFavorite ? "Quitar" : "Añadir"} ${escapeHtml(product.name)} ${isFavorite ? "de" : "a"} favoritos" aria-pressed="${isFavorite}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.8c0 5.3-8.8 10-8.8 10s-8.8-4.7-8.8-10A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z" /></svg></button>
-          <div class="product-image-wrap">
-            <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.alt)}" loading="lazy" />
-          </div>
-          <span class="product-category">${escapeHtml(product.category)}</span>
-          <h3 class="product-name">${escapeHtml(product.name)}</h3>
-          <span class="product-presentation">${escapeHtml(product.detail)}</span>
-          <div class="product-prices">${regularPrice}${currentPrice}</div>
-          ${displayPriceInVES(product.price)}
-          <div class="product-cart-control">${productCartControl(product)}</div>
-        </article>`;
-    })
-    .join("");
+  targetGrid.innerHTML = pageProducts.map((product) => renderProductCard(product)).join("");
   renderProductPagination(targetGrid, totalPages, currentPage);
   observeRevealElements(targetGrid);
 }
@@ -400,30 +554,31 @@ function renderFeaturedProducts() {
     return;
   }
   featuredProductGrid.innerHTML = featuredProducts
-    .map((product) => {
-      const hasOffer = Number.isFinite(product.oldPrice) && product.oldPrice > product.price;
-      const discount = hasOffer ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
-      return `
-        <article class="product-card featured-product-card" data-product-card="${escapeHtml(product.id)}" data-reveal>
-          <span class="product-badge ${hasOffer ? "sale" : "popular"}">${hasOffer ? `OFERTA ${discount}%` : "DESTACADO"}</span>
-          <div class="product-image-wrap">
-            <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.alt)}" loading="lazy" />
-          </div>
-          <span class="product-category">${escapeHtml(product.category)}</span>
-          <h3 class="product-name">${escapeHtml(product.name)}</h3>
-          <span class="product-presentation">${escapeHtml(product.detail)}</span>
-          <div class="product-prices">${hasOffer
-            ? `<span class="regular-price">Regular: ${currency.format(product.oldPrice)}</span><span class="current-price">Oferta: ${currency.format(product.price)}</span>`
-            : `<span class="current-price">${currency.format(product.price)}</span>`}
-          </div>
-          ${displayPriceInVES(product.price)}
-          <div class="product-cart-control">${productCartControl(product, { featured: true })}</div>
-        </article>`;
-    })
+    .map((product) => renderProductCard(product, { featured: true }))
     .join("");
   featuredProductGrid.scrollLeft = scrollLeft;
   observeRevealElements(featuredProductGrid);
   updateFeaturedCarousel();
+}
+
+function renderDailyOffers() {
+  if (!dailyOffersGrid) return;
+  const offers = products
+    .filter((product) => Number.isFinite(product.oldPrice) && product.oldPrice > product.price)
+    .slice(0, 12);
+  if (catalogLoadError) {
+    dailyOffersGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
+    dailyOffersTimer.textContent = "";
+    return;
+  }
+  if (!offers.length) {
+    dailyOffersGrid.innerHTML = '<p class="empty-state">Las ofertas aparecerán aquí cuando se publiquen descuentos en el inventario.</p>';
+    dailyOffersTimer.textContent = "";
+    return;
+  }
+  dailyOffersGrid.innerHTML = offers.map((product) => renderProductCard(product, { featured: true, dailyOffer: true })).join("");
+  observeRevealElements(dailyOffersGrid);
+  updateDailyOfferTimer();
 }
 
 function featuredCarouselStep() {
@@ -929,7 +1084,7 @@ function updateProductCardControls(productId) {
     const product = products.find((item) => item.id === productId);
     const control = card.querySelector(".product-cart-control");
     if (product && control) {
-      control.innerHTML = productCartControl(product, { featured: card.classList.contains("featured-product-card") });
+      control.innerHTML = productCartControl(product);
     }
   });
 }
@@ -938,6 +1093,7 @@ function renderActiveProducts() {
   if (activeView === "category") renderProducts(categoryProductGrid, activeCategory);
   else renderProducts(productGrid, activeFilter);
   renderFeaturedProducts();
+  renderDailyOffers();
 }
 
 document.querySelector("#search-form").addEventListener("submit", (event) => {
@@ -979,6 +1135,10 @@ departmentFilter.addEventListener("change", () => {
     navigateToPath(categoryPath(department));
     return;
   }
+  if (activeView !== "catalog") {
+    showCatalogView({ filter: "Todos", clearSearch: true });
+    return;
+  }
   setActiveFilter(selectedDepartment, { clearSearch: true });
   productPages.set(productGrid.id, 1);
   renderProducts(productGrid, activeFilter);
@@ -1017,7 +1177,7 @@ document.addEventListener("click", (event) => {
 function handleProductGridClick(event) {
   const favorite = event.target.closest(".favorite-button");
   if (favorite) {
-    const productId = favorite.closest(".product-card").querySelector("[data-product]")?.dataset.product;
+    const productId = favorite.closest(".product-card")?.dataset.productCard;
     if (!productId) return;
     const isFavorite = favoriteItems.has(productId);
     if (isFavorite) favoriteItems.delete(productId);
@@ -1047,13 +1207,15 @@ function handleProductGridClick(event) {
 productGrid.addEventListener("click", handleProductGridClick);
 categoryProductGrid.addEventListener("click", handleProductGridClick);
 featuredProductGrid.addEventListener("click", handleProductGridClick);
+dailyOffersGrid?.addEventListener("click", handleProductGridClick);
 
 document.querySelector("#category-back-button").addEventListener("click", () => showCatalogView({ clearSearch: true }));
 window.addEventListener("popstate", (event) => restoreRoute(event.state));
 
 document.querySelector("#welcome-catalog-cta").addEventListener("click", (event) => {
   event.preventDefault();
-  navigateToPath("/catalogo");
+  const destination = new URL(event.currentTarget.href);
+  navigateToPath(destination.pathname + destination.search);
 });
 
 cartButton.addEventListener("click", () => setCartOpen(true));

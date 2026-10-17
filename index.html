@@ -26,16 +26,16 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=store-download-icons-v1-20261017" />
+    <link rel="stylesheet" href="styles.css?v=commerce-redesign-v2" />
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
     <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/staff-store-navigation.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
-    <script src="app.js?v=store-active-products-v1-20261017" defer></script>
+    <script src="app.js?v=commerce-redesign-v2" defer></script>
     <script src="/client/app-orders.js?v=delivery-fee-courier-pay-v1-20261017" defer></script>
-    <script src="pwa.js?v=header-bcv-mobile-downloads-v2-20261017" defer></script>
+    <script src="pwa.js?v=commerce-redesign-v2" defer></script>
   </head>
   <body id="inicio">
     <nav class="staff-store-return" id="staff-store-return" aria-label="Regreso al panel de personal" hidden>
@@ -69,7 +69,12 @@
     </header>
     <header class="site-header">
       <div class="announcement">
-        <p><strong>¡Envío gratis en compras desde USD 50!</strong></p>
+        <p class="announcement-message"><strong>¡Envío gratis en compras desde USD 50!</strong><span>Servicio en Villa Bruzual y Turén</span></p>
+        <div class="header-bcv-rate" aria-label="Tasa oficial BCV">
+          <span>BCV USD/VES</span>
+          <strong id="header-bcv-rate" aria-live="polite">Consultando…</strong>
+          <small id="header-bcv-date"></small>
+        </div>
         <button class="announcement-install" id="install-app-button" data-install-app type="button">
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v8m0 0 3-3m-3 3-3-3M2.5 10.5v3h11v-3" /></svg>
           <span>Descargar iOS</span>
@@ -88,20 +93,27 @@
           <label class="sr-only" for="search-input">Buscar productos</label>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16 16 4 4" /></svg>
           <input id="search-input" type="search" placeholder="¿Qué estás buscando hoy?" autocomplete="off" />
+          <label class="sr-only" for="product-department-filter">Filtrar por departamento</label>
+          <select id="product-department-filter" class="department-filter" aria-label="Filtrar búsqueda por departamento">
+            <option value="Todos">Todos</option>
+            <option value="Víveres y Alacena">Víveres</option>
+            <option value="Frutas y Verduras">Frutas y verduras</option>
+            <option value="Carnes, Aves y Charcutería">Carnes y charcutería</option>
+            <option value="Bebidas, Licores y Tabaco">Bebidas</option>
+            <option value="Snacks, Golosinas y Confitería">Snacks</option>
+            <option value="Cuidado Personal e Higiene">Cuidado personal</option>
+            <option value="Cuidado del Hogar y Limpieza">Limpieza</option>
+            <option value="Hogar, Bazar y Utensilios">Hogar y bazar</option>
+            <option value="Electrodomésticos y Ferretería">Electrodomésticos</option>
+            <option value="Mascotas">Mascotas</option>
+            <option value="Congelados">Congelados</option>
+          </select>
           <button type="submit">Buscar</button>
         </form>
 
-        <a class="header-instagram" href="https://www.instagram.com/hipermercadokristal/" target="_blank" rel="noopener noreferrer" aria-label="Visita nuestro Instagram">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="instagram-gradient" x1="0" y1="1" x2="1" y2="0"><stop offset="0%" stop-color="#ffdc80" /><stop offset="35%" stop-color="#fcaf45" /><stop offset="65%" stop-color="#f77737" /><stop offset="82%" stop-color="#e1306c" /><stop offset="100%" stop-color="#833ab4" /></linearGradient></defs><rect x="2.5" y="2.5" width="19" height="19" rx="5.5" fill="url(#instagram-gradient)" /><rect x="6.5" y="6.5" width="11" height="11" rx="3.5" fill="none" stroke="#fff" stroke-width="1.8" /><circle cx="12" cy="12" r="2.7" fill="none" stroke="#fff" stroke-width="1.8" /><circle cx="16.2" cy="7.9" r="1" fill="#fff" /></svg>
-        </a>
-        <a class="header-tiktok" href="https://www.tiktok.com/@hipermercadokristal" target="_blank" rel="noopener noreferrer" aria-label="Visita nuestro TikTok">
-          <svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="12" fill="#000" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" transform="translate(-1.4 1.2)" fill="#25f4ee" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" transform="translate(1.4 -.6)" fill="#fe2c55" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" fill="#fff" /></svg>
-        </a>
-
-        <div class="header-bcv-rate" aria-label="Tasa oficial BCV">
-          <span>Tasa BCV</span>
-          <strong id="header-bcv-rate" aria-live="polite">Consultando…</strong>
-          <small id="header-bcv-date"></small>
+        <div class="currency-switch" role="group" aria-label="Moneda principal de precios">
+          <button type="button" data-display-currency="USD" aria-pressed="true">$ USD</button>
+          <button type="button" data-display-currency="VES" aria-pressed="false">Bs. VES</button>
         </div>
 
         <div class="header-tools">
@@ -150,6 +162,15 @@
             <a href="/politicas" data-route>Políticas</a>
           </div>
         </div>
+        <div class="department-shortcuts page-container" aria-label="Departamentos populares">
+          <a href="/departamento/viveres-y-alacena" data-route data-category="Víveres y Alacena"><span aria-hidden="true">🛒</span>Víveres</a>
+          <a href="/departamento/frutas-y-verduras" data-route data-category="Frutas y Verduras"><span aria-hidden="true">🥬</span>Frutas y verduras</a>
+          <a href="/departamento/carnes-aves-y-charcuteria" data-route data-category="Carnes, Aves y Charcutería"><span aria-hidden="true">🥩</span>Carnes y charcutería</a>
+          <a href="/departamento/bebidas-licores-y-tabaco" data-route data-category="Bebidas, Licores y Tabaco"><span aria-hidden="true">🥤</span>Bebidas</a>
+          <a href="/departamento/snacks-golosinas-y-confiteria" data-route data-category="Snacks, Golosinas y Confitería"><span aria-hidden="true">🍪</span>Snacks</a>
+          <a href="/departamento/cuidado-del-hogar-y-limpieza" data-route data-category="Cuidado del Hogar y Limpieza"><span aria-hidden="true">🧼</span>Limpieza</a>
+          <a href="/departamento/mascotas" data-route data-category="Mascotas"><span aria-hidden="true">🐾</span>Mascotas</a>
+        </div>
       </nav>
     </header>
 
@@ -165,7 +186,7 @@
         <nav class="product-pagination" data-pagination-grid="category-product-grid" aria-label="Paginación de productos por departamento" hidden></nav>
       </section>
       <div class="home-view" id="home-view">
-      <section class="welcome-hero" aria-labelledby="welcome-title">
+      <section class="welcome-hero" data-slide="0" aria-roledescription="carrusel" aria-label="Promociones y novedades" aria-labelledby="welcome-title">
         <div class="welcome-background welcome-background-facade" aria-hidden="true">
           <img class="welcome-background-photo" src="assets/hipermercado-fachada.png" alt="" />
         </div>
@@ -176,17 +197,41 @@
           <img class="welcome-background-photo" src="assets/area-bebidas.png" alt="" />
         </div>
         <div class="welcome-content">
-          <span class="welcome-eyebrow">VISÍTANOS EN VILLA BRUZUAL</span>
-          <h1 id="welcome-title">Bienvenidos a Hipermercado Kristal</h1>
-          <p>Tu hipermercado de confianza en Villa Bruzual. Todo para tu hogar, frescos y despensa al mejor estilo.</p>
+          <span class="welcome-eyebrow" id="welcome-eyebrow">COMPRA LOCAL · VILLA BRUZUAL</span>
+          <h1 id="welcome-title">Tu mercado de cada día, más cerca</h1>
+          <p id="welcome-description">Explora el catálogo de Hipermercado Kristal, revisa precios y arma tu compra desde donde estés.</p>
           <div class="welcome-actions">
             <a class="welcome-button welcome-button-primary" id="welcome-catalog-cta" href="/catalogo" data-route>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="21" r="1" /><circle cx="18" cy="21" r="1" /></svg> Explorar Catálogo
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="21" r="1" /><circle cx="18" cy="21" r="1" /></svg><span id="welcome-catalog-cta-label">Explorar Catálogo</span>
             </a>
             <a class="welcome-button welcome-button-secondary" href="/nosotros" data-route>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg> Conoce Nuestras Instalaciones
             </a>
           </div>
+        </div>
+        <div class="hero-carousel-controls" aria-label="Controles de promociones">
+          <button type="button" data-hero-direction="-1" aria-label="Promoción anterior">‹</button>
+          <div class="hero-carousel-dots" role="group" aria-label="Elegir promoción">
+            <button type="button" data-hero-slide="0" aria-label="Promoción 1" aria-current="true"></button>
+            <button type="button" data-hero-slide="1" aria-label="Promoción 2"></button>
+            <button type="button" data-hero-slide="2" aria-label="Promoción 3"></button>
+          </div>
+          <button type="button" data-hero-direction="1" aria-label="Promoción siguiente">›</button>
+        </div>
+      </section>
+
+      <section class="daily-offers-section" id="ofertas-del-dia" aria-labelledby="daily-offers-heading" data-reveal>
+        <div class="page-container">
+          <header class="featured-heading daily-offers-heading">
+            <div>
+              <span class="eyebrow">PRECIOS ESPECIALES PUBLICADOS</span>
+              <h2 id="daily-offers-heading">Ofertas del día</h2>
+              <p>Descuentos vigentes según los precios publicados en el catálogo.</p>
+              <small id="daily-offers-timer" class="offer-refresh-timer" aria-live="off"></small>
+            </div>
+            <a class="offers-see-all" href="/catalogo?filtro=ofertas" data-route>Ver todas las ofertas <span aria-hidden="true">→</span></a>
+          </header>
+          <div class="product-grid daily-offers-grid" id="daily-offers" role="region" aria-roledescription="carrusel" aria-label="Ofertas publicadas" tabindex="0"></div>
         </div>
       </section>
 
@@ -205,6 +250,31 @@
             </div>
           </header>
           <div class="product-grid featured-product-grid" id="featured-products" role="region" aria-roledescription="carrusel" aria-label="Lo Más Destacado" tabindex="0"></div>
+        </div>
+      </section>
+
+      <section class="popular-departments page-container" aria-labelledby="popular-departments-heading" data-reveal>
+        <header class="dashboard-section-heading">
+          <div><span class="eyebrow">ENCUENTRA LO QUE BUSCAS</span><h2 id="popular-departments-heading">Compra por departamento</h2></div>
+          <div class="department-carousel-tools">
+            <a class="offers-see-all" href="/catalogo" data-route>Explorar catálogo <span aria-hidden="true">→</span></a>
+            <button type="button" data-department-direction="-1" aria-label="Departamentos anteriores">‹</button>
+            <button type="button" data-department-direction="1" aria-label="Departamentos siguientes">›</button>
+          </div>
+        </header>
+        <div class="department-card-grid" id="department-card-carousel" role="region" aria-roledescription="carrusel" aria-label="Departamentos populares" tabindex="0">
+          <a class="department-feature-card" href="/departamento/viveres-y-alacena" data-route data-category="Víveres y Alacena">
+            <img src="assets/promo-viveres.jpg" alt="" loading="lazy" /><span class="department-card-icon" aria-hidden="true">🛒</span><strong>Víveres y alacena</strong><small>Despensa para cada día</small>
+          </a>
+          <a class="department-feature-card" href="/departamento/frutas-y-verduras" data-route data-category="Frutas y Verduras">
+            <img src="assets/promo-verduras.jpg" alt="" loading="lazy" /><span class="department-card-icon" aria-hidden="true">🥬</span><strong>Frutas y verduras</strong><small>Frescos para tu hogar</small>
+          </a>
+          <a class="department-feature-card" href="/departamento/carnes-aves-y-charcuteria" data-route data-category="Carnes, Aves y Charcutería">
+            <img src="assets/promo-carnes.jpg" alt="" loading="lazy" /><span class="department-card-icon" aria-hidden="true">🥩</span><strong>Carnes y charcutería</strong><small>Conoce el departamento</small>
+          </a>
+          <a class="department-feature-card" href="/departamento/cuidado-del-hogar-y-limpieza" data-route data-category="Cuidado del Hogar y Limpieza">
+            <img src="assets/hipermercado-cuidado-hogar.png" alt="" loading="lazy" /><span class="department-card-icon" aria-hidden="true">🧼</span><strong>Hogar y limpieza</strong><small>Todo para cuidar tu espacio</small>
+          </a>
         </div>
       </section>
 
@@ -244,29 +314,12 @@
           <div>
             <span class="eyebrow section-eyebrow">CATÁLOGO KRISTAL</span>
             <h2 id="products-heading">Explora nuestros productos</h2>
-            <p>Precios en USD. Agrega productos al carrito y elige cómo pagar y recibir tu pedido.</p>
+            <p>Consulta precios en USD o su referencia en bolívares con la tasa BCV. Agrega productos al carrito y elige cómo pagar y recibir tu pedido.</p>
           </div>
           <div class="catalog-heading-actions">
             <a class="text-link filter-link" href="https://wa.me/584128867088" target="_blank" rel="noopener noreferrer">Consultar por WhatsApp <span aria-hidden="true">↗</span></a>
             <button class="filter-chip catalog-favorites-button" type="button" data-filter="Favoritos">Mis favoritos</button>
           </div>
-        </div>
-        <div class="product-filters">
-          <label class="department-filter-label" for="product-department-filter">Departamento</label>
-          <select id="product-department-filter" class="department-filter">
-            <option value="Todos">Todos los departamentos</option>
-            <option value="Víveres y Alacena">Víveres y Alacena</option>
-            <option value="Frutas y Verduras">Frutas y Verduras</option>
-            <option value="Carnes, Aves y Charcutería">Carnes, Aves y Charcutería</option>
-            <option value="Bebidas, Licores y Tabaco">Bebidas, Licores y Tabaco</option>
-            <option value="Snacks, Golosinas y Confitería">Snacks, Golosinas y Confitería</option>
-            <option value="Cuidado Personal e Higiene">Cuidado Personal e Higiene</option>
-            <option value="Cuidado del Hogar y Limpieza">Cuidado del Hogar y Limpieza</option>
-            <option value="Hogar, Bazar y Utensilios">Hogar, Bazar y Utensilios</option>
-            <option value="Electrodomésticos y Ferretería">Electrodomésticos y Ferretería</option>
-            <option value="Mascotas">Mascotas</option>
-            <option value="Congelados">Congelados</option>
-          </select>
         </div>
         <div class="product-catalog">
           <div class="product-grid" id="product-grid" role="region" aria-live="polite" aria-label="Productos"></div>
@@ -632,16 +685,12 @@
       </a>
       <a href="/catalogo" data-app-route="catalog">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM14 4h6v4h-6zM14 11h6v9h-6zM4 14h7v6H4z" /></svg>
-        <span>Departamentos</span>
+        <span>Categorías</span>
       </a>
       <button type="button" data-app-route="cart" aria-label="Abrir carrito">
         <span class="mobile-nav-cart-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="21" r="1" /><circle cx="18" cy="21" r="1" /></svg><span id="mobile-nav-cart-count">0</span></span>
         <span>Carrito</span>
       </button>
-      <a href="/pedidos" data-app-route="orders">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v17l-7-4-7 4zM9 9h6M9 13h6" /></svg>
-        <span>Pedidos</span>
-      </a>
       <a href="/perfil" data-app-route="profile">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
         <span>Perfil</span>

@@ -1,36 +1,59 @@
-:root { color-scheme: light; font-family: "DM Sans", Arial, sans-serif; color: #18352a; background: #f4f7f4; }
+:root {
+  color-scheme: light;
+  font-family: "DM Sans", Arial, sans-serif;
+  color: #18372a;
+  background: #f2f6f2;
+  --forest: #123b2a;
+  --green: #17623d;
+  --gold: #d6ad43;
+  --line: #e3eae4;
+  --muted: #718078;
+}
+
 * { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
 input, textarea, select, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
-html, body { min-height: 100%; overscroll-behavior-y: none; }
-body { min-width: 320px; min-height: 100vh; margin: 0; }
+html, body { min-width: 320px; min-height: 100%; overscroll-behavior-y: none; }
+body { min-height: 100vh; margin: 0; background: radial-gradient(ellipse at 12% 8%, #f7e9bd70, transparent 34%), radial-gradient(ellipse at 90% 90%, #dcebe080, transparent 38%), #f2f6f2; }
 button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
-.login-shell { display: flex; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: max(24px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom)); overscroll-behavior-y: none; }
-.login-card { width: min(430px, 100%); padding: clamp(23px, 6vw, 36px); border: 1px solid #e2e9e3; border-radius: 16px; background: #fff; box-shadow: 0 12px 36px #1736260d; }
-.eyebrow { margin: 0 0 8px; color: #67816d; font-size: 10px; font-weight: 800; letter-spacing: 1.3px; }
-.login-card-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
-.login-card-brand img { width: 66px; height: 58px; object-fit: contain; }
-.login-card-brand .eyebrow { margin-bottom: 4px; }
-h1 { margin: 0; color: #153b25; font-size: clamp(25px, 7vw, 34px); }
-.login-card > .eyebrow { margin-bottom: 8px; }
-.intro { margin: 0 0 23px; color: #718078; font-size: 14px; line-height: 1.6; }
-.role-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin: 0 0 8px; padding: 4px; border: 1px solid #e4ebe5; border-radius: 9px; background: #f6f8f6; }
-.role-tabs button { min-height: 36px; padding: 4px; border: 0; border-radius: 6px; background: transparent; color: #53635a; font-size: 10px; font-weight: 800; cursor: pointer; }
-.role-tabs button[aria-pressed="true"] { background: #fff; color: #14552e; box-shadow: 0 1px 4px #1736261c; }
-.role-note { margin: 0 0 15px; color: #718078; font-size: 11px; line-height: 1.45; }
+.login-shell { position: relative; display: flex; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: max(28px, env(safe-area-inset-top)) 18px max(28px, env(safe-area-inset-bottom)); isolation: isolate; }
+.login-shell::before { position: absolute; z-index: -1; top: 0; right: 0; left: 0; height: 9px; background: linear-gradient(90deg, var(--forest) 0 72%, #bd3338 72% 82%, var(--gold) 82%); content: ""; }
+.login-card { width: min(470px, 100%); padding: clamp(24px, 6vw, 39px); border: 1px solid #e0e9e1; border-radius: 23px; background: #ffffffed; box-shadow: 0 22px 70px #153b2517; }
+.eyebrow { margin: 0 0 7px; color: #718078; font-size: 10px; font-weight: 800; letter-spacing: 1.35px; }
+.login-card-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.login-card-brand img { width: 72px; height: 64px; object-fit: contain; }
+.login-card-brand .eyebrow { margin-bottom: 4px; color: #987526; }
+h1 { margin: 0; color: var(--forest); font: 800 clamp(25px, 7vw, 33px)/1.15 "Manrope", "DM Sans", sans-serif; letter-spacing: -.7px; }
+.login-card > .eyebrow { color: var(--green); }
+.intro { margin: 0 0 22px; color: var(--muted); font-size: 13px; line-height: 1.65; }
+.role-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin: 0 0 9px; padding: 5px; border: 1px solid #e4ebe5; border-radius: 12px; background: #f4f7f4; }
+.role-tabs button { min-height: 39px; padding: 4px; border: 0; border-radius: 9px; background: transparent; color: #65746a; font-size: 10px; font-weight: 800; cursor: pointer; transition: background .16s ease, color .16s ease, box-shadow .16s ease; }
+.role-tabs button[aria-pressed="true"] { background: #fff; color: var(--forest); box-shadow: 0 2px 8px #17362616; }
+.role-note { margin: 0 0 18px; color: #79867d; font-size: 11px; line-height: 1.5; }
 form { display: grid; gap: 8px; }
-label { margin-top: 7px; color: #344b3c; font-size: 13px; font-weight: 700; }
-input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #dbe4dd; border-radius: 8px; background: white; color: #20382a; }
-input:focus { outline: 3px solid #3ca7602b; border-color: #4c9e63; }
-.primary-button, .google-button { width: 100%; min-height: 46px; border-radius: 8px; font-weight: 800; cursor: pointer; }
-.primary-button { margin-top: 10px; border: 0; background: #14552e; color: #fff; }
-.google-button { display: flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid #dce6dd; background: #fff; color: #31543b; }
+label { margin-top: 7px; color: #344b3c; font-size: 12px; font-weight: 800; }
+input { width: 100%; min-height: 47px; padding: 11px 13px; border: 1px solid #dbe5dc; border-radius: 11px; background: #fff; color: #20382a; }
+input:focus { outline: 3px solid #3ca76026; border-color: #4c9e63; }
+.primary-button, .google-button { width: 100%; min-height: 48px; border-radius: 11px; font-weight: 800; cursor: pointer; transition: transform .15s ease, background .15s ease, box-shadow .15s ease; }
+.primary-button { margin-top: 11px; border: 0; background: var(--green); color: #fff; box-shadow: 0 7px 16px #14552e20; }
+.primary-button:hover { background: var(--forest); }
+.primary-button:active, .google-button:active { transform: scale(.985); }
+.google-button { display: flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid #dce5dd; background: #fff; color: #33463a; }
+.google-button:hover { border-color: #cbd8cd; background: #f9fbf9; }
 .google-button svg { width: 20px; height: 20px; flex: none; }
 .primary-button:disabled, .google-button:disabled { opacity: .65; cursor: wait; }
-.separator { display: flex; align-items: center; gap: 12px; margin: 15px 0; color: #819087; font-size: 12px; }
+.separator { display: flex; align-items: center; gap: 12px; margin: 16px 0; color: #859188; font-size: 11px; }
 .separator::before, .separator::after { height: 1px; flex: 1; background: #e7ece8; content: ""; }
 .status { min-height: 18px; margin: 12px 0 0; color: #53635a; font-size: 12px; line-height: 1.5; }
 .status.error { color: #a1382c; }
 .status:empty { display: none; }
-.back-link { margin-top: 19px; color: #315c40; font-size: 13px; font-weight: 700; text-decoration: none; }
+.back-link { margin-top: 20px; color: var(--forest); font-size: 12px; font-weight: 800; text-decoration: none; }
+.back-link:hover { color: var(--green); }
+
+@media (max-width: 420px) {
+  .login-shell { justify-content: flex-start; padding-top: max(36px, env(safe-area-inset-top)); }
+  .login-card { padding: 23px 19px; border-radius: 19px; }
+  .login-card-brand img { width: 62px; height: 56px; }
+  .role-tabs button { min-height: 37px; font-size: 9px; }
+}
