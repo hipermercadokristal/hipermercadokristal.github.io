@@ -13,7 +13,7 @@
     <script src="../supabase-client.js"></script>
     <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="../assets/vendor/xlsx-0.20.3.min.js"></script>
-    <script src="../admin/staff-pwa.js?v=staff-pwa-20261017" defer></script>
+    <script src="../admin/staff-pwa.js?v=staff-no-install-v1-20261017" defer></script>
     <script src="../staff-collapsible.js?v=staff-collapsible-v1-20261017" defer></script>
     <script src="../admin/inventory-import.js?v=inventory-name-image-match-v2-20261017" defer></script>
     <script src="admin.js?v=cashier-order-queues-v1-20261017" defer></script>
@@ -26,8 +26,6 @@
         <p class="eyebrow">ACCESO PRIVADO</p>
         <h1 id="login-heading">Administración</h1>
         <p class="intro">Acceso exclusivo del propietario para administrar el inventario y el equipo.</p>
-        <button class="secondary-button staff-install-button" id="staff-install-app" type="button" hidden>Instalar Administración</button>
-        <p class="status-message" id="staff-install-status" role="status" aria-live="polite"></p>
         <a class="primary-button unified-login-link" href="/login/?role=admin">Continuar al inicio de sesión</a>
         <p class="status-message" id="auth-status" role="status" aria-live="polite"></p>
       </section>

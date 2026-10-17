@@ -1,8 +1,8 @@
-const CACHE_NAME = "hipermercado-kristal-v51";
+const CACHE_NAME = "hipermercado-kristal-v52";
 const APP_SHELL = [
   "/",
   "/index.html",
-  "/styles.css?v=staff-navigation-v1-20261017",
+  "/styles.css?v=store-download-icons-v1-20261017",
   "/app.js?v=header-bcv-mobile-downloads-v2-20261017",
   "/client/app-orders.js?v=delivery-fee-courier-pay-v1-20261017",
   "/auth-routing.js?v=staff-navigation-v1-20261017",
@@ -23,9 +23,9 @@ const APP_SHELL = [
   "/delivery/",
   "/delivery/index.html",
   "/delivery/manifest.webmanifest",
-  "/delivery/delivery.css?v=delivery-pages-v1-20261017",
+  "/delivery/delivery.css?v=delivery-no-install-v1-20261017",
   "/delivery/delivery.js?v=delivery-pages-v1-20261017",
-  "/delivery/delivery-pwa.js",
+  "/delivery/delivery-pwa.js?v=delivery-no-install-v1-20261017",
   "/assets/vendor/jsqr-1.4.0.min.js",
   "/client/",
   "/client/index.html",
@@ -35,7 +35,7 @@ const APP_SHELL = [
   "/caja/index.html",
   "/caja/manifest.webmanifest",
   "/admin/manifest.webmanifest",
-  "/admin/staff-pwa.js",
+  "/admin/staff-pwa.js?v=staff-no-install-v1-20261017",
   "/admin/inventory-import.js?v=inventory-name-image-match-v2-20261017",
   "/admin/admin.css?v=cashier-order-queues-v1-20261017",
   "/admin/admin.js?v=cashier-order-queues-v1-20261017",

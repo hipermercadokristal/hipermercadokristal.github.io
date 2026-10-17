@@ -39,7 +39,8 @@ button { color: inherit; }
 .announcement-install { display: inline-flex; min-height: 36px; align-items: center; gap: 5px; padding: 5px 9px; border: 1px solid currentColor; border-radius: 999px; background: transparent; color: inherit; font-size: 10px; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .announcement-install svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .announcement-install:disabled { cursor: wait; opacity: .65; }
-.announcement-apk-download { display: inline-flex; min-height: 36px; align-items: center; padding: 5px 9px; border: 1px solid currentColor; border-radius: 999px; color: inherit; font-size: 10px !important; font-weight: 800 !important; text-decoration: none; white-space: nowrap; }
+.announcement-apk-download { display: inline-flex; min-height: 36px; align-items: center; gap: 5px; padding: 5px 9px; border: 1px solid currentColor; border-radius: 999px; color: inherit; font-size: 10px !important; font-weight: 800 !important; text-decoration: none; white-space: nowrap; }
+.announcement-apk-download svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .announcement-apk-download[hidden] { display: none; }
 
 .site-header { position: sticky; z-index: 10; top: 0; background: #ffffffed; box-shadow: 0 4px 18px #18352a0a; backdrop-filter: blur(14px); }

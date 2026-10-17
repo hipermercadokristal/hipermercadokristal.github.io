@@ -34,8 +34,6 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .auth-card .primary-button { width: 100%; margin-top: 4px; }
 .auth-card .unified-login-link { display: flex; align-items: center; justify-content: center; margin-top: 4px; text-decoration: none; }
 .auth-card .google-sign-in-button { width: 100%; margin-top: 12px; }
-.auth-card .staff-install-button { width: 100%; margin-top: 12px; }
-.staff-install-button:disabled { opacity: .65; cursor: wait; }
 .sales-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
 .sales-summary article { display: grid; gap: 7px; padding: 16px; border: 1px solid #e0e9e2; border-radius: 12px; background: #fff; }
 .sales-summary span { color: #718078; font-size: 12px; }
