@@ -301,7 +301,7 @@ begin
     from public.productos
     where id = (item ->> 'product_id')::uuid
       and disponible = true
-    for share;
+    for update;
     if not found then
       raise exception 'Un producto ya no está disponible. Actualiza el carrito.';
     end if;
@@ -344,7 +344,7 @@ begin
     from public.productos
     where id = (item ->> 'product_id')::uuid
       and disponible = true
-    for share;
+    for update;
     if not found then
       raise exception 'Un producto ya no está disponible. Actualiza el carrito.';
     end if;

@@ -40,6 +40,9 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .sales-summary article { display: grid; gap: 7px; padding: 16px; border: 1px solid #e0e9e2; border-radius: 12px; background: #fff; }
 .sales-summary span { color: #718078; font-size: 12px; }
 .sales-summary strong { color: #14552e; font-size: clamp(18px, 3vw, 25px); }
+.daily-stock-panel .intro { margin-bottom: 12px; }
+.daily-stock-panel .panel-heading { align-items: flex-start; }
+.daily-stock-panel .import-actions { justify-content: flex-end; }
 .inventory-import-panel form { display: grid; gap: 12px; }
 .inventory-import-panel .field { margin-bottom: 0; }
 .import-actions { display: flex; flex-wrap: wrap; gap: 9px; }

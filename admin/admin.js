@@ -21,8 +21,13 @@ const staffRoleForm = document.querySelector("#staff-role-form");
 const documentSearchForm = document.querySelector("#staff-document-search-form");
 const documentSearchResults = document.querySelector("#staff-document-search-results");
 const salesSummary = document.querySelector("#sales-summary");
+const dailyStockRows = document.querySelector("#daily-stock-rows");
+const emptyDailyStock = document.querySelector("#empty-daily-stock");
+const dailyStockStatus = document.querySelector("#daily-stock-status");
+const startStockDayButton = document.querySelector("#start-stock-day-button");
 const currency = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
 const bolivares = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const stockNumber = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 3 });
 const departmentNames = [
   "Víveres y Alacena",
   "Frutas y Verduras",
@@ -119,7 +124,7 @@ async function loadInventory() {
   setMessage(dashboardStatus, "Cargando inventario…");
   const { data, error } = await supabaseClient
     .from("productos")
-    .select("id,nombre,codigo_barras,stock,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
+    .select("id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   if (error) throw error;
@@ -132,9 +137,9 @@ async function loadInventory() {
       <td data-label="Departamento">${escapeHtml(category?.departamento || "Sin departamento")}</td>
       <td data-label="Precio">${currency.format(Number(product.precio))}</td>
       <td data-label="Precio VES">${product.precio_ves === null ? "—" : `Bs. ${bolivares.format(Number(product.precio_ves))}`}</td>
-      <td data-label="Stock">${Number(product.stock || 0)}</td>
+      <td data-label="Stock interno">${product.stock_tracked && product.stock !== null ? stockNumber.format(Number(product.stock)) : "Sin control"}</td>
       <td data-label="Oferta">${product.precio_oferta === null ? "—" : currency.format(Number(product.precio_oferta))}</td>
-      <td data-label="Estado"><span class="stock-label${product.disponible ? "" : " unavailable"}">${product.disponible ? "Disponible" : "Agotado"}</span></td>
+      <td data-label="Visibilidad"><span class="stock-label${product.disponible ? "" : " unavailable"}">${product.disponible ? "Publicado" : "Oculto"}</span></td>
       <td data-label="Acciones"><div class="row-actions">
         <button type="button" data-action="edit" data-id="${escapeHtml(product.id)}">Editar</button>
         <button type="button" data-action="toggle" data-id="${escapeHtml(product.id)}">${product.disponible ? "Ocultar" : "Publicar"}</button>
@@ -152,6 +157,44 @@ async function loadInventory() {
     missingDepartments.length === 0,
   );
   return data;
+}
+
+async function loadDailyStock() {
+  setMessage(dailyStockStatus, "Cargando resumen de stock…");
+  const { data, error } = await supabaseClient.rpc("get_inventory_stock_day");
+  if (error) throw error;
+  dailyStockRows.innerHTML = (data || []).map((product) => `<tr>
+    <td data-label="Producto">${escapeHtml(product.product_name)}</td>
+    <td data-label="Stock inicial">${stockNumber.format(Number(product.opening_stock))}</td>
+    <td data-label="Unidades descontadas hoy">${stockNumber.format(Number(product.units_sold))}</td>
+    <td data-label="Stock final">${stockNumber.format(Number(product.closing_stock))}</td>
+  </tr>`).join("");
+  emptyDailyStock.hidden = Boolean(data?.length);
+  setMessage(dailyStockStatus, data?.length
+    ? `${data.length} ${data.length === 1 ? "producto con stock controlado" : "productos con stock controlado"} en el resumen de hoy.`
+    : "No hay stock controlado registrado para hoy.");
+}
+
+async function startDailyStock() {
+  startStockDayButton.disabled = true;
+  setMessage(dailyStockStatus, "Registrando el stock inicial de hoy…");
+  try {
+    const { data: count, error } = await supabaseClient.rpc("start_inventory_stock_day");
+    if (error) throw error;
+    await loadDailyStock();
+    setMessage(
+      dailyStockStatus,
+      count
+        ? `Se registró el stock inicial de ${count} productos. Las ventas posteriores se descontarán automáticamente.`
+        : "El stock inicial ya estaba registrado o no hay productos con control de stock.",
+      true,
+    );
+  } catch (error) {
+    console.error("No se pudo registrar el stock inicial del día.", error);
+    setMessage(dailyStockStatus, error.message || "No se pudo registrar el stock inicial.");
+  } finally {
+    startStockDayButton.disabled = false;
+  }
 }
 
 async function loadDeletedProducts() {
@@ -517,6 +560,10 @@ async function enterStaffDashboard(session) {
     await loadCategories();
     await loadInventory();
     await loadDeletedProducts();
+    loadDailyStock().catch((error) => {
+      console.error("No se pudo cargar el resumen diario de stock.", error);
+      setMessage(dailyStockStatus, `${error.message || "No se pudo cargar el resumen."} Ejecuta supabase-inventory-stock-tracking.sql en Supabase SQL Editor.`);
+    });
     loadSalesSummary().catch((error) => {
       console.error("No se pudieron cargar las métricas de ventas.", error);
       setMessage(dashboardStatus, `No se pudieron cargar las métricas: ${error.message || "error de conexión"}`);
@@ -545,7 +592,7 @@ function beginEditing(product) {
   productForm.elements.categoria_id.value = department?.id || "";
   productForm.elements.presentacion.value = product.presentacion || "";
   productForm.elements.codigo_barras.value = product.codigo_barras || "";
-  productForm.elements.stock.value = product.stock ?? 0;
+  productForm.elements.stock.value = product.stock_tracked ? product.stock ?? "" : "";
   productForm.elements.precio.value = product.precio;
   productForm.elements.precio_ves.value = product.precio_ves ?? "";
   productForm.elements.precio_oferta.value = product.precio_oferta ?? "";
@@ -602,10 +649,11 @@ async function saveProduct(event) {
     const regularPrice = Number(formData.get("precio"));
     const salePriceText = String(formData.get("precio_oferta") || "").trim();
     const salePrice = salePriceText ? Number(salePriceText) : null;
-    const inventoryStock = Number(formData.get("stock"));
+    const stockText = String(formData.get("stock") || "").trim();
+    const inventoryStock = stockText ? Number(stockText) : null;
     const vesPriceText = String(formData.get("precio_ves") || "").trim();
     const vesPrice = vesPriceText ? Number(vesPriceText) : null;
-    if (!Number.isFinite(inventoryStock) || inventoryStock < 0
+    if ((inventoryStock !== null && (!Number.isFinite(inventoryStock) || inventoryStock < 0))
       || (vesPrice !== null && (!Number.isFinite(vesPrice) || vesPrice < 0))) {
       throw new Error("El stock y el precio de referencia en VES deben ser valores válidos y no negativos.");
     }
@@ -619,6 +667,7 @@ async function saveProduct(event) {
       presentacion: String(formData.get("presentacion") || "").trim() || null,
       codigo_barras: String(formData.get("codigo_barras") || "").trim() || null,
       stock: inventoryStock,
+      stock_tracked: inventoryStock !== null,
       precio: regularPrice,
       precio_ves: vesPrice,
       precio_oferta: salePrice,
@@ -683,7 +732,7 @@ async function handleInventoryAction(event) {
   try {
     const { data, error } = await supabaseClient
       .from("productos")
-      .select("id,nombre,codigo_barras,stock,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
+      .select("id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
       .eq("id", productId)
       .single();
     if (error) throw error;
@@ -786,6 +835,13 @@ document.querySelector("#refresh-button")?.addEventListener("click", () => {
   loadInventory().catch((error) => {
     console.error("No se pudo actualizar la lista del inventario.", error);
     setMessage(dashboardStatus, error.message || "No se pudo actualizar el inventario.");
+  });
+});
+startStockDayButton?.addEventListener("click", startDailyStock);
+document.querySelector("#refresh-stock-day-button")?.addEventListener("click", () => {
+  loadDailyStock().catch((error) => {
+    console.error("No se pudo actualizar el resumen diario de stock.", error);
+    setMessage(dailyStockStatus, error.message || "No se pudo actualizar el resumen.");
   });
 });
 document.querySelector("#refresh-deleted-products-button")?.addEventListener("click", () => {

@@ -12,11 +12,13 @@
   const aliases = {
     barcode: ["codigodebarras", "codigo", "ean", "barcode", "codigoproducto", "plu"],
     name: ["descripcion", "descripciondelproducto", "producto", "nombre", "articulo", "item"],
+    presentation: ["presentacion", "presentacionproducto", "empaque", "contenido", "tamano", "unidadmedida", "size", "presentation"],
     department: ["departamento", "categoria", "departamentocategoria", "category", "department", "rubro"],
     usd: ["precioenusd", "preciodolares", "precioendolares", "preciodolar", "priceusd", "usd", "preciousd", "preciosd"],
     ves: ["precioenves", "precioves", "precioenbs", "preciobs", "preciobsf", "bolivares", "priceves", "ves"],
     stock: ["stockactual", "stock", "existencia", "existencias", "inventario", "cantidad"],
   };
+  const presentationPattern = /(?:\d+(?:[.,]\d+)?\s*(?:kgs?|g|gr|gramos?|mg|lts?|litros?|ml|cc|cl|oz|lbs?|unidades?|unds?|u|piezas?|packs?|paquetes?))$/i;
 
   function setStatus(message, isError = false, isSuccess = false) {
     status.textContent = message;
@@ -64,6 +66,16 @@
     return Number.isFinite(number) ? number : NaN;
   }
 
+  function getNameAndPresentation(name, explicitPresentation) {
+    if (explicitPresentation) return { name, presentation: explicitPresentation };
+    const match = name.match(presentationPattern);
+    if (!match) return { name, presentation: "" };
+    const baseName = name.slice(0, match.index).replace(/[\s,;:/-]+$/, "").trim();
+    return baseName
+      ? { name: baseName, presentation: match[0].trim() }
+      : { name, presentation: "" };
+  }
+
   function findFieldIndex(headers, keys) {
     const normalizedHeaders = headers.map(normalize);
     for (const key of keys) {
@@ -95,13 +107,13 @@
       const candidate = Object.fromEntries(
         Object.entries(aliases).map(([key, values]) => [key, findFieldIndex(sheetRows[rowIndex], values)]),
       );
-      if (Object.values(candidate).every((index) => index >= 0)) {
+      if (Object.entries(candidate).every(([key, index]) => ["stock", "presentation"].includes(key) || index >= 0)) {
         headerRow = rowIndex;
         fields = candidate;
         break;
       }
     }
-    if (headerRow < 0) throw new Error("No se encontraron encabezados compatibles para código de barras, descripción, departamento, USD, VES y stock en las primeras 20 filas.");
+    if (headerRow < 0) throw new Error("No se encontraron encabezados compatibles para código de barras, descripción, departamento y precios USD/VES en las primeras 20 filas.");
     const inputRows = sheetRows.slice(headerRow + 1)
       .map((cells, index) => ({ cells, rowNumber: headerRow + index + 2 }))
       .filter(({ cells }) => cells.some((cell) => String(cell ?? "").trim() !== ""));
@@ -124,7 +136,11 @@
     const seenBarcodes = new Set();
     preparedRows = inputRows.map(({ cells, rowNumber }) => {
       const barcode = String(cells[fields.barcode] ?? "").trim();
-      const name = String(cells[fields.name] ?? "").trim();
+      const sourceName = String(cells[fields.name] ?? "").trim();
+      const explicitPresentation = fields.presentation >= 0
+        ? String(cells[fields.presentation] ?? "").trim()
+        : "";
+      const { name, presentation } = getNameAndPresentation(sourceName, explicitPresentation);
       const departmentInput = String(cells[fields.department] ?? "").trim();
       const departmentKey = normalize(departmentInput);
       const existingCategory = categoryByName.get(departmentKey);
@@ -132,7 +148,8 @@
         || (departmentKey ? formatDepartmentName(departmentInput) : "");
       const priceUsd = parseNumber(cells[fields.usd]);
       const priceVes = parseNumber(cells[fields.ves]);
-      const stock = parseNumber(cells[fields.stock]);
+      const stockText = fields.stock >= 0 ? String(cells[fields.stock] ?? "").trim() : "";
+      const stock = stockText ? parseNumber(stockText) : null;
       const errors = [];
       if (!barcode || barcode.length > 80) errors.push("código");
       else if (seenBarcodes.has(barcode)) errors.push("código duplicado");
@@ -142,7 +159,7 @@
       else if (!existingCategory && departmentName.length > 120) errors.push("departamento supera 120 caracteres");
       if (!Number.isFinite(priceUsd) || priceUsd <= 0) errors.push("precio USD");
       if (!Number.isFinite(priceVes) || priceVes < 0) errors.push("precio VES");
-      if (!Number.isFinite(stock) || stock < 0 || stock > 100000000) errors.push("stock");
+      if (stockText && (!Number.isFinite(stock) || stock < 0 || stock > 100000000)) errors.push("stock");
       return {
         rowNumber,
         barcode,
@@ -153,6 +170,9 @@
         priceUsd,
         priceVes,
         stock,
+        stockTracked: stockText !== "",
+        stockColumnPresent: fields.stock >= 0,
+        presentation,
         error: errors.join(", "),
       };
     });
@@ -165,10 +185,11 @@
       <td data-label="Fila">${row.rowNumber}</td>
       <td data-label="Código">${escapeHtml(row.barcode)}</td>
       <td data-label="Producto">${escapeHtml(row.name)}</td>
+      <td data-label="Presentación">${escapeHtml(row.presentation || "—")}</td>
       <td data-label="Departamento">${escapeHtml(row.departmentName)}</td>
       <td data-label="USD">${Number.isFinite(row.priceUsd) ? row.priceUsd.toFixed(2) : "—"}</td>
       <td data-label="VES">${Number.isFinite(row.priceVes) ? row.priceVes.toFixed(2) : "—"}</td>
-      <td data-label="Stock">${Number.isFinite(row.stock) ? row.stock : "—"}</td>
+      <td data-label="Stock">${!row.stockColumnPresent ? "Se conserva" : row.stockTracked ? row.stock : "Sin control"}</td>
       <td data-label="Resultado" class="${row.error ? "import-row-error" : ""}">${escapeHtml(row.error || (row.categoryId ? "Listo" : "Se creará el departamento"))}</td>
     </tr>`).join("");
     previewWrap.hidden = false;
@@ -223,7 +244,7 @@
       for (let index = 0; index < barcodes.length; index += 500) {
         const { data, error } = await supabase
           .from("productos")
-          .select("codigo_barras,imagen_url,imagen_path,presentacion,precio_oferta,es_destacado")
+          .select("codigo_barras,imagen_url,imagen_path,presentacion,precio_oferta,es_destacado,disponible,stock,stock_tracked")
           .in("codigo_barras", barcodes.slice(index, index + 500));
         if (error) throw error;
         data.forEach((product) => existingByBarcode.set(product.codigo_barras, product));
@@ -237,15 +258,16 @@
           categoria_id: row.categoryId || categoryIdByDepartment.get(row.departmentKey),
           precio: row.priceUsd,
           precio_ves: row.priceVes,
-          stock: row.stock,
-          disponible: row.stock > 0,
+          stock: row.stockColumnPresent ? row.stock : existing?.stock ?? null,
+          stock_tracked: row.stockColumnPresent ? row.stockTracked : existing?.stock_tracked ?? false,
+          disponible: existing?.disponible ?? true,
           es_destacado: existing?.es_destacado || false,
           precio_oferta: existing?.precio_oferta !== null
             && existing?.precio_oferta !== undefined
             && Number(existing.precio_oferta) < row.priceUsd
             ? existing.precio_oferta
             : null,
-          presentacion: existing?.presentacion ?? null,
+          presentacion: row.presentation || existing?.presentacion || null,
           imagen_url: existing?.imagen_url || "assets/products/imported-product-placeholder.svg",
           imagen_path: existing?.imagen_path || null,
           updated_at: new Date().toISOString(),
