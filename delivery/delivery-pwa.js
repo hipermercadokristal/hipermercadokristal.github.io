@@ -15,7 +15,7 @@
   function setInstallButtonVisibility() {
     const installed = isInstalled();
     installButton.hidden = installed || isAndroid();
-    apkDownload.hidden = installed || !isAndroid();
+    apkDownload.hidden = false;
   }
 
   window.addEventListener("beforeinstallprompt", (event) => {
@@ -25,6 +25,11 @@
   });
 
   installButton.addEventListener("click", async () => {
+    if (isAndroid()) {
+      window.location.assign(apkDownload.href);
+      return;
+    }
+
     if (!deferredPrompt) {
       if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
         status.textContent = "Para instalar en iPhone, abre Compartir y selecciona «Añadir a pantalla de inicio».";
