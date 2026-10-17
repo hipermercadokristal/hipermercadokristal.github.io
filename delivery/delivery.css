@@ -7,7 +7,7 @@ button { cursor: pointer; }
 .delivery-shell { width: min(920px, calc(100% - 28px)); margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 0 40px; }
 .delivery-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 25px; }
 .delivery-header > a { display: inline-flex; align-items: center; gap: 11px; color: var(--forest); text-decoration: none; }
-.delivery-header img { width: 46px; height: 46px; border-radius: 13px; }
+.delivery-header img { width: 46px; height: 46px; border: 3px solid #fff; border-radius: 15px; box-shadow: 0 0 0 1px var(--line); }
 .delivery-header span { display: grid; }
 .delivery-header strong { font-size: 15px; }
 .delivery-header small, .dashboard-heading p, .delivery-auth > p:not(.eyebrow), .scanner > p { color: var(--muted); }

@@ -8,14 +8,19 @@
     return /Android/i.test(navigator.userAgent);
   }
 
+  function isAppleMobile() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent)
+      || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
   function isInstalled() {
     return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
   }
 
   function setInstallButtonVisibility() {
     const installed = isInstalled();
-    installButton.hidden = installed || isAndroid();
-    apkDownload.hidden = false;
+    installButton.hidden = installed || isAndroid() || isAppleMobile();
+    apkDownload.hidden = installed || !isAndroid();
   }
 
   window.addEventListener("beforeinstallprompt", (event) => {
@@ -31,13 +36,8 @@
     }
 
     if (!deferredPrompt) {
-      if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-        status.textContent = "Para instalar en iPhone, abre Compartir y selecciona «Añadir a pantalla de inicio».";
-        status.classList.remove("error");
-      } else {
-        status.textContent = "Abre el menú del navegador y selecciona «Instalar aplicación» o «Añadir a pantalla de inicio».";
-        status.classList.remove("error");
-      }
+      status.textContent = "Abre el menú del navegador y selecciona «Instalar aplicación» o «Añadir a pantalla de inicio».";
+      status.classList.remove("error");
       return;
     }
 
