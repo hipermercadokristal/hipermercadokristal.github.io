@@ -50,6 +50,22 @@ create table if not exists public.store_orders (
 );
 
 alter table public.store_orders
+  add column if not exists delivery_fee_usd numeric(10, 2) not null default 0;
+
+update public.store_orders
+set delivery_fee_usd = 0
+where delivery_fee_usd is null;
+
+alter table public.store_orders
+  alter column delivery_fee_usd set default 0,
+  alter column delivery_fee_usd set not null;
+
+alter table public.store_orders
+  drop constraint if exists store_orders_delivery_fee_usd_check,
+  add constraint store_orders_delivery_fee_usd_check
+    check (delivery_fee_usd in (0, 4));
+
+alter table public.store_orders
   drop constraint if exists mobile_payment_requires_reference_and_bank,
   drop constraint if exists mobile_payment_requires_proof,
   drop constraint if exists mobile_payment_evidence_choice;
@@ -214,6 +230,7 @@ declare
   selected_product public.productos%rowtype;
   item_quantity integer;
   order_total numeric(12, 2) := 0;
+  delivery_fee numeric(10, 2) := 0;
   created_order_id uuid;
   initial_payment_status text;
 begin
@@ -307,7 +324,8 @@ begin
     end if;
     order_total := order_total + round(coalesce(selected_product.precio_oferta, selected_product.precio) * item_quantity, 2);
   end loop;
-  order_total := round(order_total, 2);
+  delivery_fee := case when p_fulfillment = 'delivery' then 4.00 else 0.00 end;
+  order_total := round(order_total + delivery_fee, 2);
   if order_total <= 0 then
     raise exception 'El total del pedido no es válido.';
   end if;
@@ -321,12 +339,13 @@ begin
 
   insert into public.store_orders (
     id, user_id, customer_name, customer_phone, fulfillment, delivery_address,
+    delivery_fee_usd,
     payment_method, payment_bank_code, payment_reference, payment_proof_path,
     exchange_rate, total_ves, total_usd, payment_status
   )
   values (
     p_order_id, auth.uid(), trim(p_customer_name), trim(p_customer_phone), p_fulfillment,
-    nullif(trim(p_delivery_address), ''), p_payment_method,
+    nullif(trim(p_delivery_address), ''), delivery_fee, p_payment_method,
     nullif(trim(p_payment_bank_code), ''), nullif(trim(p_payment_reference), ''),
     nullif(trim(p_payment_proof_path), ''),
     p_exchange_rate,

@@ -92,9 +92,11 @@
   }
 
   function showCheckoutTotal() {
-    const total = requestedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const subtotal = requestedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const deliveryFee = checkoutForm.elements.fulfillment.value === "delivery" ? 4 : 0;
+    const total = subtotal + deliveryFee;
     document.querySelector("#checkout-total").textContent =
-      `Total estimado: ${currency.format(total)}. El total definitivo se calcula con los precios actuales de la tienda.`;
+      `${deliveryFee ? `Productos: ${currency.format(subtotal)} · Delivery: ${currency.format(deliveryFee)} · ` : ""}Total estimado: ${currency.format(total)}. El total definitivo se calcula con los precios actuales de la tienda.`;
     const copyButton = document.querySelector("#checkout-copy-ves");
     const rateStatus = document.querySelector("#checkout-rate-status");
     if (exchangeRate !== null) {
@@ -292,6 +294,7 @@
       checkoutForm.elements.delivery_longitude.value = "";
       setStatus("#checkout-location-status", "");
     }
+    showCheckoutTotal();
   }
 
   function populateCheckout(items) {
@@ -299,7 +302,6 @@
     checkoutForm.elements.delivery_latitude.value = "";
     checkoutForm.elements.delivery_longitude.value = "";
     setStatus("#checkout-location-status", "");
-    showCheckoutTotal();
     if (currentUser) {
       document.querySelector('[name="customer_name"]').value =
         document.querySelector("#customer-profile-name").value || currentUser.user_metadata?.full_name || "";
@@ -413,6 +415,7 @@
 
       document.querySelector("#receipt-order-id").textContent = order.order_id;
       document.querySelector("#receipt-total").textContent = currency.format(Number(order.total_usd));
+      document.querySelector("#receipt-delivery-fee-row").hidden = !delivery;
       document.querySelector("#receipt-total-ves").textContent =
         order.total_ves === null ? "No disponible" : formatBolivares(Number(order.total_ves));
       document.querySelector("#receipt-payment-status").textContent =
@@ -570,6 +573,7 @@
         <p class="order-payment-status ${isMobilePaymentPending ? "pending" : ""}">${escapeHtml(paymentStatusLabels[order.payment_status] || "Estado de pago pendiente")}</p>
         ${timelineMarkup(order.order_status, order.fulfillment)}
         <ul class="customer-order-items">${items.map((item) => `<li><span>${escapeHtml(item.product_name)} × ${item.quantity}</span><strong>${currency.format(Number(item.line_total_usd))}</strong></li>`).join("")}</ul>
+        ${Number(order.delivery_fee_usd) > 0 ? `<p class="customer-order-delivery">Cargo de delivery: ${currency.format(Number(order.delivery_fee_usd))}</p>` : ""}
         <div class="customer-order-total"><span>Total</span><strong>${currency.format(Number(order.total_usd))}${order.total_ves === null ? "" : `<small>${escapeHtml(formatBolivares(Number(order.total_ves)))} · referencial</small>`}</strong></div>
         <p class="customer-order-delivery">${order.fulfillment === "delivery" ? "Delivery" : "Retiro en tienda"}${order.fulfillment === "delivery" && order.delivery_address ? ` · ${escapeHtml(order.delivery_address)}` : ""}${order.fulfillment === "delivery" && order.delivery_reference ? ` · Referencia: ${escapeHtml(order.delivery_reference)}` : ""}</p>
         ${qrPurpose ? `<section class="order-qr-ticket" data-order-qr="${escapeHtml(order.id)}" data-qr-purpose="${qrPurpose}"><h3>Confirma la entrega con una de estas opciones</h3><div class="order-delivery-verification-options"><div><h4>Opción 1 · Código QR</h4><img alt="Código QR de confirmación de entrega" /><p class="order-qr-status" role="status" aria-live="polite">Preparando código QR…</p></div><div class="order-delivery-manual-code"><h4>Opción 2 · Código manual</h4><strong aria-label="Código de entrega">----</strong><p class="order-code-status" role="status" aria-live="polite">Preparando código de entrega…</p></div></div></section>` : ""}
@@ -638,7 +642,7 @@
     setStatus("#orders-status", "Cargando tus pedidos…");
     const { data: orders, error: ordersError } = await supabase
       .from("store_orders")
-      .select("id,fulfillment,delivery_address,delivery_reference,payment_method,payment_status,order_status,total_usd,total_ves,created_at")
+      .select("id,fulfillment,delivery_address,delivery_reference,delivery_fee_usd,payment_method,payment_status,order_status,total_usd,total_ves,created_at")
       .eq("user_id", currentUser.id)
       .order("created_at", { ascending: false });
     if (ordersError) throw ordersError;

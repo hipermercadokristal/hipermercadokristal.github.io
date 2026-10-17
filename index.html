@@ -33,7 +33,7 @@
     <script src="/auth-routing.js?v=role-routing-v2-20261017" defer></script>
     <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
     <script src="app.js?v=header-bcv-mobile-downloads-v2-20261017" defer></script>
-    <script src="/client/app-orders.js?v=delivery-manual-code-20261017" defer></script>
+    <script src="/client/app-orders.js?v=delivery-fee-courier-pay-v1-20261017" defer></script>
     <script src="pwa.js?v=header-bcv-mobile-downloads-v2-20261017" defer></script>
   </head>
   <body id="inicio">
@@ -642,7 +642,7 @@
             <fieldset class="checkout-choice-group">
               <legend>¿Cómo recibirás tu pedido?</legend>
               <label><input type="radio" name="fulfillment" value="pickup" checked /> Retiro en tienda · Villa Bruzual</label>
-              <label><input type="radio" name="fulfillment" value="delivery" /> Delivery a domicilio</label>
+              <label><input type="radio" name="fulfillment" value="delivery" /> Delivery a domicilio (+$4.00)</label>
             </fieldset>
             <label id="store-delivery-address-row" hidden>Dirección detallada<textarea name="delivery_address" autocomplete="street-address" rows="3" maxlength="300" placeholder="Sector, calle, número de casa o edificio"></textarea></label>
             <label id="store-delivery-reference-row" hidden>Punto de referencia<textarea name="delivery_reference" rows="2" maxlength="200" placeholder="Color de la casa, comercio cercano, indicaciones"></textarea></label>
@@ -700,7 +700,7 @@
             <span class="receipt-check" aria-hidden="true">✓</span>
             <h3 id="receipt-heading">Pedido recibido</h3>
             <p>Este recibo confirma que registramos tu pedido; no es una factura fiscal ni confirma el pago.</p>
-            <dl><div><dt>Número de pedido</dt><dd id="receipt-order-id"></dd></div><div><dt>Total estimado</dt><dd id="receipt-total"></dd></div><div><dt>Equivalente referencial</dt><dd id="receipt-total-ves">No disponible</dd></div><div><dt>Estado del pago</dt><dd id="receipt-payment-status"></dd></div></dl>
+            <dl><div><dt>Número de pedido</dt><dd id="receipt-order-id"></dd></div><div id="receipt-delivery-fee-row" hidden><dt>Delivery</dt><dd>$4.00</dd></div><div><dt>Total estimado</dt><dd id="receipt-total"></dd></div><div><dt>Equivalente referencial</dt><dd id="receipt-total-ves">No disponible</dd></div><div><dt>Estado del pago</dt><dd id="receipt-payment-status"></dd></div></dl>
             <section class="receipt-payment-check" id="receipt-payment-check" hidden>
               <button class="checkout-button" id="receipt-refresh-payment" type="button">Ya pagué · consultar estado</button>
               <p class="account-status" id="receipt-verification-status" role="status" aria-live="polite"></p>

@@ -7,7 +7,7 @@
     <title>Administración | Hipermercado Kristal</title>
     <link rel="manifest" href="/admin/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="admin.css?v=stock-tracking-presentation-20261017" />
+    <link rel="stylesheet" href="admin.css?v=courier-payroll-v1-20261017" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
@@ -15,7 +15,7 @@
     <script src="../assets/vendor/xlsx-0.20.3.min.js"></script>
     <script src="../admin/staff-pwa.js?v=staff-pwa-20261017" defer></script>
     <script src="../admin/inventory-import.js?v=stock-tracking-presentation-20261017" defer></script>
-    <script src="admin.js?v=stock-tracking-presentation-20261017" defer></script>
+    <script src="admin.js?v=courier-payroll-v1-20261017" defer></script>
   </head>
   <body>
     <main class="admin-shell" data-staff-page="admin">
@@ -65,6 +65,30 @@
             </table>
           </div>
           <p class="empty-inventory" id="empty-daily-stock" hidden>Hoy aún no se registró stock controlado. Usa “Registrar stock inicial” para tomar la apertura del día.</p>
+        </section>
+
+        <section class="panel courier-payments-panel" aria-labelledby="courier-payments-heading">
+          <div class="panel-heading">
+            <div><p class="eyebrow">PAGOS DE DELIVERY</p><h2 id="courier-payments-heading">Saldo de repartidores</h2></div>
+            <button class="secondary-button" id="refresh-courier-payments-button" type="button">Actualizar saldos</button>
+          </div>
+          <p class="intro">Cada entrega completada suma $4 al repartidor asignado. Al registrar el pago, el saldo pendiente se liquida y queda guardado en el historial.</p>
+          <p class="status-message" id="courier-payments-status" role="status" aria-live="polite"></p>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Repartidor</th><th>Entregas completadas</th><th>Saldo pendiente</th><th>Acción</th></tr></thead>
+              <tbody id="courier-balance-rows"></tbody>
+            </table>
+          </div>
+          <p class="empty-inventory" id="empty-courier-balances" hidden>No hay repartidores registrados.</p>
+          <h3 class="courier-payout-history-heading">Historial de pagos realizados</h3>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Fecha</th><th>Repartidor</th><th>Monto</th><th>Registrado por</th></tr></thead>
+              <tbody id="courier-payout-history-rows"></tbody>
+            </table>
+          </div>
+          <p class="empty-inventory" id="empty-courier-payout-history" hidden>Aún no hay pagos registrados.</p>
         </section>
 
         <details class="product-form-compact" id="product-form-details">

@@ -1,10 +1,10 @@
-const CACHE_NAME = "hipermercado-kristal-v37";
+const CACHE_NAME = "hipermercado-kristal-v39";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/styles.css",
   "/app.js?v=header-bcv-mobile-downloads-v2-20261017",
-  "/client/app-orders.js?v=delivery-manual-code-20261017",
+  "/client/app-orders.js?v=delivery-fee-courier-pay-v1-20261017",
   "/auth-routing.js",
   "/login/",
   "/login/index.html",
@@ -35,8 +35,8 @@ const APP_SHELL = [
   "/admin/manifest.webmanifest",
   "/admin/staff-pwa.js",
   "/admin/inventory-import.js?v=stock-tracking-presentation-20261017",
-  "/admin/admin.css?v=stock-tracking-presentation-20261017",
-  "/admin/admin.js?v=stock-tracking-presentation-20261017",
+  "/admin/admin.css?v=courier-payroll-v1-20261017",
+  "/admin/admin.js?v=courier-payroll-v1-20261017",
   "/supabase-config.js",
   "/supabase-client.js",
   "/restaurante/",

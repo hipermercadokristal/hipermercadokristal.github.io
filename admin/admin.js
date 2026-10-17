@@ -25,6 +25,12 @@ const dailyStockRows = document.querySelector("#daily-stock-rows");
 const emptyDailyStock = document.querySelector("#empty-daily-stock");
 const dailyStockStatus = document.querySelector("#daily-stock-status");
 const startStockDayButton = document.querySelector("#start-stock-day-button");
+const courierBalanceRows = document.querySelector("#courier-balance-rows");
+const emptyCourierBalances = document.querySelector("#empty-courier-balances");
+const courierPayoutHistoryRows = document.querySelector("#courier-payout-history-rows");
+const emptyCourierPayoutHistory = document.querySelector("#empty-courier-payout-history");
+const courierPaymentsStatus = document.querySelector("#courier-payments-status");
+const refreshCourierPaymentsButton = document.querySelector("#refresh-courier-payments-button");
 const currency = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
 const bolivares = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const stockNumber = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 3 });
@@ -197,6 +203,66 @@ async function startDailyStock() {
   }
 }
 
+async function loadCourierCompensation() {
+  setMessage(courierPaymentsStatus, "Cargando saldos e historial de pagos…");
+  const [
+    { data: balances, error: balanceError },
+    { data: payouts, error: payoutError },
+  ] = await Promise.all([
+    supabaseClient.rpc("get_courier_balance_summary"),
+    supabaseClient.rpc("get_courier_payout_history"),
+  ]);
+  if (balanceError) throw balanceError;
+  if (payoutError) throw payoutError;
+
+  courierBalanceRows.innerHTML = (balances || []).map((courier) => {
+    const balance = Number(courier.balance_usd);
+    return `<tr>
+      <td data-label="Repartidor">${escapeHtml(courier.courier_name)}${courier.courier_email ? `<small class="courier-email">${escapeHtml(courier.courier_email)}</small>` : ""}</td>
+      <td data-label="Entregas completadas">${Number(courier.completed_deliveries)}</td>
+      <td data-label="Saldo pendiente">${currency.format(balance)}</td>
+      <td data-label="Acción"><button class="payout-button" type="button" data-settle-courier="${escapeHtml(courier.courier_id)}" data-courier-name="${escapeHtml(courier.courier_name)}" data-balance="${balance}"${balance > 0 ? "" : " disabled"}>Registrar pago</button></td>
+    </tr>`;
+  }).join("");
+  emptyCourierBalances.hidden = Boolean(balances?.length);
+
+  courierPayoutHistoryRows.innerHTML = (payouts || []).map((payout) => {
+    const paidAt = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", timeStyle: "short" })
+      .format(new Date(payout.paid_at));
+    return `<tr>
+      <td data-label="Fecha">${escapeHtml(paidAt)}</td>
+      <td data-label="Repartidor">${escapeHtml(payout.courier_name)}</td>
+      <td data-label="Monto">${currency.format(Number(payout.amount_usd))}</td>
+      <td data-label="Registrado por">${escapeHtml(payout.paid_by_name)}</td>
+    </tr>`;
+  }).join("");
+  emptyCourierPayoutHistory.hidden = Boolean(payouts?.length);
+  setMessage(courierPaymentsStatus, "Saldo actualizado: $4 por cada delivery completado.");
+}
+
+async function settleCourierBalance(button) {
+  const courierId = button.dataset.settleCourier;
+  const courierName = button.dataset.courierName;
+  const balance = Number(button.dataset.balance);
+  if (!courierId || !Number.isFinite(balance) || balance <= 0) return;
+  if (!window.confirm(`¿Confirmas que pagaste ${currency.format(balance)} a ${courierName}? Al registrar el pago, el saldo pendiente quedará en $0.`)) return;
+
+  button.disabled = true;
+  setMessage(courierPaymentsStatus, "Registrando el pago…");
+  try {
+    const { data: amount, error } = await supabaseClient.rpc("settle_courier_balance", {
+      p_courier_id: courierId,
+    });
+    if (error) throw error;
+    await loadCourierCompensation();
+    setMessage(courierPaymentsStatus, `Pago de ${currency.format(Number(amount))} registrado. El saldo pendiente de ${courierName} quedó liquidado.`, true);
+  } catch (error) {
+    console.error("No se pudo registrar el pago al repartidor.", error);
+    setMessage(courierPaymentsStatus, error.message || "No se pudo registrar el pago.");
+    button.disabled = false;
+  }
+}
+
 async function loadDeletedProducts() {
   if (!deletedProductRows) return;
   const { data, error } = await supabaseClient
@@ -303,6 +369,7 @@ function buildWhatsAppOrderLink(order, items) {
     `Pedido ${order.id}`,
     `Cliente: ${order.customer_name} · ${order.customer_phone}`,
     `Entrega: ${order.fulfillment === "delivery" ? `Delivery — ${order.delivery_address || ""}` : "Retiro en tienda"}`,
+    ...(Number(order.delivery_fee_usd) > 0 ? [`Cargo de delivery: ${currency.format(Number(order.delivery_fee_usd))}`] : []),
     `Pago: ${order.payment_method} · ${order.payment_status}`,
     `Total: ${currency.format(Number(order.total_usd))}`,
     ...(order.total_ves === null ? [] : [`Equivalente referencial: Bs. ${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(order.total_ves))}`]),
@@ -315,7 +382,7 @@ async function loadAdminOrders() {
   setMessage(adminOrdersStatus, "Cargando pedidos…");
   const { data: orders, error } = await supabaseClient
     .from("store_orders")
-    .select("id,user_id,assigned_courier_id,customer_name,customer_phone,customer_document,fulfillment,delivery_address,delivery_reference,delivery_latitude,delivery_longitude,payment_method,payment_bank_code,payment_reference,payment_proof_path,payment_status,order_status,total_usd,total_ves,created_at")
+    .select("id,user_id,assigned_courier_id,customer_name,customer_phone,customer_document,fulfillment,delivery_address,delivery_reference,delivery_fee_usd,delivery_latitude,delivery_longitude,payment_method,payment_bank_code,payment_reference,payment_proof_path,payment_status,order_status,total_usd,total_ves,created_at")
     .not("order_status", "in", "(delivered,cancelled)")
     .order("created_at", { ascending: false })
     .limit(100);
@@ -396,6 +463,7 @@ async function loadAdminOrders() {
       <header class="admin-order-heading"><div><span class="eyebrow">${escapeHtml(date)}</span><h3>Pedido ${escapeHtml(order.id.slice(0, 8).toUpperCase())}</h3></div><strong>${currency.format(Number(order.total_usd))}${order.total_ves === null ? "" : `<small>Bs. ${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(order.total_ves))} · referencial</small>`}</strong></header>
       <p><strong>${escapeHtml(order.customer_name)}</strong> · ${escapeHtml(order.customer_phone)}${order.customer_document ? ` · C.I.: ${escapeHtml(order.customer_document)}` : ""}</p>
       <p>${order.fulfillment === "delivery" ? `Delivery: ${escapeHtml(order.delivery_address || "")}${order.delivery_reference ? ` · Referencia: ${escapeHtml(order.delivery_reference)}` : ""}${order.delivery_latitude !== null && order.delivery_longitude !== null ? ` · GPS: ${escapeHtml(`${order.delivery_latitude}, ${order.delivery_longitude}`)}` : ""}` : "Retiro en tienda"} · Pago: ${escapeHtml(order.payment_method)}</p>
+      ${Number(order.delivery_fee_usd) > 0 ? `<p>Cargo de delivery: ${currency.format(Number(order.delivery_fee_usd))}</p>` : ""}
       ${order.payment_method === "mobile_payment" ? `<p>Banco: ${escapeHtml(order.payment_bank_code || "—")} · Referencia: ${escapeHtml(order.payment_reference || "—")}</p>` : ""}
       <ul class="admin-order-items">${orderItems.map((item) => `<li>${escapeHtml(item.product_name)} × ${item.quantity} <span>${currency.format(Number(item.line_total_usd))}</span></li>`).join("")}</ul>
       <div class="admin-order-proof">${proofLink}${proofError ? `<span role="alert">${escapeHtml(proofError)}</span>` : ""}</div>
@@ -469,6 +537,10 @@ function subscribeToAdminOrders() {
       loadAdminOrders().catch((error) => {
         console.error("No se pudo actualizar la bandeja de pedidos.", error);
         setMessage(adminOrdersStatus, error.message || "No se pudo actualizar la bandeja.", false);
+      });
+      loadCourierCompensation().catch((error) => {
+        console.error("No se pudo actualizar el saldo de delivery.", error);
+        setMessage(courierPaymentsStatus, error.message || "No se pudo actualizar el saldo de delivery.");
       });
     })
     .subscribe();
@@ -560,6 +632,10 @@ async function enterStaffDashboard(session) {
     await loadCategories();
     await loadInventory();
     await loadDeletedProducts();
+    loadCourierCompensation().catch((error) => {
+      console.error("No se pudieron cargar los saldos de delivery.", error);
+      setMessage(courierPaymentsStatus, `${error.message || "No se pudieron cargar los saldos."} Ejecuta supabase-courier-payments.sql en Supabase SQL Editor.`);
+    });
     loadDailyStock().catch((error) => {
       console.error("No se pudo cargar el resumen diario de stock.", error);
       setMessage(dailyStockStatus, `${error.message || "No se pudo cargar el resumen."} Ejecuta supabase-inventory-stock-tracking.sql en Supabase SQL Editor.`);
@@ -843,6 +919,16 @@ document.querySelector("#refresh-stock-day-button")?.addEventListener("click", (
     console.error("No se pudo actualizar el resumen diario de stock.", error);
     setMessage(dailyStockStatus, error.message || "No se pudo actualizar el resumen.");
   });
+});
+refreshCourierPaymentsButton?.addEventListener("click", () => {
+  loadCourierCompensation().catch((error) => {
+    console.error("No se pudieron actualizar los saldos de delivery.", error);
+    setMessage(courierPaymentsStatus, error.message || "No se pudieron actualizar los saldos.");
+  });
+});
+courierBalanceRows?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-settle-courier]");
+  if (button) settleCourierBalance(button);
 });
 document.querySelector("#refresh-deleted-products-button")?.addEventListener("click", () => {
   loadDeletedProducts().catch((error) => {
