@@ -8,6 +8,7 @@ create index if not exists store_orders_courier_status_idx
   where fulfillment = 'delivery';
 
 drop policy if exists "Customers and admins can read orders" on public.store_orders;
+drop policy if exists "Customers and authorized staff can read orders" on public.store_orders;
 create policy "Customers and authorized staff can read orders"
   on public.store_orders for select to authenticated
   using (
@@ -20,6 +21,7 @@ create policy "Customers and authorized staff can read orders"
   );
 
 drop policy if exists "Customers and admins can read order items" on public.store_order_items;
+drop policy if exists "Customers and authorized staff can read order items" on public.store_order_items;
 create policy "Customers and authorized staff can read order items"
   on public.store_order_items for select to authenticated
   using (
@@ -39,6 +41,7 @@ create policy "Customers and authorized staff can read order items"
   );
 
 drop policy if exists "Customers and admins can view payment proofs" on storage.objects;
+drop policy if exists "Customers and payment staff can view payment proofs" on storage.objects;
 create policy "Customers and payment staff can view payment proofs"
   on storage.objects for select to authenticated
   using (
