@@ -927,7 +927,10 @@ document.querySelector("#google-sign-in-button")?.addEventListener("click", asyn
     const redirectTo = new URL(window.location.pathname, window.location.origin).toString();
     const { error } = await supabaseClient.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo },
+      options: {
+        redirectTo,
+        queryParams: { prompt: "select_account" },
+      },
     });
     if (error) throw error;
   } catch (error) {

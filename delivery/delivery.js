@@ -326,7 +326,10 @@
       const redirectTo = new URL(window.location.pathname, window.location.origin).toString();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo },
+        options: {
+          redirectTo,
+          queryParams: { prompt: "select_account" },
+        },
       });
       if (error) throw error;
     } catch (error) {
