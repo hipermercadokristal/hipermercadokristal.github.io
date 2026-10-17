@@ -424,24 +424,33 @@
       });
 
       if (duplicateProducts.size) {
-        const duplicateIds = [...duplicateProducts.keys()];
+        const duplicateUpdates = [...duplicateProducts.values()];
+        const duplicateIds = duplicateUpdates.map((product) => product.id);
         setStatus(`Consolidando ${duplicateIds.length} producto${duplicateIds.length === 1 ? "" : "s"} duplicado${duplicateIds.length === 1 ? "" : "s"}…`);
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
         if (!user) throw new Error("La sesión de administración expiró. Inicia sesión de nuevo para consolidar duplicados.");
         const importedBarcodes = new Set(preparedRows.map((row) => row.barcode));
-        const duplicateUpdates = [...duplicateProducts.values()].map((product) => ({
-          ...product,
-          deleted_at: new Date().toISOString(),
-          deleted_by: user.id,
-          disponible: false,
-          es_destacado: false,
-          codigo_barras: importedBarcodes.has(product.codigo_barras) ? null : product.codigo_barras,
-          updated_at: new Date().toISOString(),
-        }));
+        const barcodeConflicts = duplicateUpdates
+          .filter((product) => importedBarcodes.has(product.codigo_barras))
+          .map((product) => product.id);
+        if (barcodeConflicts.length) {
+          const { error } = await supabase
+            .from("productos")
+            .update({ codigo_barras: null, updated_at: new Date().toISOString() })
+            .in("id", barcodeConflicts);
+          if (error) throw error;
+        }
         const { error } = await supabase
           .from("productos")
-          .upsert(duplicateUpdates, { onConflict: "id" });
+          .update({
+            deleted_at: new Date().toISOString(),
+            deleted_by: user.id,
+            disponible: false,
+            es_destacado: false,
+            updated_at: new Date().toISOString(),
+          })
+          .in("id", duplicateIds);
         if (error) throw error;
         consolidatedDuplicateCount = duplicateIds.length;
       }
