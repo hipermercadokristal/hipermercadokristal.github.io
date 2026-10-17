@@ -6,9 +6,9 @@ El sitio consulta los productos en Supabase y por eso debe abrirse desde un serv
 
 ## Instalar la tienda como app
 
-En teléfonos, el botón **Instalar App de Hipermercado Kristal** aparece encima de la navegación inferior; en computadora está disponible en la franja superior. En Android y navegadores compatibles, al tocarlo se abre la confirmación nativa de instalación. Safari en iPhone/iPad no ofrece el evento `beforeinstallprompt`, por lo que muestra las instrucciones para **Compartir → Añadir a pantalla de inicio**. La app se abre en una ventana independiente con el nombre y el logo de Hipermercado Kristal.
+La franja superior ofrece **Descargar iOS**, que indica cómo añadir la tienda a la pantalla de inicio desde Safari, y **Descargar Android**, que descarga el APK. En Android y navegadores compatibles, el botón de instalación PWA abre la confirmación nativa; Safari en iPhone/iPad requiere **Compartir → Añadir a pantalla de inicio**. La app se abre en una ventana independiente con el nombre y el logo de Hipermercado Kristal.
 
-En Android también está disponible **Descargar APK Android** para instalar la aplicación nativa, además de la opción PWA. El enlace descarga el APK generado por GitHub Actions en cada publicación. Android puede pedir autorización para instalar aplicaciones descargadas desde el navegador; confirma que el archivo provenga de `hipermercadokristal.github.io`. El APK es solo para Android; en Windows se recomienda instalar Caja y Administración desde Chrome o Edge, y en iPhone usar Añadir a pantalla de inicio.
+La tasa BCV oficial del día aparece centrada en el encabezado de la tienda y se comparte con el dato guardado por Restaurante; si no hay conexión, se identifica como última tasa. Android puede pedir autorización para instalar aplicaciones descargadas desde el navegador; confirma que el archivo provenga de `hipermercadokristal.github.io`. El APK es solo para Android; en Windows se recomienda instalar Caja y Administración desde Chrome o Edge.
 
 La instalación requiere que la tienda esté publicada por HTTPS. La app conserva la estructura de la tienda para abrirla sin conexión, pero consultar el catálogo, iniciar sesión, registrar pedidos, adjuntar comprobantes y recibir actualizaciones requiere Internet.
 

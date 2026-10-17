@@ -48,6 +48,11 @@ button { color: inherit; }
 .header-instagram:hover, .header-tiktok:hover { transform: translateY(-2px); box-shadow: 0 5px 12px #18352a20; }
 .header-instagram svg { display: block; width: 38px; height: 38px; }
 .header-tiktok svg { display: block; width: 32px; height: 32px; }
+.header-bcv-rate { display: grid; flex: 0 0 auto; justify-items: center; gap: 2px; margin-left: auto; color: #506156; line-height: 1.2; text-align: center; white-space: nowrap; }
+.header-bcv-rate > span { color: #748178; font-size: 9px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.header-bcv-rate > strong { color: var(--forest); font-size: 12px; font-weight: 800; }
+.header-bcv-rate > small { min-height: 11px; color: #89948d; font-size: 8px; }
+.header-bcv-rate.is-stale > strong { color: #8a6b17; }
 .header-action { display: inline-flex; align-items: center; gap: 7px; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
 .action-icon svg { width: 21px; height: 21px; fill: none; stroke: var(--forest); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .action-copy { display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
@@ -466,6 +471,7 @@ main { min-height: 55vh; padding-bottom: 40px; overscroll-behavior-y: none; }
   .search-form { grid-column: 1 / -1; grid-row: 2; width: 100%; }
   .header-instagram, .header-tiktok { display: none; }
   .header-tools { grid-column: 2; grid-row: 1; gap: 15px; margin: 0; }
+  .header-bcv-rate { grid-column: 1 / -1; grid-row: 3; justify-self: center; margin: 0; }
   .icon-action { gap: 3px; font-size: 9px; }
   .icon-action > svg, .cart-icon-wrap > svg { width: 21px; height: 21px; }
   .category-nav { position: relative; }

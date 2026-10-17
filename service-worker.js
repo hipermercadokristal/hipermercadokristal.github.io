@@ -1,16 +1,16 @@
-const CACHE_NAME = "hipermercado-kristal-v31";
+const CACHE_NAME = "hipermercado-kristal-v34";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/styles.css",
-  "/app.js",
+  "/app.js?v=header-bcv-mobile-downloads-v2-20261017",
   "/client/app-orders.js",
   "/auth-routing.js",
   "/login/",
   "/login/index.html",
   "/login/login.css",
   "/login/login.js",
-  "/pwa.js",
+  "/pwa.js?v=header-bcv-mobile-downloads-v2-20261017",
   "/manifest.webmanifest",
   "/assets/kristal-logo.png",
   "/assets/kristal-favicon.png",
@@ -50,7 +50,7 @@ const APP_SHELL = [
   "/restaurante/assets/payment-banks/mercantil.png",
   "/restaurante/assets/payment-banks/provincial.png",
 ];
-const APP_SHELL_PATHS = new Set(APP_SHELL);
+const APP_SHELL_PATHS = new Set(APP_SHELL.map((path) => new URL(path, self.location.origin).pathname));
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

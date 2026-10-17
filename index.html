@@ -26,15 +26,15 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=unified-login-native-ux-20261017" />
+    <link rel="stylesheet" href="styles.css?v=header-bcv-mobile-downloads-20261017" />
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
     <script src="/auth-routing.js?v=role-routing-v2-20261017" defer></script>
     <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
-    <script src="app.js" defer></script>
+    <script src="app.js?v=header-bcv-mobile-downloads-v2-20261017" defer></script>
     <script src="/client/app-orders.js?v=delivery-only-order-qr-20261017" defer></script>
-    <script src="pwa.js?v=android-apk-download-20261017" defer></script>
+    <script src="pwa.js?v=header-bcv-mobile-downloads-v2-20261017" defer></script>
   </head>
   <body id="inicio">
     <header class="mobile-app-bar" aria-label="Encabezado de la app">
@@ -60,9 +60,9 @@
         <p><strong>¡Envío gratis en compras desde USD 50!</strong></p>
         <button class="announcement-install" id="install-app-button" data-install-app type="button">
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v8m0 0 3-3m-3 3-3-3M2.5 10.5v3h11v-3" /></svg>
-          Instalar app
+          <span>Descargar iOS</span>
         </button>
-        <a class="announcement-apk-download" href="/downloads/hipermercado-kristal.apk" download="hipermercado-kristal.apk" data-apk-download hidden>Descargar APK Android</a>
+        <a class="announcement-apk-download" href="/downloads/hipermercado-kristal.apk" download="hipermercado-kristal.apk" data-apk-download hidden>Descargar Android</a>
       </div>
       <div class="header-main page-container">
         <a class="brand" href="/" data-route aria-label="Hipermercado Kristal, inicio">
@@ -82,6 +82,12 @@
         <a class="header-tiktok" href="https://www.tiktok.com/@hipermercadokristal" target="_blank" rel="noopener noreferrer" aria-label="Visita nuestro TikTok">
           <svg viewBox="0 0 48 48" aria-hidden="true"><rect width="48" height="48" rx="12" fill="#000" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" transform="translate(-1.4 1.2)" fill="#25f4ee" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" transform="translate(1.4 -.6)" fill="#fe2c55" /><path d="M27.1 9h6.4c.5 4.1 2.8 6.8 7 7.4v6.3a18.1 18.1 0 0 1-7-2v9.8a11.6 11.6 0 1 1-11.6-11.6c1 0 2 .1 2.9.4v6.7a5.2 5.2 0 1 0 2.3 4.3z" fill="#fff" /></svg>
         </a>
+
+        <div class="header-bcv-rate" aria-label="Tasa oficial BCV">
+          <span>Tasa BCV</span>
+          <strong id="header-bcv-rate" aria-live="polite">Consultando…</strong>
+          <small id="header-bcv-date"></small>
+        </div>
 
         <div class="header-tools">
           <a class="icon-action account-icon-action" href="/perfil" data-app-route="profile" aria-label="Mi perfil">
@@ -619,7 +625,7 @@
     <aside class="pwa-install-banner" id="pwa-install-banner" aria-label="Instalar Hipermercado Kristal" hidden>
       <span>Instala la app para acceder más rápido a Kristal</span>
       <button class="pwa-install-action" type="button" data-pwa-install>Instalar app</button>
-      <a class="pwa-apk-download" href="/downloads/hipermercado-kristal.apk" download="hipermercado-kristal.apk" data-apk-download hidden>APK</a>
+      <a class="pwa-apk-download" href="/downloads/hipermercado-kristal.apk" download="hipermercado-kristal.apk" data-apk-download hidden>Descargar Android</a>
       <button class="pwa-install-dismiss" type="button" aria-label="Cerrar aviso de instalación">×</button>
     </aside>
     <dialog class="store-checkout-dialog" id="store-checkout-dialog" aria-labelledby="store-checkout-heading">

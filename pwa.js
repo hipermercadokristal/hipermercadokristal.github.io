@@ -1,6 +1,7 @@
 const installAppButtons = [...document.querySelectorAll("[data-install-app], [data-pwa-install]")];
 const apkDownloadLinks = [...document.querySelectorAll("[data-apk-download]")];
 const pwaInstallBanner = document.querySelector("#pwa-install-banner");
+const announcementInstallButton = document.querySelector("#install-app-button");
 let deferredInstallPrompt = null;
 
 function isAppleMobile() {
@@ -62,8 +63,13 @@ async function installApp() {
   }
 }
 
-installAppButtons.forEach((button) => {
-  button.addEventListener("click", installApp);
+installAppButtons
+  .filter((button) => button !== announcementInstallButton)
+  .forEach((button) => {
+    button.addEventListener("click", installApp);
+  });
+announcementInstallButton?.addEventListener("click", () => {
+  showToast("En iPhone o iPad, abre esta tienda en Safari, toca Compartir y elige «Añadir a pantalla de inicio».");
 });
 document.querySelector(".pwa-install-dismiss")?.addEventListener("click", () => {
   if (pwaInstallBanner) pwaInstallBanner.hidden = true;

@@ -9,11 +9,13 @@ const currency = new Intl.NumberFormat("es-VE", {
   minimumFractionDigits: 2,
 });
 const bolivares = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const BCV_RATE_URL = "https://ve.dolarapi.com/v1/dolares/oficial";
+const BCV_RATE_STORAGE_KEY = "restaurant-kristal-bcv-rate";
 let bcvRate = null;
 let bcvRateDate = "";
 let bcvRateIsStale = true;
 try {
-  const savedRate = JSON.parse(localStorage.getItem("restaurant-kristal-bcv-rate") || "null");
+  const savedRate = JSON.parse(localStorage.getItem(BCV_RATE_STORAGE_KEY) || "null");
   if (savedRate && Number.isFinite(savedRate.value) && savedRate.value > 0) {
     bcvRate = savedRate.value;
     bcvRateDate = savedRate.date || "";
@@ -51,6 +53,8 @@ const cartItemsContainer = document.querySelector("#cart-items");
 const checkoutButton = document.querySelector("#checkout-button");
 const infoDialog = document.querySelector("#info-dialog");
 const shippingProgressMessage = document.querySelector("#shipping-progress-message");
+const headerBCVRate = document.querySelector("#header-bcv-rate");
+const headerBCVDate = document.querySelector("#header-bcv-date");
 let activeFilter = "Todos";
 let activeView = "home";
 let activeCategory = "";
@@ -71,8 +75,56 @@ window.addEventListener("kristal:bcv-rate", (event) => {
   bcvRate = rate;
   bcvRateDate = date || "";
   bcvRateIsStale = Boolean(stale);
+  renderHeaderBCVRate();
   if (products.length) renderActiveProducts();
 });
+
+function renderHeaderBCVRate() {
+  if (!headerBCVRate || !headerBCVDate) return;
+  if (!Number.isFinite(bcvRate) || bcvRate <= 0) {
+    headerBCVRate.textContent = "No disponible";
+    headerBCVDate.textContent = "Verifica tu conexión";
+    headerBCVRate.closest(".header-bcv-rate").classList.add("is-stale");
+    return;
+  }
+  headerBCVRate.textContent = `Bs. ${bolivares.format(bcvRate)} / USD`;
+  const formattedDate = bcvRateDate && !Number.isNaN(new Date(bcvRateDate).getTime())
+    ? new Date(bcvRateDate).toLocaleDateString("es-VE", { day: "numeric", month: "short", year: "numeric" })
+    : "";
+  headerBCVDate.textContent = `${bcvRateIsStale ? "Última tasa" : "Actualizada"}${formattedDate ? ` · ${formattedDate}` : ""}`;
+  headerBCVRate.closest(".header-bcv-rate").classList.toggle("is-stale", bcvRateIsStale);
+}
+
+async function refreshHeaderBCVRate() {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 10000);
+  try {
+    const response = await fetch(BCV_RATE_URL, { signal: controller.signal, cache: "no-store" });
+    if (!response.ok) throw new Error(`La consulta de la tasa BCV respondió ${response.status}.`);
+    const data = await response.json();
+    const rate = Number(data.promedio);
+    if (!Number.isFinite(rate) || rate <= 0 || typeof data.fechaActualizacion !== "string") {
+      throw new TypeError("La respuesta de la tasa BCV está incompleta.");
+    }
+    bcvRate = rate;
+    bcvRateDate = data.fechaActualizacion;
+    bcvRateIsStale = false;
+    try {
+      localStorage.setItem(BCV_RATE_STORAGE_KEY, JSON.stringify({ value: rate, date: bcvRateDate }));
+    } catch (error) {
+      console.error("No se pudo guardar la tasa BCV en este dispositivo.", error);
+    }
+  } catch (error) {
+    console.error("No se pudo actualizar la tasa BCV del encabezado.", error);
+    bcvRateIsStale = true;
+  } finally {
+    window.clearTimeout(timeout);
+    renderHeaderBCVRate();
+    if (products.length) renderActiveProducts();
+  }
+}
+
+renderHeaderBCVRate();
 
 function displayPriceInVES(price) {
   if (!Number.isFinite(bcvRate)) return '<small class="product-ves-price">Equivalente BCV no disponible</small>';
@@ -1193,3 +1245,4 @@ renderFeaturedProducts();
 restoreRoute();
 renderCart();
 initializeCatalog();
+refreshHeaderBCVRate();
