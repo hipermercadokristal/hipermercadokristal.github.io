@@ -8,6 +8,7 @@
   const previewWrap = document.querySelector("#inventory-import-preview-wrap");
   const previewRows = document.querySelector("#inventory-import-preview-rows");
   let preparedRows = [];
+  let consolidatedInputRows = 0;
 
   const aliases = {
     barcode: ["codigodebarras", "codigo", "ean", "barcode", "codigoproducto", "plu"],
@@ -221,8 +222,7 @@
       }
     }
     const seenBarcodes = new Set();
-    const seenProductIdentities = new Set();
-    preparedRows = inputRows.map(({ cells, rowNumber }) => {
+    const parsedRows = inputRows.map(({ cells, rowNumber }) => {
       const barcode = String(cells[fields.barcode] ?? "").trim();
       const sourceName = String(cells[fields.name] ?? "").trim();
       const explicitPresentation = fields.presentation >= 0
@@ -230,9 +230,7 @@
         : "";
       const { name, presentation } = getNameAndPresentation(sourceName, explicitPresentation);
       const familyIdentity = getProductFamilyIdentity(name);
-      const productIdentity = familyIdentity
-        ? `${familyIdentity}|${normalize(presentation || getNameAndPresentation(name, "").presentation)}`
-        : getProductIdentity(name, presentation);
+      const productIdentity = getProductIdentity(name, presentation);
       const departmentInput = String(cells[fields.department] ?? "").trim();
       const departmentKey = normalize(departmentInput);
       const existingCategory = categoryByName.get(departmentKey);
@@ -246,8 +244,6 @@
       if (!barcode || barcode.length > 80) errors.push("código");
       else if (seenBarcodes.has(barcode)) errors.push("código duplicado");
       else seenBarcodes.add(barcode);
-      if (productIdentity && seenProductIdentities.has(productIdentity)) errors.push("producto y presentación duplicados en el archivo");
-      else if (productIdentity) seenProductIdentities.add(productIdentity);
       if (!name || name.length > 140) errors.push("descripción");
       if (!departmentKey) errors.push("departamento vacío");
       else if (!existingCategory && departmentName.length > 120) errors.push("departamento supera 120 caracteres");
@@ -256,6 +252,9 @@
       if (stockText && (!Number.isFinite(stock) || stock < 0 || stock > 100000000)) errors.push("stock");
       return {
         rowNumber,
+        productIdentity: familyIdentity
+          ? `${familyIdentity}|${normalize(presentation || getNameAndPresentation(name, "").presentation)}`
+          : productIdentity,
         barcode,
         name,
         departmentName,
@@ -270,6 +269,18 @@
         error: errors.join(", "),
       };
     });
+    const rowsByIdentity = new Map();
+    consolidatedInputRows = 0;
+    parsedRows.forEach((row) => {
+      const key = `${row.departmentKey}|${row.productIdentity}`;
+      if (row.productIdentity && rowsByIdentity.has(key)) {
+        rowsByIdentity.set(key, row);
+        consolidatedInputRows += 1;
+      } else {
+        rowsByIdentity.set(row.productIdentity ? key : `row-${row.rowNumber}`, row);
+      }
+    });
+    preparedRows = [...rowsByIdentity.values()];
 
     const invalidRows = preparedRows.filter((row) => row.error);
     const rowsToShow = preparedRows.length <= 100
@@ -289,7 +300,7 @@
     previewWrap.hidden = false;
     const invalidCount = preparedRows.filter((row) => row.error).length;
     submitButton.disabled = invalidCount > 0;
-    setStatus(`${preparedRows.length} filas revisadas; ${invalidCount} con errores.${preparedRows.length > 100 ? ` La vista previa muestra las primeras 100 y hasta 200 filas con error.${invalidCount > 300 ? " Corrige también las demás filas marcadas en el archivo." : ""}` : ""}`, invalidCount > 0);
+    setStatus(`${inputRows.length} filas revisadas; ${consolidatedInputRows} repetidas consolidadas, se usará la última fila por producto y presentación; ${preparedRows.length} productos únicos y ${invalidCount} con errores.${preparedRows.length > 100 ? ` La vista previa muestra las primeras 100 y hasta 200 filas con error.${invalidCount > 300 ? " Corrige también las demás filas marcadas en el archivo." : ""}` : ""}`, invalidCount > 0);
   }
 
   async function importInventory(event) {
@@ -372,10 +383,12 @@
         const imageSources = [...familyMatches].sort((left, right) => preferExistingProduct(left, right, categoryId));
         imageSourceByRow[index] = imageSources.find((product) => !isPlaceholder(product)) || null;
         const exactMatches = (existingByIdentity.get(identity) || [])
-          .filter((product) => !usedProductIds.has(product.id))
+          .filter((product) => !usedProductIds.has(product.id) && product.categoria_id === categoryId)
           .sort((left, right) => preferExistingProduct(left, right, categoryId));
         const sameVariantMatches = familyMatches
-          .filter((product) => !usedProductIds.has(product.id) && isSamePresentation(product, row))
+          .filter((product) => !usedProductIds.has(product.id)
+            && product.categoria_id === categoryId
+            && isSamePresentation(product, row))
           .sort((left, right) => preferExistingProduct(left, right, categoryId));
         const fuzzyMatches = existingProducts
           .filter((product) => !usedProductIds.has(product.id)
@@ -475,7 +488,7 @@
           setStatus(`Inventario actualizado: ${importedCount} de ${products.length} productos…`);
         }
       }
-      setStatus(`Importación completada: ${updatedCount} productos actualizados y ${createdCount} nuevos.${consolidatedDuplicateCount ? ` Se archivaron ${consolidatedDuplicateCount} duplicados; se conservó el historial de pedidos.` : ""} Los productos sin foto quedan listos para completar desde el inventario.`, false, true);
+      setStatus(`Importación completada: ${updatedCount} productos actualizados y ${createdCount} nuevos.${consolidatedInputRows ? ` Se consolidaron ${consolidatedInputRows} filas repetidas usando la última fila de cada producto/presentación.` : ""}${consolidatedDuplicateCount ? ` Se archivaron ${consolidatedDuplicateCount} duplicados; se conservó el historial de pedidos.` : ""} Los productos sin foto quedan listos para completar desde el inventario.`, false, true);
       form.reset();
       preparedRows = [];
       previewRows.replaceChildren();

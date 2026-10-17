@@ -1,4 +1,4 @@
-const CACHE_NAME = "hipermercado-kristal-v46";
+const CACHE_NAME = "hipermercado-kristal-v47";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -36,7 +36,7 @@ const APP_SHELL = [
   "/caja/manifest.webmanifest",
   "/admin/manifest.webmanifest",
   "/admin/staff-pwa.js",
-  "/admin/inventory-import.js?v=inventory-smart-matching-v1-20261017",
+  "/admin/inventory-import.js?v=inventory-smart-matching-v2-20261017",
   "/admin/admin.css?v=staff-navigation-v1-20261017",
   "/admin/admin.js?v=staff-navigation-v1-20261017",
   "/supabase-config.js",
