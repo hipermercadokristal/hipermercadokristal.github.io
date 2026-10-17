@@ -73,6 +73,15 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .admin-dashboard-view-switcher { display: grid; gap: 4px; color: #52665a; font-size: 10px; font-weight: 800; }
 .admin-dashboard-view-switcher select { min-height: 42px; }
 .dashboard > .status-message { margin: 0 0 14px; }
+.staff-collapsible { margin: 14px 0; overflow: hidden; border: 1px solid #e3eae4; border-radius: 12px; background: #fff; box-shadow: 0 6px 20px #17362608; }
+.staff-collapsible > summary { min-height: 54px; display: flex; align-items: center; gap: 12px; padding: 12px 18px; color: #205a34; font-size: 14px; font-weight: 800; cursor: pointer; list-style: none; }
+.staff-collapsible > summary::-webkit-details-marker { display: none; }
+.staff-collapsible > summary::after { margin-left: auto; color: #315c40; content: "+"; font-size: 22px; line-height: 1; }
+.staff-collapsible[open] > summary { border-bottom: 1px solid #e6eee7; }
+.staff-collapsible[open] > summary::after { content: "−"; }
+.staff-collapsible > .panel { margin: 0; padding: 20px; border: 0; border-radius: 0; box-shadow: none; }
+.staff-collapsible > .panel > .panel-heading > div:first-child { display: none; }
+.staff-collapsible > .sales-summary { display: grid; padding: 14px; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
 .panel { margin-top: 18px; padding: 24px; }
 .panel-heading { margin-bottom: 22px; }
 .text-button { padding: 8px 0; border: 0; background: transparent; color: #27633b; font-size: 13px; font-weight: 800; }

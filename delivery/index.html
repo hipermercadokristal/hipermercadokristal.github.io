@@ -14,6 +14,7 @@
     <script src="/supabase-client.js"></script>
     <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/assets/vendor/jsqr-1.4.0.min.js"></script>
+    <script src="/staff-collapsible.js?v=staff-collapsible-v1-20261017" defer></script>
     <script src="/delivery/delivery.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/delivery/delivery-pwa.js?v=delivery-install-platforms-20261017" defer></script>
   </head>
@@ -61,7 +62,7 @@
           <video id="delivery-camera" playsinline muted></video>
           <p class="status" id="delivery-qr-status" role="status" aria-live="polite"></p>
         </section>
-        <form class="delivery-manual-code panel" id="delivery-manual-code-form">
+        <form class="delivery-manual-code panel" id="delivery-manual-code-form" aria-label="Confirmar entrega con código">
           <div><p class="eyebrow">ALTERNATIVA AL ESCÁNER</p><h2>Confirmar con código</h2><p>Si no puedes escanear, pide al cliente el código de 4 caracteres que aparece en sus pedidos.</p></div>
           <label for="delivery-code-input">Código de entrega</label>
           <div class="delivery-code-entry">
@@ -71,7 +72,7 @@
           <p class="status" id="delivery-manual-code-status" role="status" aria-live="polite"></p>
         </form>
         <p class="status" id="delivery-orders-status" role="status" aria-live="polite"></p>
-        <section class="delivery-order-list" id="delivery-order-list" aria-live="polite"></section>
+        <section class="delivery-order-list" id="delivery-order-list" aria-label="Pedidos asignados" aria-live="polite"></section>
       </section>
     </main>
   </body>
