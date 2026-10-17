@@ -18,7 +18,7 @@
     ves: ["precioenves", "precioves", "precioenbs", "preciobs", "preciobsf", "bolivares", "priceves", "ves"],
     stock: ["stockactual", "stock", "existencia", "existencias", "inventario", "cantidad"],
   };
-  const presentationPattern = /(?:\d+(?:[.,]\d+)?\s*(?:kgs?|g|gr|gramos?|mg|lts?|litros?|ml|cc|cl|oz|lbs?|unidades?|unds?|u|piezas?|packs?|paquetes?))$/i;
+  const presentationPattern = /(?:\d+(?:[.,]\d+)?\s*(?:kgs?|g|gr|gramos?|mg|lts?|litros?|l|ml|cc|cl|oz|lbs?|unidades?|unds?|u|piezas?|packs?|paquetes?))$/i;
 
   function setStatus(message, isError = false, isSuccess = false) {
     status.textContent = message;
@@ -67,13 +67,14 @@
   }
 
   function getNameAndPresentation(name, explicitPresentation) {
-    if (explicitPresentation) return { name, presentation: explicitPresentation };
-    const match = name.match(presentationPattern);
-    if (!match) return { name, presentation: "" };
-    const baseName = name.slice(0, match.index).replace(/[\s,;:/-]+$/, "").trim();
+    const cleanName = String(name ?? "").trim().replace(/(^|[^\d])\s+kg(?:s)?[.,;:]?$/i, "$1").trim();
+    if (explicitPresentation) return { name: cleanName || name, presentation: explicitPresentation };
+    const match = cleanName.match(presentationPattern);
+    if (!match) return { name: cleanName, presentation: "" };
+    const baseName = cleanName.slice(0, match.index).replace(/[\s,;:/-]+$/, "").trim();
     return baseName
       ? { name: baseName, presentation: match[0].trim() }
-      : { name, presentation: "" };
+      : { name: cleanName, presentation: "" };
   }
 
   function findFieldIndex(headers, keys) {
