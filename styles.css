@@ -737,6 +737,12 @@ html.app-auth-pending #customer-auth-status { color: var(--muted); }
 .order-qr-ticket img { width: 176px; height: 176px; padding: 8px; border: 1px solid #e7ece8; border-radius: 10px; background: #fff; image-rendering: pixelated; }
 .order-qr-ticket p { max-width: 360px; margin: 0; color: #65746a; font-size: 12px; line-height: 1.5; }
 .order-qr-ticket p.error { color: #a42121; }
+.order-delivery-verification-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: 16px; width: 100%; }
+.order-delivery-verification-options h4 { margin: 0 0 8px; color: var(--forest); font-size: 13px; }
+.order-delivery-verification-options img { display: block; width: min(220px, 100%); min-height: 80px; margin-inline: auto; object-fit: contain; }
+.order-delivery-verification-options p { margin: 7px 0 0; }
+.order-delivery-manual-code { display: grid; justify-items: center; gap: 7px; }
+.order-delivery-manual-code strong { padding: 9px 15px; border: 1px dashed #91b49a; border-radius: 9px; background: #f3f8f3; color: var(--forest); font-size: 24px; letter-spacing: .2em; }
 .store-checkout-dialog { width: min(680px, calc(100% - 30px)); max-height: min(90vh, 850px); padding: 0; overflow: hidden; border: 0; border-radius: 16px; background: #fff; box-shadow: 0 22px 80px #102b1c42; }
 .store-checkout-dialog::backdrop { background: #102117a8; backdrop-filter: blur(3px); }
 .store-checkout-panel { display: flex; max-height: min(90vh, 850px); flex-direction: column; }
@@ -855,6 +861,7 @@ html.app-auth-pending #customer-auth-status { color: var(--muted); }
   .app-view-heading p { font-size: 12px; line-height: 1.5; }
   .app-account-view .institutional-card { padding: 18px 15px; }
   .customer-order-card { padding: 15px 12px; }
+  .order-delivery-verification-options { grid-template-columns: 1fr; }
   .customer-order-header h2 { font-size: 18px; }
   .customer-order-header time { max-width: 47%; font-size: 10px; }
   .order-timeline li { font-size: 8px; }

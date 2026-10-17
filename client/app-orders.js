@@ -572,37 +572,59 @@
         <ul class="customer-order-items">${items.map((item) => `<li><span>${escapeHtml(item.product_name)} × ${item.quantity}</span><strong>${currency.format(Number(item.line_total_usd))}</strong></li>`).join("")}</ul>
         <div class="customer-order-total"><span>Total</span><strong>${currency.format(Number(order.total_usd))}${order.total_ves === null ? "" : `<small>${escapeHtml(formatBolivares(Number(order.total_ves)))} · referencial</small>`}</strong></div>
         <p class="customer-order-delivery">${order.fulfillment === "delivery" ? "Delivery" : "Retiro en tienda"}${order.fulfillment === "delivery" && order.delivery_address ? ` · ${escapeHtml(order.delivery_address)}` : ""}${order.fulfillment === "delivery" && order.delivery_reference ? ` · Referencia: ${escapeHtml(order.delivery_reference)}` : ""}</p>
-        ${qrPurpose ? `<section class="order-qr-ticket" data-order-qr="${escapeHtml(order.id)}" data-qr-purpose="${qrPurpose}"><h3>Muestra este código QR al repartidor al recibir tu pedido</h3><img alt="Código QR de confirmación de entrega" /><p role="status" aria-live="polite">Preparando código seguro…</p></section>` : ""}
+        ${qrPurpose ? `<section class="order-qr-ticket" data-order-qr="${escapeHtml(order.id)}" data-qr-purpose="${qrPurpose}"><h3>Confirma la entrega con una de estas opciones</h3><div class="order-delivery-verification-options"><div><h4>Opción 1 · Código QR</h4><img alt="Código QR de confirmación de entrega" /><p class="order-qr-status" role="status" aria-live="polite">Preparando código QR…</p></div><div class="order-delivery-manual-code"><h4>Opción 2 · Código manual</h4><strong aria-label="Código de entrega">----</strong><p class="order-code-status" role="status" aria-live="polite">Preparando código de entrega…</p></div></div></section>` : ""}
       </article>`;
     }).join("");
-    renderOrderQrCodes(orders).catch((error) => {
-      console.error("No se pudieron preparar los códigos QR de los pedidos.", error);
+    renderDeliveryVerificationCodes().catch((error) => {
+      console.error("No se pudieron preparar los códigos de entrega.", error);
     });
   }
 
-  async function renderOrderQrCodes(orders) {
+  async function renderDeliveryVerificationCodes() {
     const ticketSections = [...ordersList.querySelectorAll("[data-order-qr]")];
     await Promise.all(ticketSections.map(async (section) => {
-      const status = section.querySelector('[role="status"]');
-      try {
-        if (typeof window.qrcode !== "function") throw new Error("No se cargó el generador QR. Revisa tu conexión e inténtalo de nuevo.");
-        const { data: token, error } = await supabase.rpc("issue_store_order_qr_code", {
-          p_order_id: section.dataset.orderQr,
-          p_purpose: section.dataset.qrPurpose,
-        });
-        if (error) throw error;
-        const scanUrl = new URL("/delivery/", window.location.origin);
-        scanUrl.hash = new URLSearchParams({ scan: section.dataset.qrPurpose, token }).toString();
-        const qr = window.qrcode(0, "M");
-        qr.addData(scanUrl.toString());
-        qr.make();
-        section.querySelector("img").src = qr.createDataURL(5, 4);
-        status.textContent = "Muestra este código al repartidor cuando recibas tu pedido.";
-      } catch (error) {
-        console.error(`No se pudo generar el código QR del pedido ${section.dataset.orderQr}.`, error);
-        status.textContent = error.message || "No se pudo generar el código QR. Intenta actualizar tus pedidos.";
-        status.classList.add("error");
-      }
+      const orderId = section.dataset.orderQr;
+      const qrStatus = section.querySelector(".order-qr-status");
+      const codeStatus = section.querySelector(".order-code-status");
+      const qrTask = (async () => {
+        try {
+          if (typeof window.qrcode !== "function") throw new Error("No se cargó el generador QR. Revisa tu conexión e inténtalo de nuevo.");
+          const { data: token, error } = await supabase.rpc("issue_store_order_qr_code", {
+            p_order_id: orderId,
+            p_purpose: section.dataset.qrPurpose,
+          });
+          if (error) throw error;
+          const scanUrl = new URL("/delivery/", window.location.origin);
+          scanUrl.hash = new URLSearchParams({ scan: section.dataset.qrPurpose, token }).toString();
+          const qr = window.qrcode(0, "M");
+          qr.addData(scanUrl.toString());
+          qr.make();
+          section.querySelector("img").src = qr.createDataURL(5, 4);
+          qrStatus.textContent = "Muestra el QR al repartidor al recibir tu pedido.";
+        } catch (error) {
+          console.error(`No se pudo generar el código QR del pedido ${orderId}.`, error);
+          qrStatus.textContent = error.message || "No se pudo generar el QR. Intenta actualizar tus pedidos.";
+          qrStatus.classList.add("error");
+        }
+      })();
+      const manualCodeTask = (async () => {
+        try {
+          const { data: code, error } = await supabase.rpc("issue_delivery_verification_code", {
+            p_order_id: orderId,
+          });
+          if (error) throw error;
+          if (typeof code !== "string" || !/^[A-HJ-NP-Z2-9]{4}$/.test(code)) {
+            throw new Error("Supabase no devolvió un código manual válido.");
+          }
+          section.querySelector(".order-delivery-manual-code strong").textContent = code;
+          codeStatus.textContent = "Si no pueden escanear el QR, dicta este código al repartidor.";
+        } catch (error) {
+          console.error(`No se pudo obtener el código manual del pedido ${orderId}.`, error);
+          codeStatus.textContent = error.message || "No se pudo preparar el código manual. Actualiza tus pedidos.";
+          codeStatus.classList.add("error");
+        }
+      })();
+      await Promise.all([qrTask, manualCodeTask]);
     }));
   }
 

@@ -8,13 +8,13 @@
     <title>Reparto | Hipermercado Kristal</title>
     <link rel="manifest" href="/delivery/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="/assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="/delivery/delivery.css?v=delivery-route-presence-login-20261017" />
+    <link rel="stylesheet" href="/delivery/delivery.css?v=delivery-manual-code-20261017" />
     <script src="/supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/supabase-client.js"></script>
     <script src="/auth-routing.js?v=role-routing-v2-20261017" defer></script>
     <script src="/assets/vendor/jsqr-1.4.0.min.js"></script>
-    <script src="/delivery/delivery.js?v=delivery-route-presence-login-20261017" defer></script>
+    <script src="/delivery/delivery.js?v=delivery-manual-code-20261017" defer></script>
     <script src="/delivery/delivery-pwa.js?v=delivery-install-platforms-20261017" defer></script>
   </head>
   <body>
@@ -58,8 +58,17 @@
           <div class="scanner-heading"><h2>Escanear QR del cliente</h2><button id="delivery-scan-close" type="button" aria-label="Cerrar cámara">Cerrar</button></div>
           <p>Apunta la cámara al código QR que el cliente muestra en “Mis pedidos”.</p>
           <video id="delivery-camera" playsinline muted></video>
-          <p class="status" id="delivery-scan-status" role="status" aria-live="polite"></p>
+          <p class="status" id="delivery-qr-status" role="status" aria-live="polite"></p>
         </section>
+        <form class="delivery-manual-code panel" id="delivery-manual-code-form">
+          <div><p class="eyebrow">ALTERNATIVA AL ESCÁNER</p><h2>Confirmar con código</h2><p>Si no puedes escanear, pide al cliente el código de 4 caracteres que aparece en sus pedidos.</p></div>
+          <label for="delivery-code-input">Código de entrega</label>
+          <div class="delivery-code-entry">
+            <input id="delivery-code-input" name="delivery_code" type="text" minlength="4" maxlength="4" pattern="[A-HJ-NP-Z2-9]{4}" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" aria-describedby="delivery-manual-code-status" required />
+            <button class="primary-button" type="submit">Verificar entrega</button>
+          </div>
+          <p class="status" id="delivery-manual-code-status" role="status" aria-live="polite"></p>
+        </form>
         <p class="status" id="delivery-orders-status" role="status" aria-live="polite"></p>
         <section class="delivery-order-list" id="delivery-order-list" aria-live="polite"></section>
       </section>

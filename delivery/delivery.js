@@ -9,7 +9,8 @@
   const availabilitySelect = document.querySelector("#delivery-availability");
   const availabilityStatus = document.querySelector("#delivery-availability-status");
   const camera = document.querySelector("#delivery-camera");
-  const scanStatus = document.querySelector("#delivery-scan-status");
+  const scanStatus = document.querySelector("#delivery-qr-status");
+  const manualCodeStatus = document.querySelector("#delivery-manual-code-status");
   const signOutButton = document.querySelector("#delivery-sign-out");
   const currency = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
   const availabilityLabels = {
@@ -178,26 +179,65 @@
   async function completeDelivery(token) {
     if (scanBusy) return;
     scanBusy = true;
-    let completionMessage = "";
     setStatus(scanStatus, "Verificando el QR de forma segura…");
     try {
       const { data: orderId, error } = await supabase.rpc("complete_delivery_by_qr", { p_token: token });
       if (error) throw error;
       stopScanner();
-      completionMessage = `Entrega confirmada. Pedido ${String(orderId).slice(0, 8).toUpperCase()} completado.`;
+      await finishDelivery(orderId, scanStatus);
     } catch (error) {
       console.error("No se pudo completar la entrega escaneada.", error);
       setStatus(scanStatus, error.message || "No se pudo validar el QR. Confirma que el pedido esté en camino y asignado a tu cuenta.", "error");
       scanBusy = false;
+    }
+  }
+
+  async function completeDeliveryByCode(event) {
+    event.preventDefault();
+    if (scanBusy) return;
+    const form = event.currentTarget;
+    const input = form.elements.delivery_code;
+    const code = input.value.trim().toUpperCase();
+    if (!/^[A-HJ-NP-Z2-9]{4}$/.test(code)) {
+      setStatus(manualCodeStatus, "Escribe el código de 4 letras o números que muestra el cliente.", "error");
+      input.focus();
       return;
     }
+    scanBusy = true;
+    const submitButton = form.querySelector('button[type="submit"]');
+    submitButton.disabled = true;
+    setStatus(manualCodeStatus, "Verificando el código de entrega…");
+    try {
+      const { data, error } = await supabase.rpc("complete_delivery_by_code", { p_code: code });
+      if (error) throw error;
+      if (!data?.success) {
+        setStatus(manualCodeStatus, data?.message || "No se pudo validar el código.", "error");
+        return;
+      }
+      input.value = "";
+      stopScanner();
+      await finishDelivery(data.order_id, manualCodeStatus);
+    } catch (error) {
+      console.error("No se pudo completar la entrega con el código manual.", error);
+      setStatus(manualCodeStatus, error.message || "No se pudo validar el código. Confirma que el pedido esté asignado a tu cuenta.", "error");
+    } finally {
+      scanBusy = false;
+      submitButton.disabled = false;
+    }
+  }
+
+  async function finishDelivery(orderId, statusElement) {
+    const completionMessage = `Entrega confirmada. Pedido ${String(orderId).slice(0, 8).toUpperCase()} completado.`;
     try {
       await loadAssignedOrders();
       setStatus(ordersStatus, completionMessage, "success");
     } catch (error) {
       console.error("La entrega se confirmó, pero no se pudo actualizar la lista.", error);
       setStatus(ordersStatus, `${completionMessage} No se pudo actualizar la lista; vuelve a cargarla.`, "success");
+    } finally {
+      scanBusy = false;
     }
+    setStatus(statusElement, completionMessage, "success");
   }
 
   function tokenFromQrValue(rawValue) {
@@ -353,6 +393,10 @@
 
   document.querySelector("#delivery-scan-open").addEventListener("click", openScanner);
   document.querySelector("#delivery-scan-close").addEventListener("click", stopScanner);
+  document.querySelector("#delivery-manual-code-form").addEventListener("submit", completeDeliveryByCode);
+  document.querySelector("#delivery-code-input").addEventListener("input", (event) => {
+    event.currentTarget.value = event.currentTarget.value.toUpperCase();
+  });
   availabilitySelect.addEventListener("change", saveAvailability);
   signOutButton.addEventListener("click", async () => {
     signOutButton.disabled = true;
