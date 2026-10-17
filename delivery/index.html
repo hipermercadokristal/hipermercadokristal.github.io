@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#0f3822" />
     <meta name="description" content="Módulo privado de entregas para repartidores de Hipermercado Kristal." />
     <title>Reparto | Hipermercado Kristal</title>
+    <link rel="manifest" href="/delivery/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="/assets/kristal-favicon.png" />
     <link rel="stylesheet" href="/delivery/delivery.css?v=delivery-google-qr-20261017" />
     <script src="/supabase-config.js"></script>
@@ -13,11 +14,13 @@
     <script src="/supabase-client.js"></script>
     <script src="/assets/vendor/jsqr-1.4.0.min.js"></script>
     <script src="/delivery/delivery.js?v=delivery-google-qr-20261017" defer></script>
+    <script src="/delivery/delivery-pwa.js?v=delivery-app-20261017" defer></script>
   </head>
   <body>
     <main class="delivery-shell">
       <header class="delivery-header">
         <a href="/" aria-label="Hipermercado Kristal, inicio"><img src="/assets/app-icons/icon-192.png" alt="" /><span><strong>Kristal Reparto</strong><small>Entregas asignadas</small></span></a>
+        <button class="install-app-button" id="delivery-install-app" type="button" hidden>Instalar app</button>
         <button id="delivery-sign-out" type="button" hidden>Cerrar sesión</button>
       </header>
 

@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f3822" />
     <title>Caja | Hipermercado Kristal</title>
+    <link rel="manifest" href="/caja/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
     <link rel="stylesheet" href="../admin/admin.css?v=staff-google-auth-20261017" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
+    <script src="../assets/vendor/jsqr-1.4.0.min.js"></script>
+    <script src="../admin/staff-pwa.js?v=staff-pwa-20261017" defer></script>
     <script src="../admin/admin.js?v=staff-google-auth-20261017" defer></script>
   </head>
   <body>
@@ -20,6 +23,8 @@
         <p class="eyebrow">ACCESO DE PERSONAL</p>
         <h1 id="login-heading">Caja</h1>
         <p class="intro">Acceso para revisar pagos, preparar pedidos y validar retiros.</p>
+        <button class="secondary-button staff-install-button" id="staff-install-app" type="button" hidden>Instalar Caja</button>
+        <p class="status-message" id="staff-install-status" role="status" aria-live="polite"></p>
         <form id="login-form">
           <label for="login-email">Correo electrónico</label>
           <input id="login-email" name="email" type="email" autocomplete="username" required />
@@ -47,6 +52,18 @@
             <div><p class="eyebrow">RETIROS</p><h2 id="staff-scan-heading">Validar ticket de retiro</h2></div>
           </div>
           <p class="intro">Escanea el QR que presenta el cliente o pega el código para consultar los productos del pedido.</p>
+          <form id="staff-document-search-form">
+            <label for="staff-customer-document">Buscar retiro por cédula</label>
+            <input id="staff-customer-document" name="document" autocomplete="off" inputmode="text" required />
+            <button class="secondary-button" type="submit">Buscar pedidos pendientes</button>
+          </form>
+          <p class="status-message" id="staff-document-search-status" role="status" aria-live="polite"></p>
+          <div id="staff-document-search-results" aria-live="polite"></div>
+          <button class="secondary-button" id="staff-scan-open" type="button">Abrir cámara para escanear QR</button>
+          <section class="pickup-scanner" id="staff-pickup-scanner" hidden aria-label="Escáner QR de caja">
+            <div class="panel-heading"><h3>Escanear ticket del cliente</h3><button class="secondary-button" id="staff-scan-close" type="button">Cerrar cámara</button></div>
+            <video id="staff-pickup-camera" playsinline muted></video>
+          </section>
           <form id="staff-scan-form">
             <label for="staff-scan-purpose">Tipo de código</label>
             <select id="staff-scan-purpose" name="purpose">

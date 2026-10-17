@@ -1,4 +1,4 @@
-const CACHE_NAME = "hipermercado-kristal-v18";
+const CACHE_NAME = "hipermercado-kristal-v20";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -15,11 +15,21 @@ const APP_SHELL = [
   "/assets/vendor/qrcode-generator-2.0.4.min.js",
   "/delivery/",
   "/delivery/index.html",
+  "/delivery/manifest.webmanifest",
   "/delivery/delivery.css",
   "/delivery/delivery.js",
+  "/delivery/delivery-pwa.js",
   "/assets/vendor/jsqr-1.4.0.min.js",
+  "/client/",
+  "/client/index.html",
+  "/cashier/",
+  "/cashier/index.html",
   "/caja/",
   "/caja/index.html",
+  "/caja/manifest.webmanifest",
+  "/admin/manifest.webmanifest",
+  "/admin/staff-pwa.js",
+  "/admin/inventory-import.js",
   "/admin/admin.css",
   "/admin/admin.js",
   "/supabase-config.js",
@@ -75,6 +85,10 @@ self.addEventListener("fetch", (event) => {
       fetch(request).catch(async () => {
         const fallbackPath = url.pathname.startsWith("/delivery/")
           ? "/delivery/"
+          : url.pathname.startsWith("/client/")
+            ? "/client/"
+            : url.pathname.startsWith("/cashier/")
+              ? "/cashier/"
           : url.pathname.startsWith("/caja/")
             ? "/caja/"
             : url.pathname.startsWith("/restaurante/")

@@ -1,0 +1,16 @@
+{
+  "id": "/caja/",
+  "name": "Kristal Caja",
+  "short_name": "Kristal Caja",
+  "description": "Pagos y retiros de Hipermercado Kristal.",
+  "lang": "es",
+  "start_url": "/caja/",
+  "scope": "/caja/",
+  "display": "standalone",
+  "background_color": "#f4f7f4",
+  "theme_color": "#0f3822",
+  "icons": [
+    { "src": "/assets/app-icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/assets/app-icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

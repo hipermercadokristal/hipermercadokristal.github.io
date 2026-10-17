@@ -31,6 +31,22 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .secondary-button { border: 1px solid #dce6dd; background: #fff; color: #31543b; }
 .auth-card .primary-button { width: 100%; margin-top: 4px; }
 .auth-card .google-sign-in-button { width: 100%; margin-top: 12px; }
+.auth-card .staff-install-button { width: 100%; margin-top: 12px; }
+.staff-install-button:disabled { opacity: .65; cursor: wait; }
+.sales-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 18px 0; }
+.sales-summary article { display: grid; gap: 7px; padding: 16px; border: 1px solid #e0e9e2; border-radius: 12px; background: #fff; }
+.sales-summary span { color: #718078; font-size: 12px; }
+.sales-summary strong { color: #14552e; font-size: clamp(18px, 3vw, 25px); }
+.inventory-import-panel form { display: grid; gap: 12px; }
+.inventory-import-panel .field { margin-bottom: 0; }
+.import-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.import-actions button { min-height: 42px; padding: 0 14px; border-radius: 7px; font-weight: 800; }
+.import-actions .secondary-button { border: 1px solid #dce6dd; background: #fff; color: #31543b; }
+.import-actions .primary-button:disabled { opacity: .55; cursor: not-allowed; }
+.import-row-error { color: #a1382c; }
+.pickup-scanner { margin-top: 14px; padding: 12px; border: 1px solid #dce6dd; border-radius: 10px; }
+.pickup-scanner video { display: block; width: 100%; max-height: 420px; border-radius: 8px; background: #101c14; object-fit: cover; }
+.pickup-scanner .panel-heading h3 { margin: 0; color: #1c3d2a; font-size: 16px; }
 .status-message { min-height: 19px; margin: 12px 0 0; color: #a1382c; font-size: 13px; line-height: 1.5; }
 .status-message.success { color: #246738; }
 .status-message:empty { display: none; }
@@ -115,6 +131,7 @@ td:first-child { min-width: 210px; font-weight: 700; }
   .panel { margin-top: 14px; padding: 17px; }
   .panel-heading { gap: 10px; margin-bottom: 17px; }
   .panel-heading h2 { font-size: 18px; }
+  .sales-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .form-grid { grid-template-columns: 1fr; }
   .field-wide { grid-column: auto; }
   .field input[type="file"] { min-width: 0; padding-inline: 8px; font-size: 12px; }

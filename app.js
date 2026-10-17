@@ -8,6 +8,19 @@ const currency = new Intl.NumberFormat("es-VE", {
   currency: "USD",
   minimumFractionDigits: 2,
 });
+const bolivares = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+let bcvRate = null;
+let bcvRateDate = "";
+let bcvRateIsStale = true;
+try {
+  const savedRate = JSON.parse(localStorage.getItem("restaurant-kristal-bcv-rate") || "null");
+  if (savedRate && Number.isFinite(savedRate.value) && savedRate.value > 0) {
+    bcvRate = savedRate.value;
+    bcvRateDate = savedRate.date || "";
+  }
+} catch (error) {
+  console.error("No se pudo recuperar la tasa BCV para mostrar los precios.", error);
+}
 const productGrid = document.querySelector("#product-grid");
 const categoryProductGrid = document.querySelector("#category-product-grid");
 const featuredProductGrid = document.querySelector("#featured-products");
@@ -51,6 +64,24 @@ let featuredTouchResumeTimer = 0;
 let toastTimeout;
 let lastFocusedElement = null;
 let catalogLoadError = "";
+
+window.addEventListener("kristal:bcv-rate", (event) => {
+  const { rate, date, stale } = event.detail || {};
+  if (!Number.isFinite(rate) || rate <= 0) return;
+  bcvRate = rate;
+  bcvRateDate = date || "";
+  bcvRateIsStale = Boolean(stale);
+  if (products.length) renderActiveProducts();
+});
+
+function displayPriceInVES(price) {
+  if (!Number.isFinite(bcvRate)) return '<small class="product-ves-price">Equivalente BCV no disponible</small>';
+  const date = bcvRateDate
+    ? new Intl.DateTimeFormat("es-VE", { dateStyle: "medium" }).format(new Date(bcvRateDate))
+    : "";
+  const rateLabel = bcvRateIsStale ? "Tasa BCV anterior" : "Tasa BCV";
+  return `<small class="product-ves-price">${escapeHtml(`Bs. ${bolivares.format(price * bcvRate)}`)} · ${rateLabel}${date ? ` · ${escapeHtml(date)}` : ""}</small>`;
+}
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => ({
@@ -293,6 +324,7 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
           <h3 class="product-name">${escapeHtml(product.name)}</h3>
           <span class="product-presentation">${escapeHtml(product.detail)}</span>
           <div class="product-prices">${regularPrice}${currentPrice}</div>
+          ${displayPriceInVES(product.price)}
           <div class="product-cart-control">${productCartControl(product)}</div>
         </article>`;
     })
@@ -331,6 +363,7 @@ function renderFeaturedProducts() {
             ? `<span class="regular-price">Regular: ${currency.format(product.oldPrice)}</span><span class="current-price">Oferta: ${currency.format(product.price)}</span>`
             : `<span class="current-price">${currency.format(product.price)}</span>`}
           </div>
+          ${displayPriceInVES(product.price)}
           <div class="product-cart-control">${productCartControl(product, { featured: true })}</div>
         </article>`;
     })

@@ -5,11 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f3822" />
     <title>Administración | Hipermercado Kristal</title>
+    <link rel="manifest" href="/admin/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
     <link rel="stylesheet" href="admin.css?v=staff-google-auth-20261017" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
+    <script src="../assets/vendor/xlsx-0.20.3.min.js"></script>
+    <script src="../admin/staff-pwa.js?v=staff-pwa-20261017" defer></script>
+    <script src="../admin/inventory-import.js?v=crystal-import-20261017" defer></script>
     <script src="admin.js?v=staff-google-auth-20261017" defer></script>
   </head>
   <body>
@@ -20,6 +24,8 @@
         <p class="eyebrow">ACCESO PRIVADO</p>
         <h1 id="login-heading">Administración</h1>
         <p class="intro">Acceso exclusivo del propietario para administrar el inventario y el equipo.</p>
+        <button class="secondary-button staff-install-button" id="staff-install-app" type="button" hidden>Instalar Administración</button>
+        <p class="status-message" id="staff-install-status" role="status" aria-live="polite"></p>
         <form id="login-form">
           <label for="login-email">Correo electrónico</label>
           <input id="login-email" name="email" type="email" autocomplete="username" required />
@@ -40,6 +46,12 @@
           <button class="secondary-button" id="sign-out-button" type="button">Cerrar sesión</button>
         </header>
         <p class="status-message" id="dashboard-status" role="status" aria-live="polite"></p>
+        <section class="sales-summary" id="sales-summary" aria-label="Resumen de ventas de hoy">
+          <article><span>Pedidos de hoy</span><strong id="sales-orders-today">—</strong></article>
+          <article><span>Ventas registradas</span><strong id="sales-gross-today">—</strong></article>
+          <article><span>Pagos verificados</span><strong id="sales-verified-today">—</strong></article>
+          <article><span>Pagos pendientes</span><strong id="sales-pending-today">—</strong></article>
+        </section>
 
         <details class="product-form-compact" id="product-form-details">
           <summary>Agregar un producto al inventario</summary>
@@ -62,8 +74,17 @@
               <label class="field" for="product-presentation">Presentación (opcional)
                 <input id="product-presentation" name="presentacion" type="text" maxlength="80" placeholder="Ej.: 1 kg" />
               </label>
+              <label class="field" for="product-barcode">Código de barras (opcional)
+                <input id="product-barcode" name="codigo_barras" type="text" maxlength="80" autocomplete="off" />
+              </label>
+              <label class="field" for="product-stock">Stock actual
+                <input id="product-stock" name="stock" type="number" min="0" step="0.001" value="0" required />
+              </label>
               <label class="field" for="product-price">Precio regular (USD)
                 <input id="product-price" name="precio" type="number" min="0.01" step="0.01" required />
+              </label>
+              <label class="field" for="product-price-ves">Precio de referencia (VES)
+                <input id="product-price-ves" name="precio_ves" type="number" min="0" step="0.01" />
               </label>
               <label class="field" for="product-sale-price">Precio de oferta (opcional)
                 <input id="product-sale-price" name="precio_oferta" type="number" min="0.01" step="0.01" />
@@ -85,6 +106,26 @@
             </form>
           </section>
         </details>
+
+        <section class="panel inventory-import-panel" aria-labelledby="inventory-import-heading">
+          <div class="panel-heading">
+            <div><p class="eyebrow">CRYSTAL SOFTWARE</p><h2 id="inventory-import-heading">Importar inventario</h2></div>
+          </div>
+          <p class="intro">Carga Excel o CSV con código de barras, descripción, departamento/categoría, precios USD y VES y stock. Los productos se actualizan por código de barras; primero revisa la vista previa.</p>
+          <form id="inventory-import-form">
+            <label class="field" for="inventory-import-file">Archivo de inventario
+              <input id="inventory-import-file" name="file" type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required />
+            </label>
+            <div class="import-actions">
+              <button class="secondary-button" id="inventory-import-preview" type="button">Revisar archivo</button>
+              <button class="primary-button" id="inventory-import-submit" type="submit" disabled>Importar inventario</button>
+            </div>
+          </form>
+          <p class="status-message" id="inventory-import-status" role="status" aria-live="polite"></p>
+          <div class="table-scroll" id="inventory-import-preview-wrap" hidden>
+            <table><thead><tr><th>Fila</th><th>Código</th><th>Producto</th><th>Departamento</th><th>USD</th><th>VES del archivo</th><th>Stock</th><th>Resultado</th></tr></thead><tbody id="inventory-import-preview-rows"></tbody></table>
+          </div>
+        </section>
 
         <section class="panel staff-management-panel" id="staff-management-panel" aria-labelledby="staff-management-heading">
           <div class="panel-heading">
@@ -120,8 +161,11 @@
               <thead>
                 <tr>
                   <th>Producto</th>
+                  <th>Código</th>
                   <th>Departamento</th>
                   <th>Precio</th>
+                  <th>Precio VES (archivo)</th>
+                  <th>Stock</th>
                   <th>Oferta</th>
                   <th>Estado</th>
                   <th>Acciones</th>

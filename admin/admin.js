@@ -19,7 +19,13 @@ const staffPage = document.querySelector("[data-staff-page]")?.dataset.staffPage
 const deletedProductRows = document.querySelector("#deleted-product-rows");
 const emptyDeletedProducts = document.querySelector("#empty-deleted-products");
 const staffRoleForm = document.querySelector("#staff-role-form");
+const documentSearchForm = document.querySelector("#staff-document-search-form");
+const documentSearchResults = document.querySelector("#staff-document-search-results");
+const pickupScanner = document.querySelector("#staff-pickup-scanner");
+const pickupCamera = document.querySelector("#staff-pickup-camera");
+const salesSummary = document.querySelector("#sales-summary");
 const currency = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
+const bolivares = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const departmentNames = [
   "Víveres y Alacena",
   "Frutas y Verduras",
@@ -39,6 +45,11 @@ let missingDepartments = [];
 let deliveryCouriers = [];
 let adminOrdersChannel = null;
 let staffRole = "";
+let pickupMediaStream = null;
+let pickupScanTimer = 0;
+let pickupScanRunning = false;
+let pickupQrCanvas = null;
+let pickupQrContext = null;
 if (imageInput) imageInput.required = true;
 
 function escapeHtml(value) {
@@ -111,7 +122,7 @@ async function loadInventory() {
   setMessage(dashboardStatus, "Cargando inventario…");
   const { data, error } = await supabaseClient
     .from("productos")
-    .select("id,nombre,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
+    .select("id,nombre,codigo_barras,stock,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
   if (error) throw error;
@@ -120,8 +131,11 @@ async function loadInventory() {
     const category = Array.isArray(product.categorias) ? product.categorias[0] : product.categorias;
     return `<tr>
       <td data-label="Producto"><div class="inventory-product"><img src="${escapeHtml(getInventoryImageUrl(product.imagen_url))}" alt="" loading="lazy" /><span>${escapeHtml(product.nombre)}${product.es_destacado ? " · Destacado" : ""}</span></div></td>
+      <td data-label="Código">${escapeHtml(product.codigo_barras || "—")}</td>
       <td data-label="Departamento">${escapeHtml(category?.departamento || "Sin departamento")}</td>
       <td data-label="Precio">${currency.format(Number(product.precio))}</td>
+      <td data-label="Precio VES">${product.precio_ves === null ? "—" : `Bs. ${bolivares.format(Number(product.precio_ves))}`}</td>
+      <td data-label="Stock">${Number(product.stock || 0)}</td>
       <td data-label="Oferta">${product.precio_oferta === null ? "—" : currency.format(Number(product.precio_oferta))}</td>
       <td data-label="Estado"><span class="stock-label${product.disponible ? "" : " unavailable"}">${product.disponible ? "Disponible" : "Agotado"}</span></td>
       <td data-label="Acciones"><div class="row-actions">
@@ -161,6 +175,18 @@ async function loadDeletedProducts() {
     </tr>`;
   }).join("");
   emptyDeletedProducts.hidden = data.length > 0;
+}
+
+async function loadSalesSummary() {
+  if (!salesSummary) return;
+  const { data, error } = await supabaseClient.rpc("admin_store_sales_summary");
+  if (error) throw error;
+  const summary = Array.isArray(data) ? data[0] : data;
+  if (!summary) throw new Error("Supabase no devolvió el resumen de ventas.");
+  document.querySelector("#sales-orders-today").textContent = String(summary.orders_today);
+  document.querySelector("#sales-gross-today").textContent = currency.format(Number(summary.gross_today));
+  document.querySelector("#sales-verified-today").textContent = currency.format(Number(summary.verified_today));
+  document.querySelector("#sales-pending-today").textContent = String(summary.pending_payments);
 }
 
 async function setStaffRole(event) {
@@ -227,7 +253,7 @@ async function loadAdminOrders() {
   setMessage(adminOrdersStatus, "Cargando pedidos…");
   const { data: orders, error } = await supabaseClient
     .from("store_orders")
-    .select("id,user_id,assigned_courier_id,customer_name,customer_phone,fulfillment,delivery_address,payment_method,payment_bank_code,payment_reference,payment_proof_path,payment_status,order_status,total_usd,total_ves,created_at")
+    .select("id,user_id,assigned_courier_id,customer_name,customer_phone,customer_document,fulfillment,delivery_address,delivery_reference,delivery_latitude,delivery_longitude,payment_method,payment_bank_code,payment_reference,payment_proof_path,payment_status,order_status,total_usd,total_ves,created_at")
     .not("order_status", "in", "(delivered,cancelled)")
     .order("created_at", { ascending: false })
     .limit(100);
@@ -306,8 +332,8 @@ async function loadAdminOrders() {
     const date = new Intl.DateTimeFormat("es-VE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(order.created_at));
     return `<article class="admin-order-card" data-order-id="${escapeHtml(order.id)}">
       <header class="admin-order-heading"><div><span class="eyebrow">${escapeHtml(date)}</span><h3>Pedido ${escapeHtml(order.id.slice(0, 8).toUpperCase())}</h3></div><strong>${currency.format(Number(order.total_usd))}${order.total_ves === null ? "" : `<small>Bs. ${new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(order.total_ves))} · referencial</small>`}</strong></header>
-      <p><strong>${escapeHtml(order.customer_name)}</strong> · ${escapeHtml(order.customer_phone)}</p>
-      <p>${order.fulfillment === "delivery" ? `Delivery: ${escapeHtml(order.delivery_address || "")}` : "Retiro en tienda"} · Pago: ${escapeHtml(order.payment_method)}</p>
+      <p><strong>${escapeHtml(order.customer_name)}</strong> · ${escapeHtml(order.customer_phone)}${order.customer_document ? ` · C.I.: ${escapeHtml(order.customer_document)}` : ""}</p>
+      <p>${order.fulfillment === "delivery" ? `Delivery: ${escapeHtml(order.delivery_address || "")}${order.delivery_reference ? ` · Referencia: ${escapeHtml(order.delivery_reference)}` : ""}${order.delivery_latitude !== null && order.delivery_longitude !== null ? ` · GPS: ${escapeHtml(`${order.delivery_latitude}, ${order.delivery_longitude}`)}` : ""}` : "Retiro en tienda"} · Pago: ${escapeHtml(order.payment_method)}</p>
       ${order.payment_method === "mobile_payment" ? `<p>Banco: ${escapeHtml(order.payment_bank_code || "—")} · Referencia: ${escapeHtml(order.payment_reference || "—")}</p>` : ""}
       <ul class="admin-order-items">${orderItems.map((item) => `<li>${escapeHtml(item.product_name)} × ${item.quantity} <span>${currency.format(Number(item.line_total_usd))}</span></li>`).join("")}</ul>
       <div class="admin-order-proof">${proofLink}${proofError ? `<span role="alert">${escapeHtml(proofError)}</span>` : ""}</div>
@@ -444,13 +470,167 @@ async function processStaffScan(purpose, token) {
         <p><strong>${escapeHtml(data.customer_name)}</strong> · ${escapeHtml(data.customer_phone)}</p>
         <ul>${items.map((item) => `<li>${escapeHtml(item.product_name)} × ${Number(item.quantity)}</li>`).join("")}</ul>
         <p>Total: <strong>${currency.format(Number(data.total_usd))}</strong></p>
-        <p>Pago pendiente: cobra y confirma el pago desde la bandeja de pedidos.</p>
+        <p>${data.order_status === "ready"
+          ? "Confirma que recibiste el pago antes de entregar el pedido."
+          : "El pedido todavía no está listo para retirar."}</p>
+        ${data.order_status === "ready"
+          ? `<button class="primary-button" type="button" data-complete-pickup-qr="${escapeHtml(token)}">Confirmar cobro y entrega</button>`
+          : ""}
       </article>`;
-      setMessage(status, "Ticket de retiro válido. Comprueba los artículos y registra el cobro en caja.", true);
+      setMessage(status, data.order_status === "ready"
+        ? "Ticket válido. Comprueba los artículos, recibe el pago y confirma la entrega."
+        : "Ticket válido, pero el pedido aún no está listo para entregar.");
     }
   } catch (error) {
     console.error("No se pudo validar el código del pedido.", error);
     setMessage(status, error.message || "No se pudo validar el código. Revisa el estado del pedido e inténtalo de nuevo.");
+  }
+}
+
+function stopPickupScanner() {
+  pickupScanRunning = false;
+  window.clearTimeout(pickupScanTimer);
+  pickupMediaStream?.getTracks().forEach((track) => track.stop());
+  pickupMediaStream = null;
+  if (pickupCamera) pickupCamera.srcObject = null;
+  if (pickupScanner) pickupScanner.hidden = true;
+}
+
+function pickupTokenFromQrValue(rawValue) {
+  const value = String(rawValue || "").trim();
+  if (/^[a-f0-9]{64}$/i.test(value)) return value;
+  const url = new URL(value);
+  if (url.origin !== window.location.origin || !["/", "/caja/", "/cashier/"].includes(url.pathname)) {
+    throw new Error("Este QR no corresponde a un ticket de retiro de Hipermercado Kristal.");
+  }
+  const params = new URLSearchParams(url.hash.slice(1));
+  if (params.get("scan") !== "pickup") throw new Error("Este QR no es un ticket de retiro.");
+  const token = params.get("token") || "";
+  if (!/^[a-f0-9]{64}$/i.test(token)) throw new Error("El ticket no contiene un código válido.");
+  return token;
+}
+
+async function detectPickupQr(detector) {
+  if (!pickupScanRunning) return;
+  try {
+    if (pickupCamera.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+      let value = "";
+      if (detector) value = (await detector.detect(pickupCamera))[0]?.rawValue || "";
+      if (!value && window.jsQR && pickupCamera.videoWidth > 0) {
+        if (!pickupQrCanvas) {
+          pickupQrCanvas = document.createElement("canvas");
+          pickupQrContext = pickupQrCanvas.getContext("2d", { willReadFrequently: true });
+        }
+        const scale = Math.min(1, 640 / pickupCamera.videoWidth);
+        pickupQrCanvas.width = Math.round(pickupCamera.videoWidth * scale);
+        pickupQrCanvas.height = Math.round(pickupCamera.videoHeight * scale);
+        pickupQrContext.drawImage(pickupCamera, 0, 0, pickupQrCanvas.width, pickupQrCanvas.height);
+        const frame = pickupQrContext.getImageData(0, 0, pickupQrCanvas.width, pickupQrCanvas.height);
+        value = window.jsQR(frame.data, frame.width, frame.height)?.data || "";
+      }
+      if (value) {
+        const token = pickupTokenFromQrValue(value);
+        stopPickupScanner();
+        await processStaffScan("pickup", token);
+        return;
+      }
+    }
+  } catch (error) {
+    console.error("No se pudo leer o validar el QR de retiro.", error);
+    setMessage(document.querySelector("#staff-scan-status"), error.message || "No se pudo leer el QR.");
+  }
+  if (pickupScanRunning) pickupScanTimer = window.setTimeout(() => detectPickupQr(detector), 250);
+}
+
+async function openPickupScanner() {
+  if (staffRole !== "operator") return;
+  if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+    setMessage(document.querySelector("#staff-scan-status"), "La cámara requiere HTTPS y permiso del navegador.");
+    pickupScanner.hidden = false;
+    return;
+  }
+  if (!("BarcodeDetector" in window) && !window.jsQR) {
+    setMessage(document.querySelector("#staff-scan-status"), "No se cargó el lector QR. Recarga Caja e inténtalo de nuevo.");
+    pickupScanner.hidden = false;
+    return;
+  }
+  try {
+    let detector = null;
+    if ("BarcodeDetector" in window) {
+      try { detector = new BarcodeDetector({ formats: ["qr_code"] }); }
+      catch (error) { console.warn("Se usará el lector QR alternativo.", error); }
+    }
+    pickupScanner.hidden = false;
+    pickupMediaStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false,
+    });
+    pickupCamera.srcObject = pickupMediaStream;
+    await pickupCamera.play();
+    pickupScanRunning = true;
+    setMessage(document.querySelector("#staff-scan-status"), "Apunta la cámara al QR de retiro del cliente.");
+    detectPickupQr(detector);
+  } catch (error) {
+    console.error("No se pudo iniciar la cámara de Caja.", error);
+    stopPickupScanner();
+    pickupScanner.hidden = false;
+    setMessage(document.querySelector("#staff-scan-status"), error.message || "No se pudo abrir la cámara. Revisa los permisos.");
+  }
+}
+
+async function searchPickupByDocument(event) {
+  event.preventDefault();
+  const status = document.querySelector("#staff-document-search-status");
+  documentSearchResults.replaceChildren();
+  setMessage(status, "Buscando pedidos de retiro pendientes…");
+  const submitButton = documentSearchForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  try {
+    const { data, error } = await supabaseClient.rpc("find_store_pickup_orders_by_document", {
+      p_document: documentSearchForm.elements.document.value.trim(),
+    });
+    if (error) throw error;
+    if (!Array.isArray(data) || !data.length) {
+      setMessage(status, "No hay pedidos de retiro pendientes asociados a ese documento.");
+      return;
+    }
+    documentSearchResults.innerHTML = data.map((order) => `<article class="scanned-pickup-ticket">
+      <h3>Pedido ${escapeHtml(String(order.id).slice(0, 8).toUpperCase())}</h3>
+      <p><strong>${escapeHtml(order.customer_name)}</strong> · ${escapeHtml(order.customer_phone)}</p>
+      <ul>${(order.items || []).map((item) => `<li>${escapeHtml(item.product_name)} × ${Number(item.quantity)}</li>`).join("")}</ul>
+      <p>Total: <strong>${currency.format(Number(order.total_usd))}</strong></p>
+      <button class="primary-button" type="button" data-complete-pickup-order="${escapeHtml(order.id)}">Confirmar cobro y entrega</button>
+    </article>`).join("");
+    setMessage(status, `${data.length} ${data.length === 1 ? "pedido pendiente encontrado" : "pedidos pendientes encontrados"}.`);
+  } catch (error) {
+    console.error("No se pudieron buscar pedidos por documento.", error);
+    setMessage(status, error.message || "No se pudo completar la búsqueda.");
+  } finally {
+    submitButton.disabled = false;
+  }
+}
+
+async function completePickup(rpcName, params, button) {
+  const isQrCompletion = rpcName === "complete_store_pickup_by_qr";
+  const status = document.querySelector(isQrCompletion ? "#staff-scan-status" : "#staff-document-search-status");
+  button.disabled = true;
+  try {
+    const { data: orderId, error } = await supabaseClient.rpc(rpcName, params);
+    if (error) throw error;
+    setMessage(status, `Pedido ${String(orderId).slice(0, 8).toUpperCase()} cobrado y entregado correctamente.`, true);
+    documentSearchResults?.replaceChildren();
+    document.querySelector("#staff-scan-result")?.replaceChildren();
+  } catch (error) {
+    console.error("No se pudo confirmar el retiro en caja.", error);
+    setMessage(status, error.message || "No se pudo confirmar el retiro. Comprueba el pedido e inténtalo de nuevo.");
+    button.disabled = false;
+    return;
+  }
+  try {
+    await loadAdminOrders();
+  } catch (error) {
+    console.error("El retiro se confirmó, pero no se pudo actualizar la bandeja de pedidos.", error);
+    setMessage(status, `El pedido se entregó, pero no se pudo actualizar la lista: ${error.message || "error de conexión"}`);
   }
 }
 
@@ -461,6 +641,10 @@ async function enterStaffDashboard(session) {
     await loadCategories();
     await loadInventory();
     await loadDeletedProducts();
+    loadSalesSummary().catch((error) => {
+      console.error("No se pudieron cargar las métricas de ventas.", error);
+      setMessage(dashboardStatus, `No se pudieron cargar las métricas: ${error.message || "error de conexión"}`);
+    });
   }
   if (staffPage === "cashier") await initializeAdminOrders();
   const scanParams = new URLSearchParams(location.hash.slice(1));
@@ -500,7 +684,10 @@ function beginEditing(product) {
   const department = categories.find((category) => category.nombre === productCategory?.departamento);
   productForm.elements.categoria_id.value = department?.id || "";
   productForm.elements.presentacion.value = product.presentacion || "";
+  productForm.elements.codigo_barras.value = product.codigo_barras || "";
+  productForm.elements.stock.value = product.stock ?? 0;
   productForm.elements.precio.value = product.precio;
+  productForm.elements.precio_ves.value = product.precio_ves ?? "";
   productForm.elements.precio_oferta.value = product.precio_oferta ?? "";
   productForm.elements.es_destacado.checked = product.es_destacado;
   productForm.elements.disponible.checked = product.disponible;
@@ -555,6 +742,13 @@ async function saveProduct(event) {
     const regularPrice = Number(formData.get("precio"));
     const salePriceText = String(formData.get("precio_oferta") || "").trim();
     const salePrice = salePriceText ? Number(salePriceText) : null;
+    const inventoryStock = Number(formData.get("stock"));
+    const vesPriceText = String(formData.get("precio_ves") || "").trim();
+    const vesPrice = vesPriceText ? Number(vesPriceText) : null;
+    if (!Number.isFinite(inventoryStock) || inventoryStock < 0
+      || (vesPrice !== null && (!Number.isFinite(vesPrice) || vesPrice < 0))) {
+      throw new Error("El stock y el precio de referencia en VES deben ser valores válidos y no negativos.");
+    }
     if (!Number.isFinite(regularPrice) || regularPrice <= 0 || (salePrice !== null && (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= regularPrice))) {
       throw new Error("El precio de oferta debe ser mayor que cero y menor que el precio regular.");
     }
@@ -563,7 +757,10 @@ async function saveProduct(event) {
       nombre: String(formData.get("nombre")).trim(),
       categoria_id: String(formData.get("categoria_id")),
       presentacion: String(formData.get("presentacion") || "").trim() || null,
+      codigo_barras: String(formData.get("codigo_barras") || "").trim() || null,
+      stock: inventoryStock,
       precio: regularPrice,
+      precio_ves: vesPrice,
       precio_oferta: salePrice,
       es_destacado: formData.has("es_destacado"),
       disponible: formData.has("disponible"),
@@ -626,7 +823,7 @@ async function handleInventoryAction(event) {
   try {
     const { data, error } = await supabaseClient
       .from("productos")
-      .select("id,nombre,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
+      .select("id,nombre,codigo_barras,stock,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
       .eq("id", productId)
       .single();
     if (error) throw error;
@@ -745,6 +942,31 @@ document.querySelector("#staff-scan-form")?.addEventListener("submit", (event) =
   event.preventDefault();
   processStaffScan(event.currentTarget.elements.purpose.value, event.currentTarget.elements.token.value.trim());
 });
+documentSearchForm?.addEventListener("submit", searchPickupByDocument);
+documentSearchResults?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-complete-pickup-order]");
+  if (!button) return;
+  completePickup("complete_store_pickup_by_document", {
+    p_document: documentSearchForm.elements.document.value.trim(),
+    p_order_id: button.dataset.completePickupOrder,
+  }, button);
+});
+document.querySelector("#staff-scan-result")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-complete-pickup-qr]");
+  if (button) completePickup("complete_store_pickup_by_qr", { p_token: button.dataset.completePickupQr }, button);
+});
+document.querySelector("#staff-scan-open")?.addEventListener("click", openPickupScanner);
+document.querySelector("#staff-scan-close")?.addEventListener("click", stopPickupScanner);
+window.addEventListener("pagehide", stopPickupScanner);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && pickupScanRunning) stopPickupScanner();
+});
+window.addEventListener("kristal:inventory-imported", () => {
+  loadInventory().catch((error) => {
+    console.error("La importación terminó, pero no se pudo refrescar el inventario.", error);
+    setMessage(dashboardStatus, error.message || "Inventario importado; actualiza la lista para ver los cambios.");
+  });
+});
 inventoryRows?.addEventListener("click", handleInventoryAction);
 deletedProductRows?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-restore-product]");
@@ -773,6 +995,7 @@ document.querySelector("#refresh-orders-button")?.addEventListener("click", () =
 adminOrdersList?.addEventListener("click", handleAdminOrderAction);
 document.querySelector("#sign-out-button")?.addEventListener("click", async () => {
   try {
+    stopPickupScanner();
     const { error } = await supabaseClient.auth.signOut();
     if (error) throw error;
     if (adminOrdersChannel) {

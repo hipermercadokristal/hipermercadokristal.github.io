@@ -146,6 +146,9 @@
       }
     } finally {
       clearTimeout(timeout);
+      window.dispatchEvent(new CustomEvent("kristal:bcv-rate", {
+        detail: { rate: exchangeRate, date: exchangeRateDate, stale: exchangeRateIsStale },
+      }));
       if (requestedItems.length) showCheckoutTotal();
     }
     return exchangeRate !== null;
@@ -276,12 +279,26 @@
   function setFulfillmentFields() {
     const delivery = checkoutForm.elements.fulfillment.value === "delivery";
     const addressRow = document.querySelector("#store-delivery-address-row");
+    const referenceRow = document.querySelector("#store-delivery-reference-row");
+    const locationRow = document.querySelector("#store-delivery-location-row");
     addressRow.hidden = !delivery;
+    referenceRow.hidden = !delivery;
+    locationRow.hidden = !delivery;
     checkoutForm.elements.delivery_address.required = delivery;
+    checkoutForm.elements.delivery_reference.required = delivery;
+    checkoutForm.elements.customer_document.required = !delivery;
+    if (!delivery) {
+      checkoutForm.elements.delivery_latitude.value = "";
+      checkoutForm.elements.delivery_longitude.value = "";
+      setStatus("#checkout-location-status", "");
+    }
   }
 
   function populateCheckout(items) {
     requestedItems = items;
+    checkoutForm.elements.delivery_latitude.value = "";
+    checkoutForm.elements.delivery_longitude.value = "";
+    setStatus("#checkout-location-status", "");
     showCheckoutTotal();
     if (currentUser) {
       document.querySelector('[name="customer_name"]').value =
@@ -290,6 +307,8 @@
         document.querySelector("#customer-profile-phone").value || currentUser.user_metadata?.phone || "";
       document.querySelector('[name="delivery_address"]').value =
         document.querySelector("#customer-profile-address").value || "";
+      checkoutForm.elements.customer_document.value =
+        currentUser.user_metadata?.document_id || "";
     }
     document.querySelector("#store-checkout-form").hidden = false;
     document.querySelector("#order-receipt").hidden = true;
@@ -360,12 +379,19 @@
         }
       }
 
-      const { data, error } = await supabase.rpc("create_store_order", {
+      const delivery = formData.get("fulfillment") === "delivery";
+      const latitude = delivery && String(formData.get("delivery_latitude") || "").trim()
+        ? Number(formData.get("delivery_latitude"))
+        : null;
+      const longitude = delivery && String(formData.get("delivery_longitude") || "").trim()
+        ? Number(formData.get("delivery_longitude"))
+        : null;
+      const { data, error } = await supabase.rpc("create_store_order_with_location", {
         p_order_id: orderId,
         p_customer_name: String(formData.get("customer_name")).trim(),
         p_customer_phone: String(formData.get("customer_phone")).trim(),
         p_fulfillment: formData.get("fulfillment"),
-        p_delivery_address: formData.get("fulfillment") === "delivery"
+        p_delivery_address: delivery
           ? String(formData.get("delivery_address") || "").trim() || null
           : null,
         p_payment_method: paymentMethod,
@@ -376,6 +402,10 @@
         p_payment_proof_path: proofPath,
         p_exchange_rate: exchangeRate,
         p_items: requestedItems.map(({ product_id, quantity }) => ({ product_id, quantity })),
+        p_customer_document: String(formData.get("customer_document") || "").trim() || null,
+        p_delivery_reference: delivery ? String(formData.get("delivery_reference") || "").trim() : null,
+        p_delivery_latitude: latitude,
+        p_delivery_longitude: longitude,
       });
       if (error) throw error;
       const order = Array.isArray(data) ? data[0] : data;
@@ -546,7 +576,7 @@
         ${timelineMarkup(order.order_status, order.fulfillment)}
         <ul class="customer-order-items">${items.map((item) => `<li><span>${escapeHtml(item.product_name)} × ${item.quantity}</span><strong>${currency.format(Number(item.line_total_usd))}</strong></li>`).join("")}</ul>
         <div class="customer-order-total"><span>Total</span><strong>${currency.format(Number(order.total_usd))}${order.total_ves === null ? "" : `<small>${escapeHtml(formatBolivares(Number(order.total_ves)))} · referencial</small>`}</strong></div>
-        <p class="customer-order-delivery">${order.fulfillment === "delivery" ? "Delivery" : "Retiro en tienda"}${order.fulfillment === "delivery" && order.delivery_address ? ` · ${escapeHtml(order.delivery_address)}` : ""}</p>
+        <p class="customer-order-delivery">${order.fulfillment === "delivery" ? "Delivery" : "Retiro en tienda"}${order.fulfillment === "delivery" && order.delivery_address ? ` · ${escapeHtml(order.delivery_address)}` : ""}${order.fulfillment === "delivery" && order.delivery_reference ? ` · Referencia: ${escapeHtml(order.delivery_reference)}` : ""}</p>
         ${qrPurpose ? `<section class="order-qr-ticket" data-order-qr="${escapeHtml(order.id)}" data-qr-purpose="${qrPurpose}"><h3>${qrPurpose === "delivery" ? "Muestra este código QR al repartidor al recibir tu pedido" : "Ticket de retiro en caja"}</h3><img alt="${qrPurpose === "delivery" ? "Código QR de confirmación de entrega" : "Código QR para retirar el pedido"}" /><p role="status" aria-live="polite">Preparando código seguro…</p></section>` : ""}
       </article>`;
     }).join("");
@@ -593,7 +623,7 @@
     setStatus("#orders-status", "Cargando tus pedidos…");
     const { data: orders, error: ordersError } = await supabase
       .from("store_orders")
-      .select("id,fulfillment,delivery_address,payment_method,payment_status,order_status,total_usd,total_ves,created_at")
+      .select("id,fulfillment,delivery_address,delivery_reference,payment_method,payment_status,order_status,total_usd,total_ves,created_at")
       .eq("user_id", currentUser.id)
       .order("created_at", { ascending: false });
     if (ordersError) throw ordersError;
@@ -805,6 +835,30 @@
       if (event.target.value === "mobile_payment") openPaymentDataSheet();
     }
     if (event.target.name === "fulfillment") setFulfillmentFields();
+  });
+  document.querySelector("#checkout-use-location").addEventListener("click", () => {
+    const button = document.querySelector("#checkout-use-location");
+    if (!navigator.geolocation) {
+      setStatus("#checkout-location-status", "Este navegador no ofrece geolocalización. Escribe la dirección manualmente.", true);
+      return;
+    }
+    button.disabled = true;
+    setStatus("#checkout-location-status", "Solicitando permiso de ubicación…");
+    navigator.geolocation.getCurrentPosition((position) => {
+      checkoutForm.elements.delivery_latitude.value = String(position.coords.latitude);
+      checkoutForm.elements.delivery_longitude.value = String(position.coords.longitude);
+      setStatus("#checkout-location-status", "Ubicación GPS guardada para ayudar al repartidor.");
+      button.disabled = false;
+    }, (error) => {
+      console.error("No se pudo obtener la ubicación del cliente.", error);
+      const message = error.code === error.PERMISSION_DENIED
+        ? "No se concedió permiso de ubicación. Puedes escribir la dirección y referencia manualmente."
+        : error.code === error.TIMEOUT
+          ? "La ubicación tardó demasiado. Inténtalo otra vez o escribe la dirección manualmente."
+          : "No se pudo obtener la ubicación. Verifica permisos y conexión GPS.";
+      setStatus("#checkout-location-status", message, true);
+      button.disabled = false;
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
   });
   document.querySelectorAll("[data-evidence-tab]").forEach((tab) => {
     tab.addEventListener("click", () => setPaymentEvidenceMode(tab.dataset.evidenceTab));

@@ -627,12 +627,20 @@
           <form id="store-checkout-form">
             <label>Nombre completo<input name="customer_name" autocomplete="name" maxlength="80" required /></label>
             <label>Teléfono<input name="customer_phone" type="tel" autocomplete="tel" minlength="7" maxlength="25" required /></label>
+            <label>Cédula o documento (obligatorio para retiro en tienda)<input name="customer_document" autocomplete="off" minlength="4" maxlength="30" /></label>
             <fieldset class="checkout-choice-group">
               <legend>¿Cómo recibirás tu pedido?</legend>
               <label><input type="radio" name="fulfillment" value="pickup" checked /> Retiro en tienda · Villa Bruzual</label>
               <label><input type="radio" name="fulfillment" value="delivery" /> Delivery a domicilio</label>
             </fieldset>
-            <label id="store-delivery-address-row" hidden>Dirección y punto de referencia<textarea name="delivery_address" autocomplete="street-address" rows="3" maxlength="300"></textarea></label>
+            <label id="store-delivery-address-row" hidden>Dirección detallada<textarea name="delivery_address" autocomplete="street-address" rows="3" maxlength="300" placeholder="Sector, calle, número de casa o edificio"></textarea></label>
+            <label id="store-delivery-reference-row" hidden>Punto de referencia<textarea name="delivery_reference" rows="2" maxlength="200" placeholder="Color de la casa, comercio cercano, indicaciones"></textarea></label>
+            <div class="checkout-location" id="store-delivery-location-row" hidden>
+              <button class="secondary-button" id="checkout-use-location" type="button">📍 Usar mi ubicación actual</button>
+              <input name="delivery_latitude" type="hidden" />
+              <input name="delivery_longitude" type="hidden" />
+              <p class="checkout-rate-status" id="checkout-location-status" role="status" aria-live="polite"></p>
+            </div>
             <fieldset class="checkout-choice-group">
               <legend>Método de pago</legend>
               <label><input type="radio" name="payment_method" value="mobile_payment" checked /> Pago Móvil · enviar comprobante</label>

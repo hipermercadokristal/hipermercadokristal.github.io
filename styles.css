@@ -280,6 +280,7 @@ main { min-height: 55vh; padding-bottom: 40px; }
 .product-name { min-height: 36px; margin: 6px 0 3px; color: #273b2f; font-size: 12px; font-weight: 700; line-height: 1.45; }
 .product-presentation { color: #77847b; font-size: 10px; }
 .product-prices { min-height: 38px; display: flex; flex-direction: column; justify-content: center; gap: 2px; margin-top: 8px; }
+.product-ves-price { display: block; color: #66766c; font-size: 11px; line-height: 1.45; }
 .regular-price { color: #97a099; font-size: 9px; text-decoration: line-through; }
 .current-price { color: var(--forest); font-size: 16px; font-weight: 800; }
 .add-button { width: 100%; min-height: 39px; display: flex; align-items: center; justify-content: center; gap: 7px; margin-top: auto; padding-top: 6px; border: 1px solid var(--forest); border-radius: 6px; background: var(--forest); color: #fff; font-size: 10px; font-weight: 800; text-decoration: none; cursor: pointer; transition: transform .18s ease, background .18s ease, box-shadow .18s ease; }
@@ -738,6 +739,9 @@ html.app-auth-pending #customer-auth-status { color: var(--muted); }
 .checkout-choice-group legend { padding: 0 5px; color: #405249; font-size: 13px; font-weight: 800; }
 .checkout-choice-group label { display: flex; align-items: center; gap: 9px; color: #405249; font-size: 13px; }
 .checkout-choice-group input { accent-color: var(--forest); }
+.checkout-location { display: grid; gap: 7px; }
+.checkout-location .secondary-button { min-height: 42px; padding: 8px 12px; border: 1px solid #cbded0; border-radius: 8px; background: #fff; color: var(--forest); font-weight: 800; cursor: pointer; }
+.checkout-location .secondary-button:disabled { cursor: wait; opacity: .65; }
 .checkout-mobile-payment { display: grid; gap: 10px; padding: 15px; border: 1px solid #e2ebe3; border-radius: 10px; background: #f7faf7; }
 .checkout-mobile-payment h3 { margin: 0; color: var(--forest); font-size: 16px; }
 .checkout-mobile-payment p { margin: 0; color: #5b6b60; font-size: 13px; line-height: 1.55; }
@@ -757,6 +761,7 @@ html.app-auth-pending #customer-auth-status { color: var(--muted); }
 .checkout-total { padding: 12px; margin: 0; border-radius: 8px; background: #f1f7f2; color: var(--forest); font-size: 13px; font-weight: 700; line-height: 1.5; }
 .checkout-totals { display: grid; gap: 7px; }
 .checkout-rate-status, .checkout-copy-status { margin: 0; color: #65746a; font-size: 11px; line-height: 1.5; }
+.checkout-rate-status.error { color: #a42121; }
 .checkout-copy-ves { min-height: 42px; padding: 8px 12px; border: 1px solid #cbded0; border-radius: 8px; background: #fff; color: var(--forest); font-weight: 800; cursor: pointer; }
 .checkout-copy-status { min-height: 15px; }
 .checkout-reference-status { min-height: 16px; margin: -7px 0 0; color: #a42121; font-size: 12px; }

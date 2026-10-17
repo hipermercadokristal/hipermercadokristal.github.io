@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360" role="img" aria-labelledby="title">
+  <title id="title">Foto pendiente de producto</title>
+  <rect width="480" height="360" rx="24" fill="#f0f5f0"/>
+  <path d="M144 241l61-67 43 48 33-35 61 68H144z" fill="#c7d9cb"/>
+  <circle cx="306" cy="120" r="24" fill="#a9c7ae"/>
+  <text x="240" y="302" fill="#47634e" font-family="Arial,sans-serif" font-size="18" text-anchor="middle">Foto pendiente</text>
+</svg>

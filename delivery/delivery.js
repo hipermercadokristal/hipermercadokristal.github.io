@@ -54,7 +54,7 @@
     setStatus(ordersStatus, "Cargando entregas asignadas…");
     const { data: orders, error } = await supabase
       .from("store_orders")
-      .select("id,customer_name,customer_phone,delivery_address,total_usd,order_status,created_at")
+      .select("id,customer_name,customer_phone,delivery_address,delivery_reference,delivery_latitude,delivery_longitude,total_usd,order_status,created_at")
       .eq("assigned_courier_id", currentUser.id)
       .eq("fulfillment", "delivery")
       .eq("order_status", "delivering")
@@ -79,7 +79,16 @@
 
     orderList.innerHTML = orders.map((order) => {
       const address = String(order.delivery_address || "");
-      const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+      const hasCoordinates = order.delivery_latitude !== null
+        && order.delivery_latitude !== undefined
+        && order.delivery_longitude !== null
+        && order.delivery_longitude !== undefined
+        && Number.isFinite(Number(order.delivery_latitude))
+        && Number.isFinite(Number(order.delivery_longitude));
+      const mapQuery = hasCoordinates
+        ? `${order.delivery_latitude},${order.delivery_longitude}`
+        : [address, order.delivery_reference].filter(Boolean).join(", ");
+      const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
       const items = itemsByOrder.get(order.id) || [];
       return `<article class="delivery-order-card">
         <header class="delivery-order-heading">
@@ -87,7 +96,7 @@
           <strong>${currency.format(Number(order.total_usd))}</strong>
         </header>
         <p><strong>${escapeHtml(order.customer_name)}</strong> · <a href="tel:${encodeURIComponent(order.customer_phone)}">${escapeHtml(order.customer_phone)}</a></p>
-        <p class="delivery-address"><span><strong>Dirección:</strong> ${escapeHtml(address)}</span><a href="${mapUrl}" target="_blank" rel="noopener noreferrer">Abrir mapa</a></p>
+        <p class="delivery-address"><span><strong>Dirección:</strong> ${escapeHtml(address)}${order.delivery_reference ? `<br><strong>Referencia:</strong> ${escapeHtml(order.delivery_reference)}` : ""}${hasCoordinates ? `<br><small>GPS: ${escapeHtml(`${order.delivery_latitude}, ${order.delivery_longitude}`)}</small>` : ""}</span><a href="${mapUrl}" target="_blank" rel="noopener noreferrer">Abrir mapa</a></p>
         <ul class="delivery-order-items">${items.map((item) => `<li><span>${escapeHtml(item.product_name)}${item.presentation ? ` · ${escapeHtml(item.presentation)}` : ""}</span><strong>× ${Number(item.quantity)}</strong></li>`).join("")}</ul>
       </article>`;
     }).join("");
