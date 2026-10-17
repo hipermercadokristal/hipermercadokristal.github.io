@@ -19,6 +19,7 @@
     offline: "Fuera de servicio",
   };
   let currentUser = null;
+  let adminPreview = false;
   let ordersChannel = null;
   let mediaStream = null;
   let scanTimer = 0;
@@ -98,17 +99,20 @@
 
   async function loadAssignedOrders() {
     if (!currentUser) return;
-    setStatus(ordersStatus, "Cargando entregas asignadas…");
-    const { data: orders, error } = await supabase
+    setStatus(ordersStatus, adminPreview ? "Cargando vista de entregas…" : "Cargando entregas asignadas…");
+    let ordersQuery = supabase
       .from("store_orders")
       .select("id,customer_name,customer_phone,delivery_address,delivery_reference,delivery_latitude,delivery_longitude,total_usd,order_status,created_at")
-      .eq("assigned_courier_id", currentUser.id)
       .eq("fulfillment", "delivery")
       .eq("order_status", "delivering")
       .order("created_at", { ascending: true });
+    if (!adminPreview) ordersQuery = ordersQuery.eq("assigned_courier_id", currentUser.id);
+    const { data: orders, error } = await ordersQuery;
     if (error) throw error;
     if (!orders.length) {
-      orderList.innerHTML = '<p class="delivery-empty">No tienes pedidos asignados para entregar en este momento.</p>';
+      orderList.innerHTML = adminPreview
+        ? '<p class="delivery-empty">No hay pedidos delivery en camino para mostrar.</p>'
+        : '<p class="delivery-empty">No tienes pedidos asignados para entregar en este momento.</p>';
       setStatus(ordersStatus, "");
       return;
     }
@@ -147,7 +151,9 @@
         <ul class="delivery-order-items">${items.map((item) => `<li><span>${escapeHtml(item.product_name)}${item.presentation ? ` · ${escapeHtml(item.presentation)}` : ""}</span><strong>× ${Number(item.quantity)}</strong></li>`).join("")}</ul>
       </article>`;
     }).join("");
-    setStatus(ordersStatus, `${orders.length} ${orders.length === 1 ? "entrega asignada" : "entregas asignadas"}.`);
+    setStatus(ordersStatus, adminPreview
+      ? `${orders.length} ${orders.length === 1 ? "entrega en camino" : "entregas en camino"} · Vista de solo lectura.`
+      : `${orders.length} ${orders.length === 1 ? "entrega asignada" : "entregas asignadas"}.`);
   }
 
   async function refreshOrders() {
@@ -161,14 +167,15 @@
 
   function subscribeToAssignedOrders() {
     if (ordersChannel) supabase.removeChannel(ordersChannel);
+    const orderChanges = {
+      event: "*",
+      schema: "public",
+      table: "store_orders",
+      ...(!adminPreview ? { filter: `assigned_courier_id=eq.${currentUser.id}` } : {}),
+    };
     ordersChannel = supabase
       .channel(`delivery-orders-${currentUser.id}`)
-      .on("postgres_changes", {
-        event: "*",
-        schema: "public",
-        table: "store_orders",
-        filter: `assigned_courier_id=eq.${currentUser.id}`,
-      }, refreshOrders)
+      .on("postgres_changes", orderChanges, refreshOrders)
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
           console.error(`El canal de pedidos asignados terminó con estado ${status}.`);
@@ -334,7 +341,8 @@
 
   async function enterDashboard(session) {
     const role = session?.user?.app_metadata?.role;
-    if (role !== "courier") {
+    adminPreview = role === "admin";
+    if (role !== "courier" && !adminPreview) {
       const destination = window.kristalAuthRouting?.destinationForUser(session?.user);
       if (destination) {
         window.location.replace(destination);
@@ -350,8 +358,17 @@
     authSection.hidden = true;
     dashboard.hidden = false;
     signOutButton.hidden = false;
+    if (adminPreview) {
+      document.querySelector("#delivery-status-panel").hidden = true;
+      document.querySelector("#delivery-status-link").hidden = true;
+      document.querySelector("#delivery-scan-open").hidden = true;
+      document.querySelector("#delivery-manual-code-form").hidden = true;
+      document.querySelector("#delivery-orders h1").textContent = "Vista previa de Delivery";
+      document.querySelector("#delivery-orders-description").textContent = "Vista de solo lectura para Administración. La confirmación y disponibilidad son exclusivas del repartidor asignado.";
+      document.querySelector(".delivery-nav").style.gridTemplateColumns = "1fr";
+    }
     try {
-      await loadAvailability();
+      if (!adminPreview) await loadAvailability();
     } catch (error) {
       console.error("No se pudo cargar la disponibilidad del repartidor.", error);
       setStatus(availabilityStatus, `No se pudo cargar tu disponibilidad. Ejecuta supabase-courier-availability.sql en Supabase. ${error.message || ""}`, "error");
@@ -359,7 +376,7 @@
     await refreshOrders();
     subscribeToAssignedOrders();
     const params = new URLSearchParams(location.hash.slice(1));
-    if (params.get("scan") === "delivery" && params.has("token")) {
+    if (!adminPreview && params.get("scan") === "delivery" && params.has("token")) {
       history.replaceState(history.state, "", `${location.pathname}${location.search}`);
       scanner.hidden = false;
       await completeDelivery(params.get("token"));

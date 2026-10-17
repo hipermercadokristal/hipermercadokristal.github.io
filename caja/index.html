@@ -7,13 +7,13 @@
     <title>Caja | Hipermercado Kristal</title>
     <link rel="manifest" href="/caja/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="../admin/admin.css?v=shared-login-role-aware-20261017" />
+    <link rel="stylesheet" href="../admin/admin.css?v=staff-navigation-v1-20261017" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
-    <script src="/auth-routing.js?v=role-routing-v2-20261017" defer></script>
+    <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="../admin/staff-pwa.js?v=staff-pwa-20261017" defer></script>
-    <script src="../admin/admin.js?v=restore-products-role-login-20261017" defer></script>
+    <script src="../admin/admin.js?v=staff-navigation-v1-20261017" defer></script>
   </head>
   <body>
     <main class="admin-shell" data-staff-page="cashier">
@@ -36,7 +36,11 @@
             <h1 id="dashboard-heading">Caja · Pedidos y pagos</h1>
             <p class="intro">Esta cuenta solo tiene acceso a las herramientas de caja.</p>
           </div>
-          <button class="secondary-button" id="sign-out-button" type="button">Cerrar sesión</button>
+          <nav class="staff-dashboard-actions" aria-label="Accesos de Caja">
+            <a class="secondary-button" href="/">Ver Tienda / Catálogo</a>
+            <a class="secondary-button admin-return-link" href="/admin/" hidden>Volver a Administración</a>
+            <button class="secondary-button" id="sign-out-button" type="button">Cerrar sesión</button>
+          </nav>
         </header>
         <p class="status-message" id="dashboard-status" role="status" aria-live="polite"></p>
 

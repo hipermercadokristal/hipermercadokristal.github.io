@@ -26,17 +26,29 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=delivery-manual-code-20261017" />
+    <link rel="stylesheet" href="styles.css?v=staff-navigation-v1-20261017" />
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
-    <script src="/auth-routing.js?v=role-routing-v2-20261017" defer></script>
+    <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
+    <script src="/staff-store-navigation.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
     <script src="app.js?v=header-bcv-mobile-downloads-v2-20261017" defer></script>
     <script src="/client/app-orders.js?v=delivery-fee-courier-pay-v1-20261017" defer></script>
     <script src="pwa.js?v=header-bcv-mobile-downloads-v2-20261017" defer></script>
   </head>
   <body id="inicio">
+    <nav class="staff-store-return" id="staff-store-return" aria-label="Regreso al panel de personal" hidden>
+      <a id="staff-store-return-link" href="/admin/">← Volver a Panel Administrador</a>
+      <label id="admin-view-switcher-wrap" hidden>Acceso rápido
+        <select id="admin-view-switcher" aria-label="Cambiar a otra vista">
+          <option value="/admin/">Administración</option>
+          <option value="/caja/">Caja</option>
+          <option value="/delivery/">Delivery</option>
+          <option value="/">Tienda / Catálogo</option>
+        </select>
+      </label>
+    </nav>
     <header class="mobile-app-bar" aria-label="Encabezado de la app">
       <a class="mobile-app-brand" href="/" data-app-route="home" aria-label="Hipermercado Kristal, inicio">
         <img src="/assets/app-icons/icon-192.png" alt="" />
@@ -461,6 +473,16 @@
           <h1 id="profile-heading">Perfil</h1>
           <p>Inicia sesión o crea tu cuenta para guardar tus datos y usar la tienda.</p>
         </header>
+        <section class="institutional-card staff-profile-shortcuts" id="staff-profile-shortcuts" hidden aria-label="Accesos rápidos de administración">
+          <h2>Accesos rápidos de administración</h2>
+          <label for="staff-profile-view-switcher">Abrir otra vista</label>
+          <select id="staff-profile-view-switcher">
+            <option value="/admin/">Administración</option>
+            <option value="/caja/">Caja</option>
+            <option value="/delivery/">Delivery</option>
+            <option value="/">Tienda / Catálogo</option>
+          </select>
+        </section>
         <section class="institutional-card" id="customer-auth-card">
           <div class="account-auth-tabs" role="tablist" aria-label="Acceso a tu cuenta">
             <button class="active" id="customer-login-tab" type="button" role="tab" aria-selected="true">Iniciar sesión</button>

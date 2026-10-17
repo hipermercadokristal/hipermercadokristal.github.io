@@ -238,6 +238,11 @@
           throw new Error(`Supabase no devolvió la categoría creada para: ${unresolvedDepartments.map((key) => missingDepartments.get(key)).join(", ")}.`);
         }
       }
+      const unresolvedProducts = preparedRows
+        .filter((row) => !categoryIdByDepartment.has(row.departmentKey));
+      if (unresolvedProducts.length) {
+        throw new Error(`No se encontró una categoría válida para: ${[...new Set(unresolvedProducts.map((row) => row.departmentName))].join(", ")}.`);
+      }
 
       const barcodes = preparedRows.map((row) => row.barcode);
       const existingByBarcode = new Map();
@@ -255,7 +260,7 @@
         return {
           codigo_barras: row.barcode,
           nombre: row.name,
-          categoria_id: row.categoryId || categoryIdByDepartment.get(row.departmentKey),
+          categoria_id: categoryIdByDepartment.get(row.departmentKey),
           precio: row.priceUsd,
           precio_ves: row.priceVes,
           stock: row.stockColumnPresent ? row.stock : existing?.stock ?? null,

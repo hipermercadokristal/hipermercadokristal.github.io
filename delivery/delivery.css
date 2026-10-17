@@ -7,7 +7,7 @@ button, input { font: inherit; }
 button { cursor: pointer; }
 [hidden] { display: none !important; }
 .delivery-shell { width: min(920px, calc(100% - 28px)); margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 0 max(104px, calc(env(safe-area-inset-bottom) + 84px)); overscroll-behavior-y: none; }
-.delivery-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 25px; }
+.delivery-header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-bottom: 25px; }
 .delivery-header > a { display: inline-flex; align-items: center; gap: 11px; color: var(--forest); text-decoration: none; }
 .delivery-header img { width: 46px; height: 46px; border: 3px solid #fff; border-radius: 15px; box-shadow: 0 0 0 1px var(--line); }
 .delivery-header span { display: grid; }
@@ -17,6 +17,7 @@ button { cursor: pointer; }
 .delivery-header .install-app-button { border-color: var(--forest); background: var(--forest); color: #fff; }
 .delivery-header .delivery-apk-download { display: inline-flex; min-height: 40px; align-items: center; padding: 0 13px; border: 1px solid var(--forest); border-radius: 9px; background: var(--forest); color: #fff; font-weight: 700; text-decoration: none; }
 .delivery-header .install-app-button:disabled { opacity: .65; cursor: wait; }
+.delivery-header .delivery-store-link { padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--forest); font-size: 12px; font-weight: 800; white-space: nowrap; }
 .panel, .delivery-order-card { padding: 20px; border: 1px solid var(--line); border-radius: 15px; background: #fff; box-shadow: 0 6px 24px #1537240a; }
 .delivery-auth { max-width: 480px; margin: 8vh auto 0; }
 .unified-login-link { display: flex; align-items: center; justify-content: center; margin-top: 20px; text-decoration: none; }

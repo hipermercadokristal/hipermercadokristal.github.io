@@ -68,6 +68,10 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .dashboard-header, .panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
 .dashboard-header { margin-bottom: 20px; }
 .dashboard-header .intro { margin-bottom: 0; }
+.staff-dashboard-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.staff-dashboard-actions > a { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.admin-dashboard-view-switcher { display: grid; gap: 4px; color: #52665a; font-size: 10px; font-weight: 800; }
+.admin-dashboard-view-switcher select { min-height: 42px; }
 .dashboard > .status-message { margin: 0 0 14px; }
 .panel { margin-top: 18px; padding: 24px; }
 .panel-heading { margin-bottom: 22px; }

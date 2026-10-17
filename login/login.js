@@ -75,6 +75,12 @@
     googleButton.disabled = true;
     setStatus("Conectando con Google…");
     try {
+      try {
+        window.sessionStorage.setItem("kristal.auth.redirect", "1");
+      } catch (error) {
+        console.error("No se pudo guardar el destino de la sesión antes de abrir Google.", error);
+        throw new Error("No se pudo guardar el destino de tu sesión. Habilita el almacenamiento del navegador e inténtalo de nuevo.");
+      }
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -84,6 +90,11 @@
       });
       if (error) throw error;
     } catch (error) {
+      try {
+        window.sessionStorage.removeItem("kristal.auth.redirect");
+      } catch (cleanupError) {
+        console.error("No se pudo limpiar el destino temporal de autenticación.", cleanupError);
+      }
       console.error("No se pudo iniciar sesión con Google.", error);
       setStatus(error.message || "No se pudo iniciar sesión con Google.", true);
       googleButton.disabled = false;

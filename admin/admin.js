@@ -89,11 +89,7 @@ async function requireStaff(session) {
     window.location.replace("/caja/");
     throw new Error("Abriendo la bandeja de caja…");
   }
-  if (staffPage === "cashier" && role === "admin") {
-    window.location.replace("/admin/");
-    throw new Error("Abriendo la administración…");
-  }
-  const allowed = staffPage === "cashier" ? role === "operator" : role === "admin";
+  const allowed = staffPage === "cashier" ? role === "operator" || role === "admin" : role === "admin";
   if (!allowed) {
     const destination = window.kristalAuthRouting?.destinationForUser(session?.user);
     if (destination) {
@@ -569,6 +565,8 @@ function setStaffView(role) {
   document.querySelector("#order-inbox-panel").hidden = isAdmin;
   const scanPanel = document.querySelector("#staff-scan-panel");
   if (scanPanel) scanPanel.hidden = isAdmin;
+  const adminReturnLink = document.querySelector(".admin-return-link");
+  if (adminReturnLink) adminReturnLink.hidden = !(staffPage === "cashier" && role === "admin");
 }
 
 async function searchPickupByDocument(event) {
@@ -628,7 +626,7 @@ async function completePickup(rpcName, params, button) {
 async function enterStaffDashboard(session) {
   const role = await requireStaff(session);
   setStaffView(role);
-  if (role === "admin") {
+  if (role === "admin" && staffPage === "admin") {
     await loadCategories();
     await loadInventory();
     await loadDeletedProducts();
@@ -907,6 +905,10 @@ deletedProductRows?.addEventListener("click", (event) => {
 });
 cancelEditButton?.addEventListener("click", resetProductForm);
 staffRoleForm?.addEventListener("submit", setStaffRole);
+document.querySelector("#admin-dashboard-view-switcher")?.addEventListener("change", (event) => {
+  const destination = event.currentTarget.value;
+  if (destination) window.location.assign(destination);
+});
 document.querySelector("#refresh-button")?.addEventListener("click", () => {
   loadInventory().catch((error) => {
     console.error("No se pudo actualizar la lista del inventario.", error);

@@ -24,6 +24,14 @@ button { color: inherit; }
 .page-container { width: min(var(--page-width), calc(100% - 64px)); margin-inline: auto; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
+.staff-store-return { position: sticky; z-index: 30; top: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; padding: 6px max(16px, calc((100vw - var(--page-width)) / 2)); background: #0f3822; color: #fff; font-size: 12px; font-weight: 800; box-shadow: 0 2px 10px #18352a1c; }
+.staff-store-return > a { color: inherit; }
+.staff-store-return label { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; }
+.staff-store-return select, .staff-profile-shortcuts select { min-height: 32px; padding: 5px 9px; border: 1px solid #dce6dd; border-radius: 7px; background: #fff; color: #18352a; font: inherit; }
+.staff-profile-shortcuts h2 { margin-bottom: 12px; }
+.staff-profile-shortcuts label { display: block; margin-bottom: 6px; color: #344b3c; font-size: 12px; font-weight: 700; }
+.has-staff-navigation .site-header { top: 42px; }
+
 .announcement { display: flex; justify-content: center; align-items: center; gap: 17px; min-height: 35px; padding: 5px 20px; background: #f5c84c; color: #273a25; font-size: 11px; }
 .announcement p { margin: 0; }
 .announcement strong { font-weight: 800; }
@@ -822,6 +830,10 @@ html.app-auth-pending #customer-auth-status { color: var(--muted); }
   .site-header { display: contents; }
   .site-header > :not(.category-nav) { display: none; }
   .site-header .category-nav { position: fixed; z-index: 40; top: calc(63px + env(safe-area-inset-top, 0px)); right: 12px; left: 12px; display: none; width: auto; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: 0 14px 34px #18352a24; }
+  .has-staff-navigation .mobile-app-bar { top: calc(42px + env(safe-area-inset-top, 0px)); }
+  .has-staff-navigation .site-header .category-nav { top: calc(105px + env(safe-area-inset-top, 0px)); }
+  .staff-store-return { justify-content: center; padding-inline: 12px; }
+  .staff-store-return label { display: none; }
   body.mobile-menu-open .site-header .category-nav { display: block; }
   .site-header .nav-inner { display: block; min-height: 0; }
   .site-header .mobile-menu-button { display: none; }
