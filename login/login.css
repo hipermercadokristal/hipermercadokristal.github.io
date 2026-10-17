@@ -7,19 +7,26 @@ button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 [hidden] { display: none !important; }
 .login-shell { display: flex; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center; padding: max(24px, env(safe-area-inset-top)) 18px max(24px, env(safe-area-inset-bottom)); overscroll-behavior-y: none; }
-.login-brand { display: block; margin-bottom: 18px; }
-.login-brand img { display: block; width: 145px; height: 96px; object-fit: contain; }
 .login-card { width: min(430px, 100%); padding: clamp(23px, 6vw, 36px); border: 1px solid #e2e9e3; border-radius: 16px; background: #fff; box-shadow: 0 12px 36px #1736260d; }
 .eyebrow { margin: 0 0 8px; color: #67816d; font-size: 10px; font-weight: 800; letter-spacing: 1.3px; }
-h1 { margin: 0 0 8px; color: #153b25; font-size: clamp(25px, 7vw, 34px); }
+.login-card-brand { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.login-card-brand img { width: 66px; height: 58px; object-fit: contain; }
+.login-card-brand .eyebrow { margin-bottom: 4px; }
+h1 { margin: 0; color: #153b25; font-size: clamp(25px, 7vw, 34px); }
+.login-card > .eyebrow { margin-bottom: 8px; }
 .intro { margin: 0 0 23px; color: #718078; font-size: 14px; line-height: 1.6; }
+.role-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin: 0 0 8px; padding: 4px; border: 1px solid #e4ebe5; border-radius: 9px; background: #f6f8f6; }
+.role-tabs button { min-height: 36px; padding: 4px; border: 0; border-radius: 6px; background: transparent; color: #53635a; font-size: 10px; font-weight: 800; cursor: pointer; }
+.role-tabs button[aria-pressed="true"] { background: #fff; color: #14552e; box-shadow: 0 1px 4px #1736261c; }
+.role-note { margin: 0 0 15px; color: #718078; font-size: 11px; line-height: 1.45; }
 form { display: grid; gap: 8px; }
 label { margin-top: 7px; color: #344b3c; font-size: 13px; font-weight: 700; }
 input { width: 100%; min-height: 46px; padding: 10px 12px; border: 1px solid #dbe4dd; border-radius: 8px; background: white; color: #20382a; }
 input:focus { outline: 3px solid #3ca7602b; border-color: #4c9e63; }
 .primary-button, .google-button { width: 100%; min-height: 46px; border-radius: 8px; font-weight: 800; cursor: pointer; }
 .primary-button { margin-top: 10px; border: 0; background: #14552e; color: #fff; }
-.google-button { border: 1px solid #dce6dd; background: #fff; color: #31543b; }
+.google-button { display: flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid #dce6dd; background: #fff; color: #31543b; }
+.google-button svg { width: 20px; height: 20px; flex: none; }
 .primary-button:disabled, .google-button:disabled { opacity: .65; cursor: wait; }
 .separator { display: flex; align-items: center; gap: 12px; margin: 15px 0; color: #819087; font-size: 12px; }
 .separator::before, .separator::after { height: 1px; flex: 1; background: #e7ece8; content: ""; }

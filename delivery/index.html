@@ -8,13 +8,13 @@
     <title>Reparto | Hipermercado Kristal</title>
     <link rel="manifest" href="/delivery/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="/assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="/delivery/delivery.css?v=delivery-install-platforms-20261017" />
+    <link rel="stylesheet" href="/delivery/delivery.css?v=delivery-route-presence-login-20261017" />
     <script src="/supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="/supabase-client.js"></script>
-    <script src="/auth-routing.js" defer></script>
+    <script src="/auth-routing.js?v=role-routing-v2-20261017" defer></script>
     <script src="/assets/vendor/jsqr-1.4.0.min.js"></script>
-    <script src="/delivery/delivery.js?v=google-account-picker-20261017" defer></script>
+    <script src="/delivery/delivery.js?v=delivery-route-presence-login-20261017" defer></script>
     <script src="/delivery/delivery-pwa.js?v=delivery-install-platforms-20261017" defer></script>
   </head>
   <body>
@@ -30,19 +30,29 @@
         <p class="eyebrow">ACCESO DE PERSONAL</p>
         <h1>Iniciar sesión</h1>
         <p>Usa la cuenta de repartidor que te asignó la tienda.</p>
-        <form id="delivery-login-form">
-          <label>Correo electrónico<input name="email" type="email" autocomplete="username" required /></label>
-          <label>Contraseña<input name="password" type="password" autocomplete="current-password" required /></label>
-          <button class="primary-button" type="submit">Entrar a reparto</button>
-        </form>
-        <button class="secondary-button google-sign-in-button" id="delivery-google-sign-in" type="button">Continuar con Google</button>
+        <a class="primary-button unified-login-link" href="/login/?role=courier">Continuar al inicio de sesión</a>
         <p class="status" id="delivery-auth-status" role="status" aria-live="polite"></p>
       </section>
 
       <section class="delivery-dashboard" id="delivery-dashboard" hidden>
-        <div class="dashboard-heading">
+        <nav class="delivery-nav" aria-label="Navegación de reparto">
+          <a href="#delivery-orders">Hoja de ruta</a>
+          <button class="delivery-nav-scan" id="delivery-scan-open" type="button">Escanear QR</button>
+          <a href="#delivery-status-panel">Mi estado</a>
+        </nav>
+        <section class="delivery-status-panel panel" id="delivery-status-panel" aria-labelledby="delivery-status-heading">
+          <div><p class="eyebrow">PERFIL DE REPARTO</p><h2 id="delivery-status-heading">Mi disponibilidad</h2></div>
+          <label for="delivery-availability">Estado
+            <select id="delivery-availability">
+              <option value="available">Disponible</option>
+              <option value="on_route">En ruta</option>
+              <option value="offline">Fuera de servicio</option>
+            </select>
+          </label>
+          <p class="status" id="delivery-availability-status" role="status" aria-live="polite"></p>
+        </section>
+        <div class="dashboard-heading" id="delivery-orders">
           <div><p class="eyebrow">RUTA DE HOY</p><h1>Mis entregas</h1><p>Solo aparecen los pedidos asignados a tu cuenta.</p></div>
-          <button class="primary-button scan-launch" id="delivery-scan-open" type="button">Escanear QR de entrega</button>
         </div>
         <section class="scanner panel" id="delivery-scanner" hidden aria-label="Escáner de entrega">
           <div class="scanner-heading"><h2>Escanear QR del cliente</h2><button id="delivery-scan-close" type="button" aria-label="Cerrar cámara">Cerrar</button></div>

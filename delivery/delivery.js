@@ -2,16 +2,21 @@
   const supabase = window.kristalSupabase;
   const authSection = document.querySelector("#delivery-auth");
   const dashboard = document.querySelector("#delivery-dashboard");
-  const loginForm = document.querySelector("#delivery-login-form");
-  const googleSignInButton = document.querySelector("#delivery-google-sign-in");
   const authStatus = document.querySelector("#delivery-auth-status");
   const ordersStatus = document.querySelector("#delivery-orders-status");
   const orderList = document.querySelector("#delivery-order-list");
   const scanner = document.querySelector("#delivery-scanner");
+  const availabilitySelect = document.querySelector("#delivery-availability");
+  const availabilityStatus = document.querySelector("#delivery-availability-status");
   const camera = document.querySelector("#delivery-camera");
   const scanStatus = document.querySelector("#delivery-scan-status");
   const signOutButton = document.querySelector("#delivery-sign-out");
   const currency = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
+  const availabilityLabels = {
+    available: "Disponible",
+    on_route: "En ruta",
+    offline: "Fuera de servicio",
+  };
   let currentUser = null;
   let ordersChannel = null;
   let mediaStream = null;
@@ -47,6 +52,47 @@
     camera.srcObject = null;
     scanner.hidden = true;
     scanBusy = false;
+  }
+
+  async function loadAvailability() {
+    if (!currentUser) return;
+    const { data, error } = await supabase
+      .from("courier_availability")
+      .select("availability")
+      .eq("courier_id", currentUser.id)
+      .maybeSingle();
+    if (error) throw error;
+    availabilitySelect.value = data?.availability || "offline";
+    availabilitySelect.dataset.previousValue = availabilitySelect.value;
+    setStatus(availabilityStatus, data
+      ? `Tu estado está actualizado: ${availabilityLabels[data.availability]}.`
+      : "Elige si estás disponible para recibir entregas.");
+  }
+
+  async function saveAvailability() {
+    if (!currentUser) return;
+    const previousValue = availabilitySelect.dataset.previousValue || "offline";
+    const availability = availabilitySelect.value;
+    availabilitySelect.disabled = true;
+    setStatus(availabilityStatus, "Actualizando tu disponibilidad…");
+    try {
+      const { error } = await supabase
+        .from("courier_availability")
+        .upsert({
+          courier_id: currentUser.id,
+          availability,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "courier_id" });
+      if (error) throw error;
+      availabilitySelect.dataset.previousValue = availability;
+      setStatus(availabilityStatus, `Estado actualizado: ${availabilityLabels[availability]}.`, "success");
+    } catch (error) {
+      console.error("No se pudo actualizar la disponibilidad del repartidor.", error);
+      availabilitySelect.value = previousValue;
+      setStatus(availabilityStatus, error.message || "No se pudo actualizar tu disponibilidad. Comprueba la conexión e inténtalo de nuevo.", "error");
+    } finally {
+      availabilitySelect.disabled = false;
+    }
   }
 
   async function loadAssignedOrders() {
@@ -264,6 +310,12 @@
     authSection.hidden = true;
     dashboard.hidden = false;
     signOutButton.hidden = false;
+    try {
+      await loadAvailability();
+    } catch (error) {
+      console.error("No se pudo cargar la disponibilidad del repartidor.", error);
+      setStatus(availabilityStatus, `No se pudo cargar tu disponibilidad. Ejecuta supabase-courier-availability.sql en Supabase. ${error.message || ""}`, "error");
+    }
     await refreshOrders();
     subscribeToAssignedOrders();
     const params = new URLSearchParams(location.hash.slice(1));
@@ -277,7 +329,6 @@
   async function initialize() {
     if (!supabase) {
       setStatus(authStatus, "No se pudo conectar con Supabase. Inténtalo de nuevo más tarde.", "error");
-      loginForm.querySelector("button[type=submit]").disabled = true;
       return;
     }
     try {
@@ -300,52 +351,9 @@
     });
   }
 
-  loginForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    const button = loginForm.querySelector('button[type="submit"]');
-    button.disabled = true;
-    setStatus(authStatus, "Validando cuenta de repartidor…");
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginForm.elements.email.value.trim(),
-        password: loginForm.elements.password.value,
-      });
-      if (error) throw error;
-      await enterDashboard(data.session);
-    } catch (error) {
-      console.error("No se pudo iniciar sesión en el módulo de reparto.", error);
-      setStatus(authStatus, error.message || "No se pudo iniciar sesión.", "error");
-    } finally {
-      button.disabled = false;
-    }
-  });
-
-  googleSignInButton.addEventListener("click", async () => {
-    if (!supabase) {
-      setStatus(authStatus, "No se pudo conectar con Supabase. Inténtalo de nuevo más tarde.", "error");
-      return;
-    }
-    googleSignInButton.disabled = true;
-    setStatus(authStatus, "Conectando con Google…");
-    try {
-      const redirectTo = new URL(window.location.pathname, window.location.origin).toString();
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo,
-          queryParams: { prompt: "select_account" },
-        },
-      });
-      if (error) throw error;
-    } catch (error) {
-      console.error("No se pudo iniciar sesión con Google en reparto.", error);
-      setStatus(authStatus, error.message || "No se pudo iniciar sesión con Google.", "error");
-      googleSignInButton.disabled = false;
-    }
-  });
-
   document.querySelector("#delivery-scan-open").addEventListener("click", openScanner);
   document.querySelector("#delivery-scan-close").addEventListener("click", stopScanner);
+  availabilitySelect.addEventListener("change", saveAvailability);
   signOutButton.addEventListener("click", async () => {
     signOutButton.disabled = true;
     try {
@@ -356,7 +364,6 @@
       }
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      loginForm.reset();
     } catch (error) {
       console.error("No se pudo cerrar la sesión de reparto.", error);
       setStatus(ordersStatus, error.message || "No se pudo cerrar la sesión.", "error");

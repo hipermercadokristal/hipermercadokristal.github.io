@@ -3,6 +3,18 @@
   const loginForm = document.querySelector("#login-form");
   const googleButton = document.querySelector("#google-sign-in-button");
   const status = document.querySelector("#login-status");
+  const roleChoices = [...document.querySelectorAll("[data-role-choice]")];
+  const allowedRoles = new Set(["client", "operator", "courier", "admin"]);
+
+  function selectRole(role) {
+    const selectedRole = allowedRoles.has(role) ? role : "client";
+    roleChoices.forEach((choice) => {
+      choice.setAttribute("aria-pressed", String(choice.dataset.roleChoice === selectedRole));
+    });
+    const url = new URL(window.location.href);
+    url.searchParams.set("role", selectedRole);
+    window.history.replaceState({}, "", url);
+  }
 
   function setStatus(message, isError = false) {
     status.textContent = message;
@@ -16,6 +28,12 @@
     }
     return true;
   }
+
+  const requestedRole = new URLSearchParams(window.location.search).get("role");
+  selectRole(requestedRole);
+  roleChoices.forEach((choice) => {
+    choice.addEventListener("click", () => selectRole(choice.dataset.roleChoice));
+  });
 
   if (!supabase) {
     setStatus("El inicio de sesión no está disponible. Inténtalo de nuevo más tarde.", true);

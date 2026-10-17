@@ -1,7 +1,6 @@
 const supabaseClient = window.kristalSupabase;
 const authSection = document.querySelector("#auth-section");
 const dashboardSection = document.querySelector("#dashboard-section");
-const loginForm = document.querySelector("#login-form");
 const authStatus = document.querySelector("#auth-status");
 const dashboardStatus = document.querySelector("#dashboard-status");
 const productForm = document.querySelector("#product-form");
@@ -227,11 +226,33 @@ const paymentStatusLabels = {
   verified: "Pago recibido",
   rejected: "Pago rechazado",
 };
+const courierAvailabilityLabels = {
+  available: "Disponible",
+  on_route: "En ruta",
+  offline: "Fuera de servicio",
+};
 
 async function loadDeliveryCouriers() {
   const { data, error } = await supabaseClient.rpc("list_delivery_couriers");
   if (error) throw error;
-  deliveryCouriers = data || [];
+  const couriers = data || [];
+  if (!couriers.length) {
+    deliveryCouriers = [];
+    return;
+  }
+  const { data: availability, error: availabilityError } = await supabaseClient
+    .from("courier_availability")
+    .select("courier_id,availability")
+    .in("courier_id", couriers.map((courier) => courier.id));
+  if (availabilityError) {
+    console.error("No se pudo consultar la disponibilidad de los repartidores.", availabilityError);
+    setMessage(dashboardStatus, `La asignación de pedidos funciona, pero no se ven los estados de reparto. Ejecuta supabase-courier-availability.sql en Supabase. ${availabilityError.message || ""}`);
+  }
+  const availabilityByCourier = new Map((availability || []).map((item) => [item.courier_id, item.availability]));
+  deliveryCouriers = couriers.map((courier) => ({
+    ...courier,
+    availability: availabilityByCourier.get(courier.id) || "offline",
+  }));
 }
 
 function buildWhatsAppOrderLink(order, items) {
@@ -320,7 +341,7 @@ async function loadAdminOrders() {
       ? `<div class="delivery-assignment">
           <label>Repartidor<select data-courier-select="${escapeHtml(order.id)}">
             <option value="">Selecciona un repartidor</option>
-            ${deliveryCouriers.map((item) => `<option value="${escapeHtml(item.id)}"${item.id === order.assigned_courier_id ? " selected" : ""}>${escapeHtml(item.full_name)}${item.phone ? ` · ${escapeHtml(item.phone)}` : ""}</option>`).join("")}
+            ${deliveryCouriers.map((item) => `<option value="${escapeHtml(item.id)}"${item.id === order.assigned_courier_id ? " selected" : ""}>${escapeHtml(item.full_name)} · ${escapeHtml(courierAvailabilityLabels[item.availability] || courierAvailabilityLabels.offline)}${item.phone ? ` · ${escapeHtml(item.phone)}` : ""}</option>`).join("")}
           </select></label>
           <button type="button" data-order-action="assign" data-id="${escapeHtml(order.id)}"${deliveryCouriers.length ? "" : " disabled"}>${order.order_status === "delivering" ? "Reasignar delivery" : "Asignar y enviar"}</button>
           ${courier ? `<span>Asignado a ${escapeHtml(courier.full_name)}</span>` : ""}
@@ -691,20 +712,32 @@ async function handleInventoryAction(event) {
     console.error("No se pudo completar la acción del inventario.", error);
     setMessage(dashboardStatus, error.message || "No se pudo completar la acción.");
   }
+}
 
-  async function restoreDeletedProduct(productId) {
-    try {
-      const { error } = await supabaseClient
-        .from("productos")
-        .update({ deleted_at: null, deleted_by: null, disponible: false, updated_at: new Date().toISOString() })
-        .eq("id", productId);
-      if (error) throw error;
-      await Promise.all([loadInventory(), loadDeletedProducts()]);
-      setMessage(dashboardStatus, "Producto restaurado como no disponible. Actívalo en el inventario cuando esté listo.", true);
-    } catch (error) {
-      console.error("No se pudo restaurar el producto archivado.", error);
-      setMessage(dashboardStatus, error.message || "No se pudo restaurar el producto.");
-    }
+async function restoreDeletedProduct(productId, button) {
+  if (!productId) {
+    setMessage(dashboardStatus, "No se pudo identificar el producto que quieres restaurar.");
+    return;
+  }
+  if (button) button.disabled = true;
+  setMessage(dashboardStatus, "Restaurando producto…");
+  try {
+    const { data, error } = await supabaseClient
+      .from("productos")
+      .update({ deleted_at: null, deleted_by: null, disponible: false, es_destacado: false, updated_at: new Date().toISOString() })
+      .eq("id", productId)
+      .not("deleted_at", "is", null)
+      .select("id")
+      .single();
+    if (error) throw error;
+    if (!data?.id) throw new Error("Supabase no confirmó la restauración del producto.");
+    await Promise.all([loadInventory(), loadDeletedProducts()]);
+    setMessage(dashboardStatus, "Producto restaurado como no disponible. Actívalo en el inventario cuando esté listo.", true);
+  } catch (error) {
+    console.error("No se pudo restaurar el producto archivado.", error);
+    setMessage(dashboardStatus, error.message || "No se pudo restaurar el producto. Verifica los permisos y vuelve a intentarlo.");
+  } finally {
+    if (button) button.disabled = false;
   }
 }
 
@@ -726,59 +759,6 @@ async function initializeAdmin() {
   }
 }
 
-loginForm.addEventListener("submit", async (event) => {
-  event.preventDefault();
-  if (!supabaseClient) {
-    setMessage(authStatus, "Configura Supabase antes de iniciar sesión.");
-    return;
-  }
-
-  const submitButton = loginForm.querySelector("button[type=submit]");
-  submitButton.disabled = true;
-  setMessage(authStatus, "Validando acceso…");
-  try {
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email: loginForm.elements.email.value.trim(),
-      password: loginForm.elements.password.value,
-    });
-    if (error) throw error;
-    await enterStaffDashboard(data.session);
-    setMessage(authStatus, "");
-  } catch (error) {
-    console.error("No se pudo iniciar sesión en el panel.", error);
-    setAuthenticatedView(false);
-    setMessage(authStatus, error.message || "No se pudo iniciar sesión.");
-  } finally {
-    submitButton.disabled = false;
-  }
-});
-
-document.querySelector("#google-sign-in-button")?.addEventListener("click", async (event) => {
-  const button = event.currentTarget;
-  if (!supabaseClient) {
-    setMessage(authStatus, "Configura Supabase antes de iniciar sesión.");
-    return;
-  }
-
-  button.disabled = true;
-  setMessage(authStatus, "Conectando con Google…");
-  try {
-    const redirectTo = new URL(window.location.pathname, window.location.origin).toString();
-    const { error } = await supabaseClient.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo,
-        queryParams: { prompt: "select_account" },
-      },
-    });
-    if (error) throw error;
-  } catch (error) {
-    console.error("No se pudo iniciar sesión con Google.", error);
-    setMessage(authStatus, error.message || "No se pudo iniciar sesión con Google.");
-    button.disabled = false;
-  }
-});
-
 productForm?.addEventListener("submit", saveProduct);
 documentSearchForm?.addEventListener("submit", searchPickupByDocument);
 documentSearchResults?.addEventListener("click", (event) => {
@@ -798,7 +778,7 @@ window.addEventListener("kristal:inventory-imported", () => {
 inventoryRows?.addEventListener("click", handleInventoryAction);
 deletedProductRows?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-restore-product]");
-  if (button) restoreDeletedProduct(button.dataset.restoreProduct);
+  if (button) restoreDeletedProduct(button.dataset.restoreProduct, button);
 });
 cancelEditButton?.addEventListener("click", resetProductForm);
 staffRoleForm?.addEventListener("submit", setStaffRole);
@@ -831,7 +811,6 @@ document.querySelector("#sign-out-button")?.addEventListener("click", async () =
     }
     setAuthenticatedView(false);
     staffRole = "";
-    loginForm.reset();
   } catch (error) {
     console.error("No se pudo cerrar la sesión administrativa.", error);
     setMessage(dashboardStatus, error.message || "No se pudo cerrar sesión.");

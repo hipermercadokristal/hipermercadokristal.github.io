@@ -30,7 +30,7 @@
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
-    <script src="/auth-routing.js" defer></script>
+    <script src="/auth-routing.js?v=role-routing-v2-20261017" defer></script>
     <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
     <script src="app.js" defer></script>
     <script src="/client/app-orders.js?v=delivery-only-order-qr-20261017" defer></script>
@@ -460,11 +460,6 @@
             <button class="active" id="customer-login-tab" type="button" role="tab" aria-selected="true">Iniciar sesión</button>
             <button id="customer-signup-tab" type="button" role="tab" aria-selected="false">Crear cuenta</button>
           </div>
-          <button class="google-auth-button" id="customer-google-auth" type="button">
-            <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z" transform="translate(0 4)" /><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.75 7.18l7.73 6C44.42 38.03 46.98 31.9 46.98 24.55Z" /><path fill="#FBBC05" d="M10.53 28.59a14.4 14.4 0 0 1 0-9.18l-7.98-6.19a23.9 23.9 0 0 0 0 21.56l7.98-6.19Z" transform="translate(0 4)" /><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.14 1.45-4.88 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z" transform="translate(0 -4)" /></svg>
-            Continuar con Google
-          </button>
-          <p class="auth-divider"><span>o continúa con tu correo</span></p>
           <form id="customer-login-form">
             <label for="customer-login-email">Correo electrónico</label>
             <input id="customer-login-email" name="email" type="email" autocomplete="email" required />
@@ -483,6 +478,11 @@
             <input id="customer-signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required />
             <button class="institutional-action" type="submit">Crear cuenta</button>
           </form>
+          <p class="auth-divider"><span>o continúa con Google</span></p>
+          <button class="google-auth-button" id="customer-google-auth" type="button">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5Z" transform="translate(0 4)" /><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.75 7.18l7.73 6C44.42 38.03 46.98 31.9 46.98 24.55Z" /><path fill="#FBBC05" d="M10.53 28.59a14.4 14.4 0 0 1 0-9.18l-7.98-6.19a23.9 23.9 0 0 0 0 21.56l7.98-6.19Z" transform="translate(0 4)" /><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.91-5.8l-7.73-6c-2.14 1.45-4.88 2.3-8.18 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48Z" transform="translate(0 -4)" /></svg>
+            Continuar con Google
+          </button>
           <p class="account-status" id="customer-auth-status" role="status" aria-live="polite">Verificando tu sesión…</p>
         </section>
         <a class="account-orders-link" href="/pedidos" data-app-route="orders">Consultar mis pedidos →</a>

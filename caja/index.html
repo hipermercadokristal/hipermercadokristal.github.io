@@ -7,13 +7,13 @@
     <title>Caja | Hipermercado Kristal</title>
     <link rel="manifest" href="/caja/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="../admin/admin.css?v=unified-login-native-ux-20261017" />
+    <link rel="stylesheet" href="../admin/admin.css?v=shared-login-role-aware-20261017" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
-    <script src="/auth-routing.js" defer></script>
+    <script src="/auth-routing.js?v=role-routing-v2-20261017" defer></script>
     <script src="../admin/staff-pwa.js?v=staff-pwa-20261017" defer></script>
-    <script src="../admin/admin.js?v=cashier-document-pickup-20261017" defer></script>
+    <script src="../admin/admin.js?v=restore-products-role-login-20261017" defer></script>
   </head>
   <body>
     <main class="admin-shell" data-staff-page="cashier">
@@ -25,14 +25,7 @@
         <p class="intro">Acceso para revisar pagos y entregar pedidos de retiro buscándolos por cédula.</p>
         <button class="secondary-button staff-install-button" id="staff-install-app" type="button" hidden>Instalar Caja</button>
         <p class="status-message" id="staff-install-status" role="status" aria-live="polite"></p>
-        <form id="login-form">
-          <label for="login-email">Correo electrónico</label>
-          <input id="login-email" name="email" type="email" autocomplete="username" required />
-          <label for="login-password">Contraseña</label>
-          <input id="login-password" name="password" type="password" autocomplete="current-password" required />
-          <button class="primary-button" type="submit">Entrar a caja</button>
-        </form>
-        <button class="secondary-button google-sign-in-button" id="google-sign-in-button" type="button">Continuar con Google</button>
+        <a class="primary-button unified-login-link" href="/login/?role=operator">Continuar al inicio de sesión</a>
         <p class="status-message" id="auth-status" role="status" aria-live="polite"></p>
       </section>
 
