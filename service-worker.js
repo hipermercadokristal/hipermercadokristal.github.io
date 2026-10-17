@@ -1,4 +1,4 @@
-const CACHE_NAME = "hipermercado-kristal-v28";
+const CACHE_NAME = "hipermercado-kristal-v29";
 const APP_SHELL = [
   "/",
   "/index.html",

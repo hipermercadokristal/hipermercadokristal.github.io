@@ -106,15 +106,6 @@
             <a href="/" data-route data-page-home>Inicio</a>
             <a href="/catalogo" data-route data-page-catalog>Catálogo</a>
             <a href="/restaurante/">Restaurante chino</a>
-            <details class="staff-access-menu">
-              <summary>Iniciar como <span aria-hidden="true">⌄</span></summary>
-              <div class="staff-access-panel">
-                <p>Si no eliges un acceso de personal, continúas como cliente.</p>
-                <a href="/admin/">Administrador</a>
-                <a href="/caja/">Caja</a>
-                <a href="/delivery/">Delivery</a>
-              </div>
-            </details>
             <details class="departments-menu">
               <summary>Departamentos <span aria-hidden="true">⌄</span></summary>
               <div class="department-menu-panel">
@@ -174,6 +165,18 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg> Conoce Nuestras Instalaciones
             </a>
           </div>
+          <section class="welcome-staff-access" aria-labelledby="staff-access-heading">
+            <div>
+              <span class="welcome-staff-eyebrow">ACCESO DE PERSONAL</span>
+              <h2 id="staff-access-heading">¿Cómo deseas ingresar?</h2>
+              <p>Si vienes a comprar, continúa como cliente en el catálogo.</p>
+            </div>
+            <nav aria-label="Elegir acceso de personal">
+              <a href="/admin/">Administrador</a>
+              <a href="/caja/">Caja</a>
+              <a href="/delivery/">Delivery</a>
+            </nav>
+          </section>
         </div>
       </section>
 
