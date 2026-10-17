@@ -13,6 +13,7 @@ button { cursor: pointer; }
 .delivery-header small, .dashboard-heading p, .delivery-auth > p:not(.eyebrow), .scanner > p { color: var(--muted); }
 .delivery-header button, .scanner-heading button { min-height: 40px; padding: 0 13px; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--forest); font-weight: 700; }
 .delivery-header .install-app-button { border-color: var(--forest); background: var(--forest); color: #fff; }
+.delivery-header .delivery-apk-download { display: inline-flex; min-height: 40px; align-items: center; padding: 0 13px; border: 1px solid var(--forest); border-radius: 9px; background: var(--forest); color: #fff; font-weight: 700; text-decoration: none; }
 .delivery-header .install-app-button:disabled { opacity: .65; cursor: wait; }
 .panel, .delivery-order-card { padding: 20px; border: 1px solid var(--line); border-radius: 15px; background: #fff; box-shadow: 0 6px 24px #1537240a; }
 .delivery-auth { max-width: 480px; margin: 8vh auto 0; }

@@ -47,13 +47,14 @@ jobs:
           echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > release-key.p12
           ANDROID_KEYSTORE_PATH="$PWD/release-key.p12" gradle --no-daemon assembleRelease
           mkdir -p ../android-publish
-          cp app/build/outputs/apk/release/app-release.apk ../android-publish/app.apk
+          cp app/build/outputs/apk/client/release/app-client-release.apk ../android-publish/hipermercado-kristal.apk
+          cp app/build/outputs/apk/delivery/release/app-delivery-release.apk ../android-publish/kristal-reparto.apk
           fingerprint="$(keytool -list -v -keystore release-key.p12 -storepass "$ANDROID_KEYSTORE_PASSWORD" -alias kristal | awk -F': ' '/SHA256:/{print $2; exit}')"
           if [ -z "$fingerprint" ]; then
             echo "Could not read the release certificate SHA-256 fingerprint."
             exit 1
           fi
-          printf '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.hipermercadokristal.app","sha256_cert_fingerprints":["%s"]}}]\n' "$fingerprint" > ../android-publish/assetlinks.json
+          printf '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.hipermercadokristal.app","sha256_cert_fingerprints":["%s"]}},{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.hipermercadokristal.app.delivery","sha256_cert_fingerprints":["%s"]}}]\n' "$fingerprint" "$fingerprint" > ../android-publish/assetlinks.json
           rm release-key.p12
         working-directory: android
 
@@ -62,7 +63,8 @@ jobs:
         run: |
           gradle --no-daemon assembleDebug
           mkdir -p ../android-publish
-          cp app/build/outputs/apk/debug/app-debug.apk ../android-publish/app.apk
+          cp app/build/outputs/apk/client/debug/app-client-debug.apk ../android-publish/hipermercado-kristal.apk
+          cp app/build/outputs/apk/delivery/debug/app-delivery-debug.apk ../android-publish/kristal-reparto.apk
         working-directory: android
 
       - name: Upload Android APK
@@ -92,7 +94,8 @@ jobs:
       - name: Prepare Android APK download
         run: |
           mkdir -p downloads
-          mv android-publish/app.apk downloads/hipermercado-kristal.apk
+          mv android-publish/hipermercado-kristal.apk downloads/hipermercado-kristal.apk
+          mv android-publish/kristal-reparto.apk downloads/kristal-reparto.apk
           if [ -f android-publish/assetlinks.json ]; then
             mkdir -p .well-known
             mv android-publish/assetlinks.json .well-known/assetlinks.json

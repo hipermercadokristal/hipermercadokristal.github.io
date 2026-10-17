@@ -12,7 +12,7 @@
             android:label="@string/app_name">
             <meta-data
                 android:name="android.support.customtabs.trusted.DEFAULT_URL"
-                android:value="https://hipermercadokristal.github.io/" />
+                android:value="${launchUrl}" />
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

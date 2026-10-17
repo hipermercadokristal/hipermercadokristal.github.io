@@ -1,14 +1,21 @@
 (() => {
   const installButton = document.querySelector("#delivery-install-app");
+  const apkDownload = document.querySelector("#delivery-apk-download");
   const status = document.querySelector("#delivery-auth-status");
   let deferredPrompt = null;
+
+  function isAndroid() {
+    return /Android/i.test(navigator.userAgent);
+  }
 
   function isInstalled() {
     return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
   }
 
   function setInstallButtonVisibility() {
-    installButton.hidden = isInstalled();
+    const installed = isInstalled();
+    installButton.hidden = installed || isAndroid();
+    apkDownload.hidden = installed || !isAndroid();
   }
 
   window.addEventListener("beforeinstallprompt", (event) => {

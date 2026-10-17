@@ -1,7 +1,10 @@
 # Android APK
 
-GitHub Actions publishes the APK at `/downloads/hipermercado-kristal.apk`. It is
-a Trusted Web Activity wrapper around `https://hipermercadokristal.github.io/`.
+GitHub Actions publishes the customer APK at `/downloads/hipermercado-kristal.apk`
+and the delivery APK at `/downloads/kristal-reparto.apk`. The delivery package
+opens `https://hipermercadokristal.github.io/delivery/`; the customer package
+opens `https://hipermercadokristal.github.io/`. Both are Trusted Web Activity
+wrappers.
 Android removes the browser toolbar only when the APK signing certificate is
 verified by the website's Digital Asset Links file.
 
@@ -29,8 +32,9 @@ GitHub Actions will sign a release APK and generate
 After confirming that file is publicly reachable, uninstall the previous
 debug-signed beta from Android before installing the release APK.
 
-On Android, if Chrome does not provide its native PWA install prompt, the
-website's “Instalar app” button downloads this APK instead. The user must
+On Android, the Reparto page offers its dedicated APK download. On the store,
+if Chrome does not provide its native PWA install prompt, the website's
+“Instalar app” button downloads the customer APK instead. The user must
 confirm installation and allow the browser to install apps from that source.
 Until the signing secrets are configured, CI publishes a debug APK; it will
 continue to display the browser toolbar because its temporary certificate
