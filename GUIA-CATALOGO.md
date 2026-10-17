@@ -8,6 +8,8 @@ El sitio consulta los productos en Supabase y por eso debe abrirse desde un serv
 
 En teléfonos, el botón **Instalar App de Hipermercado Kristal** aparece encima de la navegación inferior; en computadora está disponible en la franja superior. En Android y navegadores compatibles, al tocarlo se abre la confirmación nativa de instalación. Safari en iPhone/iPad no ofrece el evento `beforeinstallprompt`, por lo que muestra las instrucciones para **Compartir → Añadir a pantalla de inicio**. La app se abre en una ventana independiente con el nombre y el logo de Hipermercado Kristal.
 
+En Android también está disponible **Descargar APK Android** para instalar la aplicación nativa, además de la opción PWA. El enlace descarga el APK generado por GitHub Actions en cada publicación. Android puede pedir autorización para instalar aplicaciones descargadas desde el navegador; confirma que el archivo provenga de `hipermercadokristal.github.io`. El APK es solo para Android; en Windows se recomienda instalar Caja y Administración desde Chrome o Edge, y en iPhone usar Añadir a pantalla de inicio.
+
 La instalación requiere que la tienda esté publicada por HTTPS. La app conserva la estructura de la tienda para abrirla sin conexión, pero consultar el catálogo, iniciar sesión, registrar pedidos, adjuntar comprobantes y recibir actualizaciones requiere Internet.
 
 ## Configurar Supabase (una sola vez)

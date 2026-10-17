@@ -26,14 +26,14 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=featured-carousel-20261016" />
+    <link rel="stylesheet" href="styles.css?v=android-apk-download-20261017" />
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
     <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
     <script src="app.js" defer></script>
     <script src="/client/app-orders.js" defer></script>
-    <script src="pwa.js" defer></script>
+    <script src="pwa.js?v=android-apk-download-20261017" defer></script>
   </head>
   <body id="inicio">
     <header class="mobile-app-bar" aria-label="Encabezado de la app">
@@ -47,6 +47,9 @@
       <button class="mobile-install-button" id="mobile-install-app-button" type="button" data-install-app aria-label="Instalar app" title="Instalar app">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3" /></svg>
       </button>
+      <a class="mobile-apk-download" href="/downloads/hipermercado-kristal.apk" download="hipermercado-kristal.apk" data-apk-download aria-label="Descargar APK Android" title="Descargar APK Android" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3" /><path d="M7 3 5 5m12-2 2 2" /></svg>
+      </a>
       <button class="mobile-profile-button" type="button" data-app-route="profile" aria-label="Abrir mi perfil">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
       </button>
@@ -58,6 +61,7 @@
           <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5v8m0 0 3-3m-3 3-3-3M2.5 10.5v3h11v-3" /></svg>
           Instalar app
         </button>
+        <a class="announcement-apk-download" href="/downloads/hipermercado-kristal.apk" download="hipermercado-kristal.apk" data-apk-download hidden>Descargar APK Android</a>
       </div>
       <div class="header-main page-container">
         <a class="brand" href="/" data-route aria-label="Hipermercado Kristal, inicio">
@@ -615,6 +619,7 @@
     <aside class="pwa-install-banner" id="pwa-install-banner" aria-label="Instalar Hipermercado Kristal" hidden>
       <span>Instala la app para acceder más rápido a Kristal</span>
       <button class="pwa-install-action" type="button" data-pwa-install>Instalar app</button>
+      <a class="pwa-apk-download" href="/downloads/hipermercado-kristal.apk" download="hipermercado-kristal.apk" data-apk-download hidden>APK</a>
       <button class="pwa-install-dismiss" type="button" aria-label="Cerrar aviso de instalación">×</button>
     </aside>
     <dialog class="store-checkout-dialog" id="store-checkout-dialog" aria-labelledby="store-checkout-heading">

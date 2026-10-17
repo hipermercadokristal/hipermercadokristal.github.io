@@ -30,6 +30,8 @@ button { color: inherit; }
 .announcement-install { display: inline-flex; min-height: 36px; align-items: center; gap: 5px; padding: 5px 9px; border: 1px solid currentColor; border-radius: 999px; background: transparent; color: inherit; font-size: 10px; font-weight: 800; cursor: pointer; white-space: nowrap; }
 .announcement-install svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .announcement-install:disabled { cursor: wait; opacity: .65; }
+.announcement-apk-download { display: inline-flex; min-height: 36px; align-items: center; padding: 5px 9px; border: 1px solid currentColor; border-radius: 999px; color: inherit; font-size: 10px !important; font-weight: 800 !important; text-decoration: none; white-space: nowrap; }
+.announcement-apk-download[hidden] { display: none; }
 
 .site-header { position: sticky; z-index: 10; top: 0; background: #ffffffed; box-shadow: 0 4px 18px #18352a0a; backdrop-filter: blur(14px); }
 .header-main { min-height: 76px; display: flex; align-items: center; gap: 25px; }
@@ -819,8 +821,9 @@ html.app-auth-pending #customer-auth-status { color: var(--muted); }
   .mobile-app-brand small { color: #708077; font-size: 10px; }
   .mobile-app-bar .app-menu-toggle { width: 38px; min-height: 38px; display: grid; flex: none; place-items: center; padding: 0; border: 0; background: var(--forest); color: #fff; }
   .mobile-app-bar .app-menu-toggle svg { width: 19px; height: 19px; }
-  .mobile-install-button { width: 40px; height: 40px; display: grid; flex: none; place-items: center; border: 1px solid #e4ebe5; border-radius: 50%; background: #fff; color: var(--forest); }
-  .mobile-install-button svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .mobile-install-button, .mobile-apk-download { width: 40px; height: 40px; display: grid; flex: none; place-items: center; border: 1px solid #e4ebe5; border-radius: 50%; background: #fff; color: var(--forest); }
+  .mobile-install-button svg, .mobile-apk-download svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .mobile-apk-download[hidden] { display: none; }
   .mobile-profile-button { width: 42px; height: 42px; display: grid; flex: none; place-items: center; border: 1px solid #e4ebe5; border-radius: 50%; background: #f5f8f5; color: var(--forest); }
   .mobile-profile-button svg { width: 21px; height: 21px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; }
   .mobile-bottom-nav { position: fixed; z-index: 30; right: 0; bottom: 0; left: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 7px 4px calc(7px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid #e5ebe6; background: #fff; box-shadow: 0 -6px 22px #18352a0c; }
@@ -837,6 +840,7 @@ html.app-auth-pending #customer-auth-status { color: var(--muted); }
   .pwa-install-banner[hidden] { display: none; }
   .pwa-install-banner > span { flex: 1; }
   .pwa-install-action { min-height: 38px; padding: 0 13px; border: 0; border-radius: 8px; background: var(--forest); color: #fff; font-size: 11px; font-weight: 800; }
+  .pwa-apk-download { padding: 8px 9px; border: 1px solid #dce8de; border-radius: 8px; color: var(--forest); font-size: 10px; font-weight: 800; text-decoration: none; white-space: nowrap; }
   .pwa-install-dismiss { width: 28px; height: 28px; border: 0; background: transparent; color: #728077; font-size: 19px; }
   .app-account-view { width: calc(100% - 28px); padding-top: 16px; padding-bottom: 30px; }
   .app-view-heading { margin: 14px 0 16px; }

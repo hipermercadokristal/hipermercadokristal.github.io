@@ -1,10 +1,20 @@
 const installAppButtons = [...document.querySelectorAll("[data-install-app], [data-pwa-install]")];
+const apkDownloadLinks = [...document.querySelectorAll("[data-apk-download]")];
 const pwaInstallBanner = document.querySelector("#pwa-install-banner");
 let deferredInstallPrompt = null;
+
+function isAppleMobile() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
 
 function isAppInstalled() {
   return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 }
+
+apkDownloadLinks.forEach((link) => {
+  link.hidden = isAppleMobile();
+});
 
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
@@ -17,18 +27,16 @@ window.addEventListener("beforeinstallprompt", (event) => {
 async function installApp() {
   if (!deferredInstallPrompt) {
     const isAndroid = /Android/i.test(navigator.userAgent);
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-      || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
     if (isAndroid) {
       window.location.assign("/downloads/hipermercado-kristal.apk");
+      showToast("Descargando el APK para Android. Al terminar, abre el archivo para instalarlo.");
       return;
     }
-    if (!isIOS) {
-      window.location.assign("/downloads/hipermercado-kristal.apk");
-      showToast("Descargando el APK para Android. Pásalo a tu teléfono Android para instalarlo.");
-      return;
+    if (isAppleMobile()) {
+      showToast("En iPhone, Safari exige usar Compartir > «Añadir a pantalla de inicio»; no permite iniciar la instalación desde un botón.");
+    } else {
+      showToast("En computadora, instala Kristal desde el menú de Chrome o Edge. El APK es solo para Android.");
     }
-    showToast("En iPhone, Safari exige usar Compartir > «Añadir a pantalla de inicio»; no permite iniciar la instalación desde un botón.");
     return;
   }
 
