@@ -12,10 +12,11 @@
   --page-width: 1240px;
 }
 
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+input, textarea, select, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
 [hidden] { display: none !important; }
 html { scroll-behavior: smooth; touch-action: manipulation; overscroll-behavior-y: none; }
-body { min-width: 320px; margin: 0; }
+body { min-width: 320px; margin: 0; overscroll-behavior-y: none; }
 button, input { font: inherit; }
 button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; text-decoration: none; }
@@ -79,7 +80,7 @@ button { color: inherit; }
 .mobile-menu-button { display: none; }
 
 body { background: #f6f8f6; color: #18352a; }
-main { min-height: 55vh; padding-bottom: 40px; }
+main { min-height: 55vh; padding-bottom: 40px; overscroll-behavior-y: none; }
 .dashboard-overview { padding-top: 34px; padding-bottom: 42px; }
 .dashboard-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
 .dashboard-section-heading h2 { margin: 7px 0 0; color: var(--forest); font: 800 clamp(21px, 2.6vw, 29px)/1.2 "Manrope", sans-serif; letter-spacing: -.6px; }
@@ -179,13 +180,6 @@ main { min-height: 55vh; padding-bottom: 40px; }
 .welcome-button-primary:hover { background: #092818; box-shadow: 0 10px 26px #071b10c2; }
 .welcome-button-secondary { border-color: #fff; background: #fff1; color: #fff; backdrop-filter: blur(5px); }
 .welcome-button-secondary:hover { background: #ffffff26; }
-.welcome-staff-access { display: flex; align-items: center; justify-content: space-between; gap: 18px; max-width: 760px; margin: 28px auto 0; padding: 16px 20px; border: 1px solid #ffffffb8; border-radius: 10px; background: #fffffff2; color: #18352a; text-align: left; box-shadow: 0 10px 30px #071b1040; }
-.welcome-staff-eyebrow { color: #55705d; font-size: 9px; font-weight: 800; letter-spacing: 1.4px; }
-.welcome-staff-access h2 { margin: 4px 0; color: #18352a; font: 800 17px/1.25 "Manrope", sans-serif; }
-.welcome-content .welcome-staff-access p { max-width: none; margin: 0; color: #65746a; font-size: 11px; line-height: 1.45; text-align: left; }
-.welcome-staff-access nav { display: flex; flex: none; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
-.welcome-staff-access nav a { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; padding: 0 12px; border: 1px solid #dce7de; border-radius: 6px; background: #fff; color: #173b26; font-size: 11px; font-weight: 800; }
-.welcome-staff-access nav a:hover { border-color: #0f3822; background: #f1f7f2; }
 .welcome-scroll-cue { position: absolute; bottom: 22px; left: 50%; display: flex; flex-direction: column; align-items: center; gap: 8px; color: #fff; font-size: 11px; font-weight: 600; transform: translateX(-50%); animation: welcome-cue-enter .8s .35s ease both; }
 .welcome-scroll-arrow { font-size: 22px; line-height: 1; animation: welcome-arrow-bounce 1.5s ease-in-out infinite; }
 .featured-section { padding: 42px 0 33px; border-bottom: 1px solid #e9eeeb; background: #fff; scroll-margin-top: 16px; }
@@ -548,11 +542,6 @@ main { min-height: 55vh; padding-bottom: 40px; }
   .welcome-content p { max-width: 420px; font-size: 14px; line-height: 1.65; }
   .welcome-actions { gap: 11px; margin-top: 25px; }
   .welcome-button { width: min(100%, 330px); min-height: 51px; padding-inline: 15px; font-size: 13px; }
-  .welcome-staff-access { align-items: stretch; flex-direction: column; gap: 10px; margin-top: 20px; padding: 13px; }
-  .welcome-staff-access h2 { font-size: 15px; }
-  .welcome-content .welcome-staff-access p { font-size: 10px; }
-  .welcome-staff-access nav { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-  .welcome-staff-access nav a { min-height: 38px; padding: 0 6px; font-size: 10px; }
   .welcome-scroll-cue { bottom: 17px; width: 100%; font-size: 10px; }
   .hero { min-height: 380px; margin-top: 16px; }
   .hero-content { width: 100%; padding: 31px 22px 24px; }

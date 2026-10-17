@@ -85,6 +85,11 @@ async function requireStaff(session) {
   }
   const allowed = staffPage === "cashier" ? role === "operator" : role === "admin";
   if (!allowed) {
+    const destination = window.kristalAuthRouting?.destinationForUser(session?.user);
+    if (destination) {
+      window.location.replace(destination);
+      throw new Error("Abriendo el módulo correspondiente a tu cuenta…");
+    }
     await supabaseClient.auth.signOut();
     throw new Error(staffPage === "cashier"
       ? "Esta cuenta no tiene permiso de caja. Solicita al propietario que asigne el rol operator."

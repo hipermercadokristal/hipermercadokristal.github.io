@@ -249,6 +249,11 @@
   async function enterDashboard(session) {
     const role = session?.user?.app_metadata?.role;
     if (role !== "courier") {
+      const destination = window.kristalAuthRouting?.destinationForUser(session?.user);
+      if (destination) {
+        window.location.replace(destination);
+        return;
+      }
       dashboard.hidden = true;
       authSection.hidden = false;
       await supabase.auth.signOut();

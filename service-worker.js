@@ -1,10 +1,15 @@
-const CACHE_NAME = "hipermercado-kristal-v29";
+const CACHE_NAME = "hipermercado-kristal-v30";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/styles.css",
   "/app.js",
   "/client/app-orders.js",
+  "/auth-routing.js",
+  "/login/",
+  "/login/index.html",
+  "/login/login.css",
+  "/login/login.js",
   "/pwa.js",
   "/manifest.webmanifest",
   "/assets/kristal-logo.png",
@@ -85,6 +90,8 @@ self.addEventListener("fetch", (event) => {
       fetch(request).catch(async () => {
         const fallbackPath = url.pathname.startsWith("/delivery/")
           ? "/delivery/"
+          : url.pathname.startsWith("/login/")
+            ? "/login/"
           : url.pathname.startsWith("/client/")
             ? "/client/"
             : url.pathname.startsWith("/cashier/")

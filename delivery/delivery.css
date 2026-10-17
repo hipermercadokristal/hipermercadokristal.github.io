@@ -1,10 +1,12 @@
 :root { color-scheme: light; --forest: #0f3822; --line: #e1e9e2; --muted: #66766c; }
-* { box-sizing: border-box; }
+* { box-sizing: border-box; -webkit-user-select: none; user-select: none; }
+input, textarea, select, [contenteditable="true"] { -webkit-user-select: text; user-select: text; }
+html, body { overscroll-behavior-y: none; }
 body { min-height: 100vh; margin: 0; background: #f4f7f4; color: #213a2c; font: 14px/1.55 "DM Sans", Arial, sans-serif; }
 button, input { font: inherit; }
 button { cursor: pointer; }
 [hidden] { display: none !important; }
-.delivery-shell { width: min(920px, calc(100% - 28px)); margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 0 40px; }
+.delivery-shell { width: min(920px, calc(100% - 28px)); margin: 0 auto; padding: max(16px, env(safe-area-inset-top)) 0 max(40px, env(safe-area-inset-bottom)); overscroll-behavior-y: none; }
 .delivery-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 25px; }
 .delivery-header > a { display: inline-flex; align-items: center; gap: 11px; color: var(--forest); text-decoration: none; }
 .delivery-header img { width: 46px; height: 46px; border: 3px solid #fff; border-radius: 15px; box-shadow: 0 0 0 1px var(--line); }

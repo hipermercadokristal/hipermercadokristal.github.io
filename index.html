@@ -26,10 +26,11 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=android-apk-download-20261017" />
+    <link rel="stylesheet" href="styles.css?v=unified-login-native-ux-20261017" />
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
+    <script src="/auth-routing.js" defer></script>
     <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
     <script src="app.js" defer></script>
     <script src="/client/app-orders.js?v=delivery-only-order-qr-20261017" defer></script>
@@ -165,18 +166,6 @@
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg> Conoce Nuestras Instalaciones
             </a>
           </div>
-          <section class="welcome-staff-access" aria-labelledby="staff-access-heading">
-            <div>
-              <span class="welcome-staff-eyebrow">ACCESO DE PERSONAL</span>
-              <h2 id="staff-access-heading">¿Cómo deseas ingresar?</h2>
-              <p>Si vienes a comprar, continúa como cliente en el catálogo.</p>
-            </div>
-            <nav aria-label="Elegir acceso de personal">
-              <a href="/admin/">Administrador</a>
-              <a href="/caja/">Caja</a>
-              <a href="/delivery/">Delivery</a>
-            </nav>
-          </section>
         </div>
       </section>
 
@@ -542,8 +531,7 @@
           <a href="/nosotros" data-route data-page-about>Sobre nosotros</a>
           <a href="/preguntas-resenas" data-route data-page-reviews>Opiniones y preguntas frecuentes</a>
           <a href="/restaurante/">Restaurante Kristal</a>
-          <a href="/admin/">Administración de la tienda</a>
-          <a href="/restaurante/admin/">Administración del restaurante</a>
+          <a href="/login/">Acceso de personal</a>
         </div>
         <div class="footer-column">
           <h3>Atención al cliente</h3>
