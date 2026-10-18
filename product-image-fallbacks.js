@@ -36,6 +36,12 @@
     .replace(/[^a-z0-9]/g, "");
 
   window.KRISTAL_PRODUCT_IMAGE_FALLBACKS = Object.freeze(fallbacks.map((fallback) => Object.freeze(fallback)));
+  window.getKristalProductDepartment = (name, department) => {
+    const normalizedName = normalize(name);
+    const isShelfStableMilk = normalizedName.includes("leche")
+      && (normalizedName.includes("polvo") || normalizedName.includes("condensada"));
+    return isShelfStableMilk ? "Víveres y Alacena" : department;
+  };
   window.getKristalProductFallbackImage = (department) => {
     const normalizedDepartment = normalize(department);
     const match = fallbacks.find(({ terms }) => terms.some((term) => normalizedDepartment.includes(normalize(term))));

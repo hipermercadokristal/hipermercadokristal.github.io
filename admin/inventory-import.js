@@ -15,12 +15,14 @@
   let dailyDealColumnsAvailable = true;
 
   const aliases = {
+    id: ["id", "productid", "idproducto", "uuid"],
     barcode: ["codigosku", "sku", "codigodebarras", "codigo", "ean", "barcode", "codigoproducto", "plu"],
     name: ["nombreproducto", "descripcion", "descripciondelproducto", "producto", "nombre", "articulo", "item"],
     presentation: ["presentacion", "presentacionproducto", "empaque", "contenido", "tamano", "unidadmedida", "size", "presentation"],
     department: ["departamento", "categoria", "departamentocategoria", "category", "department", "rubro"],
     image: ["imagen", "imagenurl", "urlimagen", "image", "imageurl", "foto", "fotourl"],
     usd: ["precioenusd", "preciodolares", "precioendolares", "preciodolar", "priceusd", "usd", "preciousd", "preciosd"],
+    sale: ["preciooferta", "precioespecial", "preciopromocion", "pricesale", "saleprice", "oferta"],
     ves: ["precioenves", "precioves", "precioenbs", "preciobs", "preciobsf", "bolivares", "priceves", "ves"],
     stock: ["stockactual", "stock", "existencia", "existencias", "inventario", "cantidad"],
   };
@@ -52,6 +54,10 @@
 
   function normalizeSku(value) {
     return String(value ?? "").trim().toLocaleLowerCase("es-VE");
+  }
+
+  function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value ?? ""));
   }
 
   function isValidImageUrl(value) {
@@ -192,7 +198,7 @@
     for (let offset = 0; ; offset += pageSize) {
       let query = supabase
         .from("productos")
-        .select("id,nombre,codigo_barras,categoria_id,imagen_url,imagen_path,presentacion,precio_oferta,es_destacado,es_oferta_dia,oferta_dia_hasta,disponible,stock,stock_tracked,created_at,deleted_at,deleted_by")
+        .select("id,nombre,codigo_barras,categoria_id,imagen_url,imagen_path,presentacion,precio,precio_oferta,es_destacado,es_oferta_dia,oferta_dia_hasta,disponible,stock,stock_tracked,created_at,deleted_at,deleted_by")
         .order("id")
         .range(offset, offset + pageSize - 1);
       let { data, error } = await query;
@@ -200,7 +206,7 @@
         dailyDealColumnsAvailable = false;
         query = supabase
           .from("productos")
-          .select("id,nombre,codigo_barras,categoria_id,imagen_url,imagen_path,presentacion,precio_oferta,es_destacado,disponible,stock,stock_tracked,created_at,deleted_at,deleted_by")
+          .select("id,nombre,codigo_barras,categoria_id,imagen_url,imagen_path,presentacion,precio,precio_oferta,es_destacado,disponible,stock,stock_tracked,created_at,deleted_at,deleted_by")
           .order("id")
           .range(offset, offset + pageSize - 1);
         ({ data, error } = await query);
@@ -259,7 +265,7 @@
       const candidate = Object.fromEntries(
         Object.entries(aliases).map(([key, values]) => [key, findFieldIndex(sheetRows[rowIndex], values)]),
       );
-      if (Object.entries(candidate).every(([key, index]) => ["barcode", "stock", "presentation", "image"].includes(key) || index >= 0)) {
+      if (Object.entries(candidate).every(([key, index]) => ["id", "barcode", "stock", "presentation", "image"].includes(key) || index >= 0)) {
         headerRow = rowIndex;
         fields = candidate;
         break;
@@ -291,6 +297,7 @@
     }
     const parsedRows = inputRows.map(({ cells, rowNumber }) => {
       const barcode = fields.barcode >= 0 ? String(cells[fields.barcode] ?? "").trim() : "";
+      const productId = fields.id >= 0 ? String(cells[fields.id] ?? "").trim() : "";
       const sourceName = String(cells[fields.name] ?? "").trim();
       const explicitPresentation = fields.presentation >= 0
         ? String(cells[fields.presentation] ?? "").trim()
@@ -299,12 +306,15 @@
       const familyIdentity = getProductFamilyIdentity(name);
       const productIdentity = getProductIdentity(name, presentation);
       const departmentInput = String(cells[fields.department] ?? "").trim();
-      const departmentKey = normalize(departmentInput);
+      const departmentNameOverride = window.getKristalProductDepartment(name, departmentInput);
+      const departmentKey = normalize(departmentNameOverride);
       const existingCategory = categoryByName.get(departmentKey);
       const departmentName = existingCategory?.departamento
-        || (departmentKey ? formatDepartmentName(departmentInput) : "");
+        || (departmentKey ? formatDepartmentName(departmentNameOverride) : "");
       const imageUrl = fields.image >= 0 ? String(cells[fields.image] ?? "").trim() : "";
       const priceUsd = parseNumber(cells[fields.usd]);
+      const saleText = fields.sale >= 0 ? String(cells[fields.sale] ?? "").trim() : "";
+      const salePrice = saleText ? parseNumber(saleText) : null;
       const priceVes = parseNumber(cells[fields.ves]);
       const stockText = fields.stock >= 0 ? String(cells[fields.stock] ?? "").trim() : "";
       const stock = stockText ? parseNumber(stockText) : null;
@@ -315,10 +325,14 @@
       else if (!existingCategory && departmentName.length > 120) errors.push("departamento supera 120 caracteres");
       if (imageUrl && !isValidImageUrl(imageUrl)) errors.push("URL de imagen");
       if (!Number.isFinite(priceUsd) || priceUsd <= 0) errors.push("precio USD");
+      if (saleText && (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= priceUsd)) {
+        errors.push("precio de oferta (debe ser menor al regular)");
+      }
       if (!Number.isFinite(priceVes) || priceVes < 0) errors.push("precio VES");
       if (stockText && (!Number.isFinite(stock) || stock < 0 || stock > 100000000)) errors.push("stock");
       return {
         rowNumber,
+        productId,
         productIdentity: familyIdentity
           ? `${familyIdentity}|${normalize(presentation || getNameAndPresentation(name, "").presentation)}`
           : productIdentity,
@@ -330,6 +344,8 @@
         categoryId: existingCategory?.id || null,
         departmentKey,
         priceUsd,
+        salePrice,
+        salePriceProvided: Boolean(saleText),
         priceVes,
         stock,
         stockTracked: stockText !== "",
@@ -339,6 +355,7 @@
       };
     });
     const consolidatedRows = [];
+    const rowsByProductId = new Map();
     const rowsBySku = new Map();
     const rowsByName = new Map();
     const rowsWithoutSkuByName = new Map();
@@ -346,7 +363,9 @@
     parsedRows.forEach((row) => {
       const nameKey = row.productIdentity ? `name:${getProductIdentity(row.name, row.presentation)}` : "";
       const skuKey = row.barcode ? `sku:${normalizeSku(row.barcode)}` : "";
-      let existingIndex = skuKey ? rowsBySku.get(skuKey) : undefined;
+      const productIdKey = row.productId ? `id:${row.productId.toLowerCase()}` : "";
+      let existingIndex = productIdKey ? rowsByProductId.get(productIdKey) : undefined;
+      if (existingIndex === undefined && skuKey) existingIndex = rowsBySku.get(skuKey);
 
       if (existingIndex === undefined && skuKey && nameKey) {
         const nameOnlyIndex = rowsWithoutSkuByName.get(nameKey);
@@ -387,17 +406,24 @@
         const existingRow = consolidatedRows[existingIndex];
         consolidatedRows[existingIndex] = {
           ...row,
+          productId: row.productId || existingRow.productId,
           barcode: row.barcode || existingRow.barcode,
           imageUrl: row.imageUrl || existingRow.imageUrl,
+          salePrice: row.salePriceProvided ? row.salePrice : existingRow.salePrice,
+          salePriceProvided: row.salePriceProvided || existingRow.salePriceProvided,
+          stock: row.stockTracked ? row.stock : existingRow.stock,
+          stockTracked: row.stockTracked || existingRow.stockTracked,
         };
         if (nameKey && !rowsByName.has(nameKey)) rowsByName.set(nameKey, new Set());
         if (nameKey) rowsByName.get(nameKey).add(existingIndex);
         if (skuKey) rowsBySku.set(skuKey, existingIndex);
+        if (productIdKey) rowsByProductId.set(productIdKey, existingIndex);
         if (nameKey && rowsWithoutSkuByName.get(nameKey) === existingIndex) rowsWithoutSkuByName.delete(nameKey);
         consolidatedInputRows += 1;
       } else {
         existingIndex = consolidatedRows.push(row) - 1;
         if (skuKey) rowsBySku.set(skuKey, existingIndex);
+        if (productIdKey) rowsByProductId.set(productIdKey, existingIndex);
         if (nameKey) {
           const matchingRows = rowsByName.get(nameKey) || new Set();
           matchingRows.add(existingIndex);
@@ -420,7 +446,7 @@
       <td data-label="Producto">${escapeHtml(row.name)}</td>
       <td data-label="Presentación">${escapeHtml(row.presentation || "—")}</td>
       <td data-label="Departamento">${escapeHtml(row.departmentName)}</td>
-      <td data-label="Imagen">${row.imageUrl ? "URL del archivo" : "Conservar foto o asignar por departamento"}</td>
+      <td data-label="Imagen">${row.imageUrl ? "URL del archivo" : "Conservar existente o heredar/asignar"}</td>
       <td data-label="USD">${Number.isFinite(row.priceUsd) ? row.priceUsd.toFixed(2) : "—"}</td>
       <td data-label="VES">${Number.isFinite(row.priceVes) ? row.priceVes.toFixed(2) : "—"}</td>
       <td data-label="Stock">${!row.stockColumnPresent ? "Se conserva" : row.stockTracked ? row.stock : "Sin control"}</td>
@@ -433,7 +459,7 @@
       reportElement.hidden = true;
       reportElement.textContent = "";
     }
-    setStatus(`${inputRows.length} filas revisadas; ${consolidatedInputRows} repetidas consolidadas por SKU, coincidencia difusa o nombre/presentación; ${validRows} listas para importar y ${skippedRows.length} se omitirán por errores de formato.${preparedRows.length > 100 ? " La vista previa muestra hasta 100 productos y filas adicionales con errores." : ""}`, skippedRows.length > 0);
+    setStatus(`${inputRows.length} filas revisadas; ${consolidatedInputRows} repetidas consolidadas por ID, SKU, coincidencia difusa o nombre/presentación; ${validRows} listas para importar y ${skippedRows.length} se omitirán por errores de formato.${preparedRows.length > 100 ? " La vista previa muestra hasta 100 productos y filas adicionales con errores." : ""}`, skippedRows.length > 0);
   }
 
   async function importInventory(event) {
@@ -448,7 +474,6 @@
     previewButton.disabled = true;
     setStatus("Preparando actualización del inventario…");
     let importedCount = 0;
-    let consolidatedDuplicateCount = 0;
     let updatedCount = 0;
     let createdCount = 0;
     try {
@@ -487,6 +512,7 @@
 
       setStatus("Buscando productos existentes por código, nombre y presentación…");
       const existingProducts = await loadExistingProducts();
+      const existingById = new Map(existingProducts.map((product) => [String(product.id).toLowerCase(), product]));
       const existingByBarcode = new Map();
       const existingByIdentity = new Map();
       const existingByFamily = new Map();
@@ -510,11 +536,10 @@
         }
       });
 
-      const matchedProducts = validRows.map((row) => row.barcode
-        ? existingByBarcode.get(normalizeSku(row.barcode)) || null
-        : null);
+      const matchedProducts = validRows.map((row) => existingById.get(row.productId.toLowerCase())
+        || (row.barcode ? existingByBarcode.get(normalizeSku(row.barcode)) : null)
+        || null);
       const usedProductIds = new Set(matchedProducts.filter(Boolean).map((product) => product.id));
-      const duplicateProducts = new Map();
       const imageSourceByRow = [];
       validRows.forEach((row, index) => {
         const identity = getProductIdentity(row.name, row.presentation);
@@ -563,7 +588,7 @@
           .filter(({ similarity }) => similarity >= 0.74)
           .sort((left, right) => right.similarity - left.similarity
             || preferExistingProduct(left.product, right.product, categoryId));
-        const barcodeMatch = matchedProducts[index];
+        const identifierMatch = matchedProducts[index];
         let preferredVariant = exactMatches[0] || sameVariantMatches[0] || null;
         if (!preferredVariant && fuzzyMatches.length) {
           const hasUnambiguousBestMatch = fuzzyMatches.length === 1
@@ -571,110 +596,68 @@
               && fuzzyMatches[0].similarity - (fuzzyMatches[1]?.similarity || 0) >= 0.12);
           if (hasUnambiguousBestMatch) preferredVariant = fuzzyMatches[0].product;
         }
-        if (barcodeMatch && isPlaceholder(barcodeMatch) && preferredVariant && !isPlaceholder(preferredVariant)) {
-          matchedProducts[index] = preferredVariant;
-          duplicateProducts.set(barcodeMatch.id, barcodeMatch);
-        } else if (!barcodeMatch && preferredVariant) {
+        if (!identifierMatch && preferredVariant) {
           matchedProducts[index] = preferredVariant;
         }
         const canonical = matchedProducts[index];
         if (!canonical) return;
         usedProductIds.add(canonical.id);
-        [...(existingByIdentity.get(identity) || []), ...sameVariantMatches, ...(barcodeMatch ? [barcodeMatch] : [])]
-          .forEach((product) => {
-            if (product.id !== canonical.id) duplicateProducts.set(product.id, product);
-          });
       });
-
-      if (duplicateProducts.size) {
-        const duplicateUpdates = [...duplicateProducts.values()];
-        const duplicateIds = duplicateUpdates.map((product) => product.id);
-        setStatus(`Consolidando ${duplicateIds.length} producto${duplicateIds.length === 1 ? "" : "s"} duplicado${duplicateIds.length === 1 ? "" : "s"}…`);
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        if (userError) throw userError;
-        if (!user) throw new Error("La sesión de administración expiró. Inicia sesión de nuevo para consolidar duplicados.");
-        const importedBarcodes = new Set(validRows.map((row) => normalizeSku(row.barcode)).filter(Boolean));
-        const barcodeConflicts = duplicateUpdates
-          .filter((product) => importedBarcodes.has(normalizeSku(product.codigo_barras)))
-          .map((product) => product.id);
-        if (barcodeConflicts.length) {
-          const { error } = await supabase
-            .from("productos")
-            .update({ codigo_barras: null, updated_at: new Date().toISOString() })
-            .in("id", barcodeConflicts);
-          if (error) throw error;
-        }
-        const { error } = await supabase
-          .from("productos")
-          .update({
-            deleted_at: new Date().toISOString(),
-            deleted_by: user.id,
-            disponible: false,
-            es_destacado: false,
-            updated_at: new Date().toISOString(),
-          })
-          .in("id", duplicateIds);
-        if (error) throw error;
-        consolidatedDuplicateCount = duplicateIds.length;
-      }
 
       const products = validRows.map((row, index) => {
         const existing = matchedProducts[index];
         const imageSource = imageSourceByRow[index];
         const imageProduct = existing && !isPlaceholder(existing) ? existing : imageSource;
-        const retainedDealEnd = existing?.oferta_dia_hasta
-          ? new Date(existing.oferta_dia_hasta)
-          : null;
-        const existingDealExpired = Boolean(existing?.es_oferta_dia)
-          && (!retainedDealEnd || retainedDealEnd <= new Date());
-        const retainedSalePrice = existing?.precio_oferta !== null
-          && existing?.precio_oferta !== undefined
-          && !existingDealExpired
-          && Number(existing.precio_oferta) < row.priceUsd
-          ? existing.precio_oferta
-          : null;
-        const retainsActiveDeal = Boolean(existing?.es_oferta_dia
-          && retainedSalePrice !== null
-          && retainedDealEnd
-          && retainedDealEnd > new Date());
+        if (existing) {
+          const update = {
+            id: existing.id,
+            nombre: row.name,
+            precio: row.priceUsd,
+            updated_at: new Date().toISOString(),
+          };
+          if (row.salePriceProvided) update.precio_oferta = row.salePrice;
+          if (row.stockTracked) update.stock = row.stock;
+          return update;
+        }
+
         return {
-          ...(existing ? { id: existing.id } : {}),
-          codigo_barras: row.barcode || existing?.codigo_barras || null,
-          deleted_at: null,
-          deleted_by: null,
+          ...(isUuid(row.productId) ? { id: row.productId } : {}),
+          codigo_barras: row.barcode || null,
           nombre: row.name,
           categoria_id: categoryIdByDepartment.get(row.departmentKey),
           precio: row.priceUsd,
           precio_ves: row.priceVes,
-          stock: row.stockColumnPresent ? row.stock : existing?.stock ?? null,
-          stock_tracked: row.stockColumnPresent ? row.stockTracked : existing?.stock_tracked ?? false,
-          disponible: existing?.disponible ?? true,
-          es_destacado: existing?.es_destacado || false,
-          ...(dailyDealColumnsAvailable ? {
-            es_oferta_dia: retainsActiveDeal,
-            oferta_dia_hasta: retainsActiveDeal ? existing.oferta_dia_hasta : null,
-          } : {}),
-          precio_oferta: retainedSalePrice,
-          presentacion: row.presentation || existing?.presentacion || null,
+          stock: row.stockColumnPresent ? row.stock : null,
+          stock_tracked: row.stockTracked,
+          disponible: true,
+          es_destacado: false,
+          ...(dailyDealColumnsAvailable ? { es_oferta_dia: false, oferta_dia_hasta: null } : {}),
+          precio_oferta: row.salePriceProvided ? row.salePrice : null,
+          presentacion: row.presentation || null,
           imagen_url: row.imageUrl || imageProduct?.imagen_url || row.fallbackImageUrl,
           imagen_path: row.imageUrl ? null : imageProduct?.imagen_path || null,
           updated_at: new Date().toISOString(),
         };
       });
-      const totalUpdatedCount = products.filter((product) => product.id).length;
-      const totalCreatedCount = products.length - totalUpdatedCount;
-      const productGroups = [
-        products.filter((product) => product.id),
-        products.filter((product) => !product.id),
-      ];
+      const existingProductGroups = new Map();
+      const newProductGroups = new Map();
+      products.forEach((product, index) => {
+        const groups = matchedProducts[index] ? existingProductGroups : newProductGroups;
+        const shape = Object.keys(product).sort().join("|");
+        const group = groups.get(shape) || [];
+        group.push(product);
+        groups.set(shape, group);
+      });
+      const totalUpdatedCount = [...existingProductGroups.values()].reduce((total, group) => total + group.length, 0);
+      const totalCreatedCount = [...newProductGroups.values()].reduce((total, group) => total + group.length, 0);
 
-      for (const [groupIndex, group] of productGroups.entries()) {
+      for (const [groupIndex, group] of [...existingProductGroups.values(), ...newProductGroups.values()].entries()) {
         for (let index = 0; index < group.length; index += 200) {
           const batch = group.slice(index, index + 200);
           const { error } = await supabase.from("productos").upsert(batch, { onConflict: "id" });
           if (error) throw error;
           importedCount += batch.length;
-          if (groupIndex === 0) updatedCount += batch.length;
+          if (groupIndex < existingProductGroups.size) updatedCount += batch.length;
           else createdCount += batch.length;
           setStatus(`Inventario actualizado: ${importedCount} de ${products.length} productos…`);
         }
@@ -692,7 +675,7 @@
         skipped_rows: skippedRows,
       };
       showImportReport(report);
-      setStatus(`Importación completada: ${importedCount} productos procesados, ${updatedCount} actualizados y ${createdCount} nuevos; ${skippedRows.length} filas omitidas.${consolidatedInputRows ? ` Se consolidaron ${consolidatedInputRows} filas repetidas usando la última fila por SKU o nombre/presentación.` : ""}${consolidatedDuplicateCount ? ` Se archivaron ${consolidatedDuplicateCount} duplicados; se conservó el historial de pedidos.` : ""} Las imágenes anteriores se conservaron cuando la URL de la fila estaba vacía.`, false, true);
+      setStatus(`Importación completada: ${importedCount} productos procesados, ${updatedCount} actualizados y ${createdCount} nuevos; ${skippedRows.length} filas omitidas.${consolidatedInputRows ? ` Se consolidaron ${consolidatedInputRows} filas repetidas usando la última fila por ID, SKU o nombre/presentación.` : ""} En productos existentes se actualizaron solo nombre, precio regular y los campos de oferta/stock incluidos; las categorías, imágenes, disponibilidad y demás datos se conservaron.`, false, true);
       form.reset();
       preparedRows = [];
       previewRows.replaceChildren();
@@ -702,7 +685,6 @@
       console.error("No se pudo completar la importación del inventario.", error);
       const partialProgress = [];
       if (importedCount) partialProgress.push(`Se procesaron ${importedCount} productos`);
-      if (consolidatedDuplicateCount) partialProgress.push(`se archivaron ${consolidatedDuplicateCount} productos duplicados`);
       setStatus(
         partialProgress.length
           ? `${partialProgress.join(" y ")} antes del error. Corrige el problema e importa nuevamente; se buscan coincidencias por código, nombre y presentación. ${error.message || ""}`

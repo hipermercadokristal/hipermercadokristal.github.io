@@ -26,15 +26,15 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=marketing-flash-import-v1" />
+    <link rel="stylesheet" href="styles.css?v=storefront-audit-v1" />
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
-    <script src="product-image-fallbacks.js"></script>
+    <script src="product-image-fallbacks.js?v=product-department-rules-v1"></script>
     <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/staff-store-navigation.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
-    <script src="app.js?v=marketing-flash-import-v1" defer></script>
+    <script src="app.js?v=milk-department-fix-v1" defer></script>
     <script src="chat-widget.js?v=kristal-chat-v2" defer></script>
     <script src="/client/app-orders.js?v=delivery-fee-courier-pay-v1-20261017" defer></script>
     <script src="pwa.js?v=commerce-redesign-v2" defer></script>
@@ -91,6 +91,7 @@
           <select id="product-department-filter" hidden aria-label="Filtrar búsqueda por departamento">
             <option value="Todos">Categorías</option>
             <option value="Víveres y Alacena">Víveres</option>
+            <option value="Lácteos y Huevos">Lácteos</option>
             <option value="Frutas y Verduras">Frutas y verduras</option>
             <option value="Carnes, Aves y Charcutería">Carnes y charcutería</option>
             <option value="Bebidas, Licores y Tabaco">Bebidas</option>
@@ -143,7 +144,7 @@
               <a href="/catalogo?filtro=ofertas" data-route>Ofertas</a>
               <a href="/catalogo?filtro=ofertas" data-route>Precios especiales</a>
               <a href="/catalogo?filtro=destacados" data-route>Tendencias</a>
-              <a href="/catalogo?seccion=marcas" data-route>Marcas top</a>
+              <a href="/catalogo?seccion=marcas" data-route data-page-brands>Marcas top</a>
             </div>
             <div class="category-links-secondary" aria-label="Información de Kristal">
               <a href="/preguntas-resenas" data-route data-page-reviews>Nuestros servicios</a>
@@ -212,7 +213,6 @@
       </section>
       <div class="home-view" id="home-view">
       <section class="welcome-hero" data-slide="0" aria-roledescription="carrusel" aria-label="Promociones y novedades" aria-labelledby="welcome-title">
-        <div class="marketing-hero-background" id="marketing-hero-background" aria-hidden="true" hidden><img id="marketing-hero-image" alt="" /></div>
         <div class="welcome-background welcome-background-facade" aria-hidden="true">
           <img class="welcome-background-photo" src="assets/hipermercado-fachada.png" alt="" />
         </div>
@@ -241,7 +241,7 @@
           <a class="hero-category-card hero-category-pantry" href="/departamento/viveres-y-alacena" data-route data-category="Víveres y Alacena">
             <img src="assets/promo-viveres.jpg" alt="" loading="lazy" /><span>Despensa</span><strong>Víveres</strong>
           </a>
-          <a class="hero-category-card hero-category-dairy" href="/departamento/carnes-aves-y-charcuteria" data-route data-category="Carnes, Aves y Charcutería">
+          <a class="hero-category-card hero-category-dairy" href="/departamento/lacteos-y-huevos" data-route data-category="Lácteos y Huevos">
             <img src="assets/hipermercado-frescos-lacteos.png" alt="" loading="lazy" /><span>Frescura para tu hogar</span><strong>Lácteos</strong>
           </a>
           <a class="hero-category-card hero-category-drinks" href="/departamento/bebidas-licores-y-tabaco" data-route data-category="Bebidas, Licores y Tabaco">
@@ -253,19 +253,15 @@
         </div>
       </section>
 
-      <section class="kristal-promos page-container" aria-labelledby="kristal-promos-heading">
+      <section class="store-banners-section page-container" id="store-banners-section" aria-labelledby="store-banners-heading" hidden>
         <header class="dashboard-section-heading">
-          <div><span class="eyebrow">VENTAJAS DE COMPRAR EN KRISTAL</span><h2 id="kristal-promos-heading">Promo Kristal</h2></div>
-          <span class="promo-note">Precios y disponibilidad sujetos a confirmación</span>
+          <div><span class="eyebrow">PROMOCIONES DE KRISTAL</span><h2 id="store-banners-heading">Promociones especiales</h2></div>
+          <div class="store-banners-controls" id="store-banners-controls" hidden>
+            <button type="button" data-store-banner-direction="-1" aria-label="Promoción anterior">‹</button>
+            <button type="button" data-store-banner-direction="1" aria-label="Promoción siguiente">›</button>
+          </div>
         </header>
-        <div class="kristal-promo-grid">
-          <a class="kristal-promo-card kristal-promo-catalog" href="/catalogo?filtro=ofertas" data-route>
-            <span class="promo-pill">Precios especiales publicados</span><strong>Ofertas disponibles en el catálogo</strong><span>Revisa descuentos confirmados por la tienda</span><b>Ver ofertas <span aria-hidden="true">→</span></b>
-          </a>
-          <a class="kristal-promo-card kristal-promo-local" href="/tienda/ubicacion" data-route>
-            <span class="promo-pill">Compra local</span><strong>Kristal está cerca de ti</strong><span>Ubicación, atención y consultas por WhatsApp</span><b>Conocer la tienda <span aria-hidden="true">→</span></b>
-          </a>
-        </div>
+        <div class="store-banners-track" id="store-banners-track" aria-label="Banners promocionales"></div>
       </section>
 
       <section class="daily-offers-section" id="ofertas-del-dia" aria-labelledby="daily-offers-heading" data-reveal>
@@ -298,6 +294,21 @@
             </div>
           </header>
           <div class="product-grid featured-product-grid" id="featured-products" role="region" aria-roledescription="carrusel" aria-label="Lo Más Destacado" tabindex="0"></div>
+        </div>
+      </section>
+
+      <section class="kristal-promos page-container" aria-labelledby="kristal-promos-heading">
+        <header class="dashboard-section-heading">
+          <div><span class="eyebrow">VENTAJAS DE COMPRAR EN KRISTAL</span><h2 id="kristal-promos-heading">Promo Kristal</h2></div>
+          <span class="promo-note">Precios y disponibilidad sujetos a confirmación</span>
+        </header>
+        <div class="kristal-promo-grid">
+          <a class="kristal-promo-card kristal-promo-catalog" href="/catalogo?filtro=ofertas" data-route>
+            <span class="promo-pill">Precios especiales publicados</span><strong>Ofertas disponibles en el catálogo</strong><span>Revisa descuentos confirmados por la tienda</span><b>Ver ofertas <span aria-hidden="true">→</span></b>
+          </a>
+          <a class="kristal-promo-card kristal-promo-local" href="/tienda/ubicacion" data-route>
+            <span class="promo-pill">Compra local</span><strong>Kristal está cerca de ti</strong><span>Ubicación, atención y consultas por WhatsApp</span><b>Conocer la tienda <span aria-hidden="true">→</span></b>
+          </a>
         </div>
       </section>
 

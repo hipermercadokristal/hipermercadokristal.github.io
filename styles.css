@@ -180,9 +180,6 @@ main { min-height: 55vh; padding-bottom: 40px; overscroll-behavior-y: none; }
 .review-form-status { margin-top: 14px !important; color: #41604a !important; font-size: 12px !important; }
 
 .welcome-hero { position: relative; min-height: max(500px, calc(100svh - 192px)); display: grid; place-items: center; overflow: hidden; isolation: isolate; background: #0f3822; color: #fff; text-align: center; }
-.welcome-hero.has-marketing-banner .welcome-background { display: none; }
-.marketing-hero-background { position: absolute; z-index: -2; inset: 0; overflow: hidden; }
-.marketing-hero-background img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .welcome-background { position: absolute; z-index: -2; inset: 0; background-position: center; background-size: cover; background-repeat: no-repeat; animation: welcome-background-cycle 18s ease-in-out infinite; }
 .welcome-background::before { position: absolute; inset: -14px; background-image: var(--welcome-photo); background-position: center; background-size: cover; background-repeat: no-repeat; content: ""; filter: blur(14px); transform: scale(1.04); }
 .welcome-background-facade { --welcome-photo: url("assets/hipermercado-fachada.png"); animation-delay: -12s; }
@@ -968,6 +965,19 @@ html.app-auth-pending #customer-auth-status { color: var(--muted); }
 .offers-see-all:hover { color: var(--sale-red); }
 .daily-offers-grid { display: flex; gap: 14px; overflow-x: auto; padding: 3px 2px 13px; scroll-snap-type: x mandatory; scrollbar-color: #d8c98f transparent; scrollbar-width: thin; overscroll-behavior-inline: contain; }
 .daily-offers-grid .daily-offer-card { flex: 0 0 clamp(210px, 22%, 260px); scroll-snap-align: start; }
+.store-banners-section { padding-block: 26px; }
+.store-banners-section[hidden] { display: none; }
+.store-banners-section .dashboard-section-heading { align-items: center; margin-bottom: 14px; }
+.store-banners-section .dashboard-section-heading h2 { margin: 6px 0 0; color: var(--forest); font: 800 clamp(21px, 2.7vw, 29px)/1.2 "Manrope", sans-serif; }
+.store-banners-controls { display: flex; gap: 8px; }
+.store-banners-controls button { width: 38px; height: 38px; border: 1px solid #dce5dd; border-radius: 50%; background: #fff; color: var(--forest); font-size: 23px; cursor: pointer; }
+.store-banners-controls[hidden] { display: none; }
+.store-banners-track { display: flex; gap: 16px; overflow-x: auto; padding: 2px 1px 12px; scroll-snap-type: x mandatory; scrollbar-width: thin; overscroll-behavior-inline: contain; }
+.store-banner-card { position: relative; flex: 0 0 calc((100% - 16px) / 2); min-height: 170px; overflow: hidden; border-radius: 16px; background: #e9efea; box-shadow: 0 7px 24px #143c2510; scroll-snap-align: start; }
+.store-banner-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transition: transform .25s ease; }
+.store-banner-card:hover img { transform: scale(1.025); }
+.store-banner-card::after { position: absolute; inset: 35% 0 0; background: linear-gradient(transparent, #102b20a8); content: ""; }
+.store-banner-card > span { position: absolute; z-index: 1; right: 18px; bottom: 16px; left: 18px; color: #fff; font: 800 clamp(16px, 2vw, 24px)/1.2 "Manrope", sans-serif; text-shadow: 0 2px 9px #0008; }
 .featured-section { padding: 38px 0; }
 .popular-departments { padding-block: 42px; }
 .popular-departments .dashboard-section-heading { margin-bottom: 17px; }
@@ -1063,6 +1073,10 @@ html.app-auth-pending #customer-auth-status { color: var(--muted); }
   .hero-carousel-controls > button:last-child { right: 9px; }
   .hero-carousel-dots { bottom: 18px; }
   .daily-offers-section { padding: 24px 0; }
+  .store-banners-section { padding-block: 20px; }
+  .store-banners-track { gap: 10px; }
+  .store-banner-card { flex-basis: 88%; min-height: 145px; border-radius: 13px; }
+  .store-banner-card > span { right: 13px; bottom: 12px; left: 13px; }
   .daily-offers-heading { align-items: flex-start; gap: 10px; }
   .daily-offers-heading h2, .popular-departments h2 { font-size: 22px; }
   .daily-offers-heading p { max-width: 250px; font-size: 10px; }
@@ -1077,6 +1091,7 @@ html.app-auth-pending #customer-auth-status { color: var(--muted); }
   .department-feature-card small { font-size: 9px; }
   .department-card-icon { top: 10px; left: 10px; width: 31px; height: 31px; font-size: 16px; }
   .featured-section { padding: 25px 0; }
+  .featured-product-grid .product-card { flex-basis: clamp(220px, 72vw, 280px); }
   .product-card { padding: 10px; border-radius: 14px; }
   .featured-product-card .product-image-wrap, .product-image-wrap { height: 132px; }
   .product-name { font-size: 11px; }

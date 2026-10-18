@@ -35,6 +35,8 @@ const cashierQueueLists = Object.values(cashierOrderQueues).map((queue) => queue
 const staffPage = document.querySelector("[data-staff-page]")?.dataset.staffPage || "admin";
 const deletedProductRows = document.querySelector("#deleted-product-rows");
 const emptyDeletedProducts = document.querySelector("#empty-deleted-products");
+const purgeDeletedProductsButton = document.querySelector("#purge-deleted-products-button");
+const deletedProductsStatus = document.querySelector("#deleted-products-status");
 const staffRoleForm = document.querySelector("#staff-role-form");
 const documentSearchForm = document.querySelector("#staff-document-search-form");
 const documentSearchResults = document.querySelector("#staff-document-search-results");
@@ -168,13 +170,14 @@ async function loadInventory() {
 
   inventoryRows.innerHTML = data.map((product) => {
     const category = Array.isArray(product.categorias) ? product.categorias[0] : product.categorias;
+    const department = window.getKristalProductDepartment(product.nombre, category?.departamento || "");
     const dailyDealActive = product.es_oferta_dia
       && product.oferta_dia_hasta
       && new Date(product.oferta_dia_hasta) > new Date();
     return `<tr>
       <td data-label="Producto"><div class="inventory-product"><img src="${escapeHtml(getInventoryImageUrl(product.imagen_url))}" alt="" loading="lazy" /><span>${escapeHtml(product.nombre)}${product.es_destacado ? " · Destacado" : ""}</span></div></td>
       <td data-label="Código">${escapeHtml(product.codigo_barras || "—")}</td>
-      <td data-label="Departamento">${escapeHtml(category?.departamento || "Sin departamento")}</td>
+      <td data-label="Departamento">${escapeHtml(department || "Sin departamento")}${department !== category?.departamento ? " · sugerido" : ""}</td>
       <td data-label="Precio">${currency.format(Number(product.precio))}</td>
       <td data-label="Precio VES">${product.precio_ves === null ? "—" : `Bs. ${bolivares.format(Number(product.precio_ves))}`}</td>
       <td data-label="Stock interno">${product.stock_tracked && product.stock !== null ? stockNumber.format(Number(product.stock)) : "Sin control"}</td>
@@ -315,6 +318,7 @@ async function loadDeletedProducts() {
     </tr>`;
   }).join("");
   emptyDeletedProducts.hidden = data.length > 0;
+  if (purgeDeletedProductsButton) purgeDeletedProductsButton.disabled = data.length === 0;
 }
 
 async function loadSalesSummary() {
@@ -731,7 +735,8 @@ function beginEditing(product) {
   editingProduct = product;
   productForm.elements.nombre.value = product.nombre;
   const productCategory = Array.isArray(product.categorias) ? product.categorias[0] : product.categorias;
-  const department = categories.find((category) => category.nombre === productCategory?.departamento);
+  const departmentName = window.getKristalProductDepartment(product.nombre, productCategory?.departamento);
+  const department = categories.find((category) => category.nombre === departmentName);
   productForm.elements.categoria_id.value = department?.id || "";
   productForm.elements.presentacion.value = product.presentacion || "";
   productForm.elements.codigo_barras.value = product.codigo_barras || "";
@@ -1041,6 +1046,37 @@ async function restoreDeletedProduct(productId, button) {
   }
 }
 
+async function purgeDeletedProducts() {
+  if (!purgeDeletedProductsButton || purgeDeletedProductsButton.disabled) return;
+  const confirmed = window.confirm(
+    "Esta acción eliminará permanentemente todos los productos archivados. No podrás restaurarlos. ¿Deseas vaciar la papelera?",
+  );
+  if (!confirmed) return;
+
+  purgeDeletedProductsButton.disabled = true;
+  setMessage(deletedProductsStatus, "Eliminando permanentemente los productos archivados…");
+  try {
+    const { data, error } = await supabaseClient.rpc("purge_deleted_store_products");
+    if (error) throw error;
+    if (!Number.isInteger(data) || data < 0) {
+      throw new Error("Supabase no confirmó cuántos productos fueron eliminados.");
+    }
+    await loadDeletedProducts();
+    setMessage(
+      deletedProductsStatus,
+      data === 0 ? "La papelera ya estaba vacía." : `Se eliminaron permanentemente ${data} productos.`,
+      true,
+    );
+  } catch (error) {
+    console.error("No se pudo vaciar la papelera de productos.", error);
+    setMessage(
+      deletedProductsStatus,
+      error.message || "No se pudo vaciar la papelera. Verifica la migración SQL y vuelve a intentarlo.",
+    );
+    purgeDeletedProductsButton.disabled = false;
+  }
+}
+
 async function initializeAdmin() {
   if (!supabaseClient) {
     setMessage(authStatus, "Configura la URL y la clave pública de Supabase en supabase-config.js.");
@@ -1081,6 +1117,7 @@ deletedProductRows?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-restore-product]");
   if (button) restoreDeletedProduct(button.dataset.restoreProduct, button);
 });
+purgeDeletedProductsButton?.addEventListener("click", purgeDeletedProducts);
 cancelEditButton?.addEventListener("click", resetProductForm);
 staffRoleForm?.addEventListener("submit", setStaffRole);
 document.querySelector("#admin-dashboard-view-switcher")?.addEventListener("change", (event) => {

@@ -7,18 +7,18 @@
     <title>Administración | Hipermercado Kristal</title>
     <link rel="manifest" href="/admin/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="admin.css?v=marketing-flash-import-v1" />
+    <link rel="stylesheet" href="admin.css?v=marketing-flash-import-v2" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
-    <script src="../product-image-fallbacks.js"></script>
+    <script src="../product-image-fallbacks.js?v=product-department-rules-v1"></script>
     <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="../assets/vendor/xlsx-0.20.3.min.js"></script>
     <script src="../admin/staff-pwa.js?v=staff-no-install-v1-20261017" defer></script>
     <script src="../staff-collapsible.js?v=staff-collapsible-v1-20261017" defer></script>
-    <script src="../admin/inventory-import.js?v=marketing-flash-import-v1" defer></script>
-    <script src="marketing.js?v=marketing-flash-import-v1" defer></script>
-    <script src="admin.js?v=marketing-flash-import-v1" defer></script>
+    <script src="../admin/inventory-import.js?v=partial-import-v1" defer></script>
+    <script src="marketing.js?v=marketing-flash-import-v2" defer></script>
+    <script src="admin.js?v=trash-purge-v1" defer></script>
   </head>
   <body>
     <main class="admin-shell" data-staff-page="admin">
@@ -192,7 +192,7 @@
             <div><p class="eyebrow">PROMOCIONES</p><h2 id="marketing-heading">Banners y avisos</h2></div>
             <button class="secondary-button" id="refresh-marketing-button" type="button">Actualizar</button>
           </div>
-          <p class="intro">Administra las imágenes promocionales de la portada, su orden y el aviso global que aparece en la barra superior de la tienda. Para habilitar este módulo y las Ofertas del Día, ejecuta primero <code>supabase-marketing.sql</code> en el SQL Editor de Supabase.</p>
+          <p class="intro">Administra las promociones que aparecen debajo de la portada principal y el aviso global de la tienda. Para habilitar este módulo y las Ofertas del Día, ejecuta primero <code>supabase-marketing.sql</code> en el SQL Editor de Supabase.</p>
           <section class="marketing-announcement" aria-labelledby="announcement-heading">
             <h3 id="announcement-heading">Aviso de la barra superior</h3>
             <form id="announcement-form">
@@ -207,9 +207,42 @@
             </form>
             <p class="status-message" id="announcement-status" role="status" aria-live="polite"></p>
           </section>
+          <section class="marketing-daily-deals" aria-labelledby="daily-deal-admin-heading">
+            <h3 id="daily-deal-admin-heading">Gestionar Ofertas del Día</h3>
+            <p class="marketing-help">Selecciona un producto existente para publicar o actualizar su descuento y fecha de vencimiento. La portada principal no cambia; estas ofertas aparecen en su sección propia.</p>
+            <form id="daily-deal-form" class="daily-deal-form">
+              <label class="field" for="daily-deal-product">Producto
+                <select id="daily-deal-product" name="product_id" required>
+                  <option value="">Cargando productos…</option>
+                </select>
+              </label>
+              <label class="field" for="daily-deal-regular-price">Precio regular (USD)
+                <input id="daily-deal-regular-price" type="text" readonly />
+              </label>
+              <label class="field" for="daily-deal-price">Precio de oferta (USD)
+                <input id="daily-deal-price" name="precio_oferta" type="number" min="0.01" step="0.01" />
+              </label>
+              <label class="field" for="daily-deal-expiry">Termina el
+                <input id="daily-deal-expiry" name="oferta_dia_hasta" type="datetime-local" />
+              </label>
+              <label class="checkbox-field" for="daily-deal-active">
+                <input id="daily-deal-active" name="active" type="checkbox" checked />
+                Publicar en Ofertas del Día
+              </label>
+              <button class="primary-button" id="save-daily-deal-button" type="submit">Guardar Oferta del Día</button>
+            </form>
+            <p class="status-message" id="daily-deal-status" role="status" aria-live="polite"></p>
+            <div class="table-scroll">
+              <table>
+                <thead><tr><th>Producto</th><th>Descuento</th><th>Vencimiento</th><th>Estado</th><th>Acción</th></tr></thead>
+                <tbody id="daily-deal-rows"></tbody>
+              </table>
+            </div>
+            <p class="empty-inventory" id="empty-daily-deals" hidden>No hay Ofertas del Día configuradas todavía.</p>
+          </section>
           <section class="marketing-banners" aria-labelledby="banners-heading">
             <div class="panel-heading">
-              <div><h3 id="banners-heading">Banners principales</h3><p class="marketing-help">Imágenes JPG, PNG o WebP de hasta 8 MB. Se muestran en el carrusel de portada.</p></div>
+              <div><h3 id="banners-heading">Banners promocionales</h3><p class="marketing-help">Imágenes JPG, PNG o WebP de hasta 8 MB. Se muestran en una sección debajo de la portada principal.</p></div>
             </div>
             <form id="banner-form" class="banner-form">
               <label class="field" for="banner-title">Título del banner
@@ -288,7 +321,11 @@
             <div><p class="eyebrow">HISTORIAL</p><h2 id="deleted-products-heading">Productos eliminados</h2></div>
             <button class="secondary-button" id="refresh-deleted-products-button" type="button">Actualizar historial</button>
           </div>
-          <p class="intro">Los productos eliminados quedan archivados y se pueden restaurar. Sus fotos y registros de pedidos se conservan.</p>
+          <p class="intro">Los productos eliminados quedan archivados y se pueden restaurar. Sus fotos y registros de pedidos se conservan. Vaciar la papelera elimina permanentemente todos los productos archivados; la acción no se puede deshacer. Ejecuta <code>supabase-purge-deleted-products.sql</code> en Supabase para habilitarla.</p>
+          <div class="inventory-panel-actions">
+            <button class="inventory-archive-all-button" id="purge-deleted-products-button" type="button" disabled>Vaciar productos eliminados</button>
+          </div>
+          <p class="status-message" id="deleted-products-status" role="status" aria-live="polite"></p>
           <div class="table-scroll">
             <table>
               <thead><tr><th>Producto</th><th>Eliminado</th><th>Acciones</th></tr></thead>

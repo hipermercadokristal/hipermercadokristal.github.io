@@ -150,12 +150,19 @@ td:first-child { min-width: 210px; font-weight: 700; }
 .delivery-assignment button:disabled { opacity: .55; cursor: not-allowed; }
 .delivery-assignment > span { flex-basis: 100%; color: #53635a; font-size: 11px; }
 .order-whatsapp-link { display: inline-block; margin-top: 13px; font-size: 12px; }
-.marketing-announcement, .marketing-banners { padding: 18px; border: 1px solid #e3eae4; border-radius: 11px; background: #fbfdfb; }
-.marketing-announcement h3, .marketing-banners h3 { margin: 0 0 13px; color: #1c3d2a; font-size: 16px; }
+.marketing-announcement, .marketing-daily-deals, .marketing-banners { padding: 18px; border: 1px solid #e3eae4; border-radius: 11px; background: #fbfdfb; }
+.marketing-announcement h3, .marketing-daily-deals h3, .marketing-banners h3 { margin: 0 0 13px; color: #1c3d2a; font-size: 16px; }
+.marketing-daily-deals, .marketing-banners { margin-top: 16px; }
+.daily-deal-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: end; gap: 0 12px; margin-top: 14px; }
+.daily-deal-form .field { margin-bottom: 12px; }
+.daily-deal-form .checkbox-field { align-self: center; }
+.daily-deal-form > button { justify-self: start; }
+.daily-deal-form input[readonly] { background: #f2f5f2; color: #67766c; }
+.marketing-daily-deals .table-scroll { margin-top: 14px; }
+.marketing-daily-deals td small { display: block; margin-top: 3px; color: #748179; font-size: 10px; }
 .marketing-announcement form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; gap: 12px; }
 .marketing-announcement .field { margin: 0; }
 .marketing-announcement .checkbox-field { margin: 0 0 12px; }
-.marketing-banners { margin-top: 16px; }
 .marketing-banners > .panel-heading { margin-bottom: 12px; }
 .marketing-help { margin: 5px 0 0; color: #748179; font-size: 12px; }
 .banner-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; gap: 12px; }
@@ -182,6 +189,8 @@ td:first-child { min-width: 210px; font-weight: 700; }
   .dashboard-header .secondary-button { min-height: 40px; }
   .staff-role-form { grid-template-columns: 1fr; }
   .marketing-announcement form, .banner-form { grid-template-columns: 1fr; }
+  .daily-deal-form { grid-template-columns: 1fr; }
+  .daily-deal-form > button { width: 100%; }
   .marketing-announcement form .field, .banner-form .field:nth-child(3) { grid-column: auto; }
   .marketing-announcement .checkbox-field { margin-bottom: 0; }
   .marketing-banner-card { grid-template-columns: 76px minmax(0, 1fr); }

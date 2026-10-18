@@ -64,8 +64,6 @@ const shippingProgressMessage = document.querySelector("#shipping-progress-messa
 const headerBCVRate = document.querySelector("#header-bcv-rate");
 const headerBCVDate = document.querySelector("#header-bcv-date");
 const announcementBarMessage = document.querySelector("#announcement-message");
-const marketingHeroBackground = document.querySelector("#marketing-hero-background");
-const marketingHeroImage = document.querySelector("#marketing-hero-image");
 const storeOpenStatus = document.querySelector("#store-open-status");
 const storeOpenStatusText = document.querySelector("#store-open-status-text");
 const storeHoursFormatter = new Intl.DateTimeFormat("en-US", {
@@ -90,9 +88,13 @@ const welcomeHero = document.querySelector(".welcome-hero");
 const welcomeEyebrow = document.querySelector("#welcome-eyebrow");
 const welcomeTitle = document.querySelector("#welcome-title");
 const welcomeDescription = document.querySelector("#welcome-description");
+const storeBannersSection = document.querySelector("#store-banners-section");
+const storeBannersTrack = document.querySelector("#store-banners-track");
+const storeBannersControls = document.querySelector("#store-banners-controls");
 let activeFilter = "Todos";
 let activeView = "home";
 let activeCategory = "";
+let activeCatalogSection = "";
 let displayCurrency = "USD";
 let cartTotal = 0;
 const cartItems = new Map();
@@ -341,24 +343,6 @@ function setHeroSlide(index) {
     bannerLink.rel = "noopener noreferrer";
   }
   bannerLink.setAttribute("aria-label", `${slide.title}. ${slide.description}`);
-  let safeImage = "";
-  if (slide.image) {
-    try {
-      const parsedImage = new URL(slide.image, window.location.href);
-      if (["http:", "https:"].includes(parsedImage.protocol)) safeImage = parsedImage.href;
-    } catch (error) {
-      console.error("El banner activo contiene una URL de imagen inválida.", error);
-    }
-  }
-  if (safeImage) {
-    marketingHeroImage.src = safeImage;
-    marketingHeroBackground.hidden = false;
-    welcomeHero.classList.add("has-marketing-banner");
-  } else {
-    marketingHeroImage.removeAttribute("src");
-    marketingHeroBackground.hidden = true;
-    welcomeHero.classList.remove("has-marketing-banner");
-  }
   const dots = welcomeHero.querySelector(".hero-carousel-dots");
   if (dots.children.length !== heroSlides.length) {
     dots.innerHTML = heroSlides.map((_item, itemIndex) =>
@@ -465,11 +449,13 @@ function renderCatalogBrandFilters() {
 function mapDatabaseProduct(row) {
   const category = Array.isArray(row.categorias) ? row.categorias[0] : row.categorias;
   if (!category) throw new Error(`El producto ${row.id} no tiene una categoría válida.`);
+  const department = window.getKristalProductDepartment(row.nombre, category.departamento || category.nombre);
+  const isPantryMilk = department !== (category.departamento || category.nombre);
   const dailyDealEnd = row.oferta_dia_hasta ? new Date(row.oferta_dia_hasta) : null;
   const dailyDealIsExpired = Boolean(row.es_oferta_dia)
     && (!dailyDealEnd || !Number.isFinite(dailyDealEnd.getTime()) || dailyDealEnd <= new Date());
   const salePrice = dailyDealIsExpired ? null : row.precio_oferta;
-  const fallbackImageUrl = window.getKristalProductFallbackImage(category.departamento || category.nombre);
+  const fallbackImageUrl = window.getKristalProductFallbackImage(department);
   const storedImageUrl = String(row.imagen_url || "");
   const imageUrl = !storedImageUrl || storedImageUrl.includes("imported-product-placeholder.svg")
     ? fallbackImageUrl
@@ -478,8 +464,8 @@ function mapDatabaseProduct(row) {
     id: row.id,
     name: row.nombre,
     brand: findProductBrand(row.nombre),
-    category: category.nombre,
-    group: category.departamento,
+    category: isPantryMilk ? "Víveres" : category.nombre,
+    group: department,
     detail: row.presentacion || "Presentación por confirmar",
     price: Number(salePrice ?? row.precio),
     oldPrice: salePrice === null ? null : Number(row.precio),
@@ -574,22 +560,8 @@ async function loadMarketingContent() {
   ]);
   if (bannerResult.error) {
     console.error("No se pudieron cargar los banners de marketing.", bannerResult.error);
-  } else if (bannerResult.data?.length) {
-    heroSlides = bannerResult.data.map((banner) => ({
-      eyebrow: "PROMOCIÓN DE HIPERMERCADO KRISTAL",
-      title: banner.title,
-      description: "",
-      route: banner.link_url || "/catalogo",
-      image: banner.image_url,
-    }));
-    heroSlideIndex = 0;
-    setHeroSlide(0);
-    startHeroCarousel();
-  } else if (!bannerResult.error) {
-    heroSlides = defaultHeroSlides;
-    heroSlideIndex = 0;
-    setHeroSlide(0);
-    startHeroCarousel();
+  } else {
+    renderStoreBanners(bannerResult.data || []);
   }
   if (announcementResult.error) {
     console.error("No se pudo cargar el aviso global de la tienda.", announcementResult.error);
@@ -603,6 +575,57 @@ async function loadMarketingContent() {
     announcementBarMessage.hidden = true;
   }
 }
+
+function renderStoreBanners(banners) {
+  if (!storeBannersSection || !storeBannersTrack) return;
+  if (!banners.length) {
+    storeBannersSection.hidden = true;
+    storeBannersTrack.replaceChildren();
+    return;
+  }
+  storeBannersSection.hidden = false;
+  storeBannersTrack.innerHTML = banners.map((banner) => {
+    let destination = String(banner.link_url || "/catalogo");
+    let targetAttributes = 'data-route';
+    try {
+      const parsed = new URL(destination, window.location.href);
+      if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("Protocolo inválido");
+      if (parsed.origin !== window.location.origin) targetAttributes = 'target="_blank" rel="noopener noreferrer"';
+      else destination = `${parsed.pathname}${parsed.search}${parsed.hash}`;
+    } catch (error) {
+      console.error("Se omitió el enlace inválido de un banner.", error);
+      destination = "/catalogo";
+      targetAttributes = 'data-route';
+    }
+    let imageUrl = "";
+    try {
+      const image = new URL(banner.image_url, window.location.href);
+      if (["http:", "https:"].includes(image.protocol)) imageUrl = image.href;
+    } catch (error) {
+      console.error("Se omitió la imagen inválida de un banner.", error);
+    }
+    if (!imageUrl) return "";
+    return `<a class="store-banner-card" href="${escapeHtml(destination)}" ${targetAttributes} aria-label="${escapeHtml(banner.title)}">
+      <img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" />
+      <span>${escapeHtml(banner.title)}</span>
+    </a>`;
+  }).join("");
+  const cards = storeBannersTrack.querySelectorAll(".store-banner-card");
+  storeBannersControls.hidden = cards.length < 2;
+  storeBannersTrack.setAttribute("aria-roledescription", "carrusel");
+}
+
+document.querySelectorAll("[data-store-banner-direction]").forEach((button) => {
+  button.addEventListener("click", () => {
+    const firstCard = storeBannersTrack?.querySelector(".store-banner-card");
+    if (!firstCard) return;
+    const gap = Number.parseFloat(getComputedStyle(storeBannersTrack).columnGap) || 0;
+    storeBannersTrack.scrollBy({
+      left: (firstCard.getBoundingClientRect().width + gap) * Number(button.dataset.storeBannerDirection),
+      behavior: "smooth",
+    });
+  });
+});
 
 function normalizeText(value) {
   return value
@@ -641,6 +664,7 @@ function setCurrentNavigation(view, category = "") {
     const current =
       (view === "home" && link.hasAttribute("data-page-home")) ||
       (view === "catalog" && link.hasAttribute("data-page-catalog")) ||
+      (view === "catalog" && activeCatalogSection === "brands" && link.hasAttribute("data-page-brands")) ||
       ((view === "about" || view === "store") && link.hasAttribute("data-page-store")) ||
       (view === "about" && link.hasAttribute("data-page-about")) ||
       (view === "returns" && link.hasAttribute("data-page-returns")) ||
@@ -678,6 +702,7 @@ function visibleProductsFor(filter) {
   const isDepartmentFilter = Object.keys(categoryDescriptions).some((category) =>
     normalizeText(category) === normalizedFilter,
   );
+  const matchingDepartments = [normalizedFilter, ...(departmentFilterAliases[normalizedFilter] || [])];
   return products.filter((product) => {
     const matchesFilter =
       normalizedFilter === "todos" ||
@@ -688,12 +713,14 @@ function visibleProductsFor(filter) {
           : normalizedFilter === "destacados"
             ? product.esDestacado
             : isDepartmentFilter
-            ? normalizeText(product.group) === normalizedFilter
+            ? matchingDepartments.includes(normalizeText(product.group))
             : normalizeText(product.group) === normalizedFilter || normalizeText(product.category) === normalizedFilter);
     const searchableText = normalizeText(
       `${product.name} ${product.category} ${product.group} ${product.detail}`,
     );
-    const matchesBrand = activeView !== "catalog" || selectedBrands.size === 0 || selectedBrands.has(product.brand);
+    const matchesBrand = activeView !== "catalog"
+      || (activeCatalogSection !== "brands" || Boolean(product.brand))
+      && (selectedBrands.size === 0 || selectedBrands.has(product.brand));
     const matchesPriceRange = activeView !== "catalog" || selectedPriceRanges.size === 0 || [...selectedPriceRanges].some((range) => {
       if (range === "0-20") return product.price >= 0 && product.price <= 20;
       if (range === "20-50") return product.price > 20 && product.price <= 50;
@@ -759,7 +786,11 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
       normalizedFilter === "favoritos"
         ? '<p class="empty-state">Aún no tienes favoritos. Guarda productos con el icono de corazón.</p>'
         : normalizedFilter === "ofertas"
-          ? `<p class="empty-state">No hay ofertas confirmadas publicadas. <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener noreferrer">Consulta promociones vigentes por WhatsApp.</a></p>`
+          ? '<p class="empty-state">En este momento no hay productos con precio de oferta publicado. Vuelve pronto para descubrir nuevas promociones.</p>'
+        : normalizedFilter === "destacados"
+          ? '<p class="empty-state">Todavía no hay productos marcados como destacados. Vuelve pronto para descubrir nuestra selección.</p>'
+        : activeCatalogSection === "brands"
+          ? '<p class="empty-state">Todavía no hay productos de marcas reconocidas publicados en el catálogo.</p>'
         : !products.length || isDepartment
           ? `<p class="empty-state">Aún no hay productos publicados ${isDepartment ? "en este departamento" : "en el catálogo"}. <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener noreferrer">Consulta disponibilidad y precios por WhatsApp.</a></p>`
           : '<p class="empty-state">No encontramos productos. Prueba con otra búsqueda.</p>';
@@ -784,14 +815,14 @@ function renderProducts(targetGrid = productGrid, filter = activeFilter) {
 
 function renderFeaturedProducts() {
   const scrollLeft = featuredProductGrid.scrollLeft;
-  const featuredProducts = products.filter((product) => product.esDestacado);
+  const featuredProducts = products.filter((product) => product.esDestacado).slice(0, 12);
   if (catalogLoadError) {
     featuredProductGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
     updateFeaturedCarousel();
     return;
   }
   if (!featuredProducts.length) {
-    featuredProductGrid.innerHTML = `<p class="empty-state">Estamos actualizando la selección de productos. <a href="https://wa.me/${WHATSAPP_NUMBER}" target="_blank" rel="noopener noreferrer">Consulta productos y ofertas vigentes por WhatsApp.</a></p>`;
+    featuredProductGrid.innerHTML = '<p class="empty-state">Todavía no hay productos destacados publicados. Vuelve pronto para descubrir nuestra selección.</p>';
     updateFeaturedCarousel();
     return;
   }
@@ -808,9 +839,11 @@ function renderDailyOffers() {
   window.clearTimeout(dailyOfferExpiryTimeout);
   const now = Date.now();
   const offers = products
-    .filter((product) => Number.isFinite(product.oldPrice)
+    .filter((product) => product.esOfertaDia
+      && Number.isFinite(product.oldPrice)
       && product.oldPrice > product.price
-      && (!product.esOfertaDia || (product.ofertaDiaHasta && new Date(product.ofertaDiaHasta).getTime() > now)))
+      && product.ofertaDiaHasta
+      && new Date(product.ofertaDiaHasta).getTime() > now)
     .slice(0, 12);
   if (catalogLoadError) {
     dailyOffersGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
@@ -818,7 +851,7 @@ function renderDailyOffers() {
     return;
   }
   if (!offers.length) {
-    dailyOffersGrid.innerHTML = '<p class="empty-state">Las ofertas aparecerán aquí cuando se publiquen descuentos en el inventario.</p>';
+    dailyOffersGrid.innerHTML = '<p class="empty-state">Todavía no hay Ofertas del Día activas. Vuelve pronto para descubrir promociones.</p>';
     dailyOffersTimer.textContent = "";
     return;
   }
@@ -935,6 +968,7 @@ document.addEventListener("click", (event) => {
 
 const categoryDescriptions = {
   "Víveres y Alacena": "Granos, aceites, harinas, pastas, enlatados y condimentos.",
+  "Lácteos y Huevos": "Leche, quesos, huevos, yogures y productos refrigerados.",
   "Frutas y Verduras": "Hortalizas, tubérculos y frutas frescas del campo.",
   "Carnes, Aves y Charcutería": "Cortes de carne, pollo, embutidos, quesos y lácteos.",
   "Bebidas, Licores y Tabaco": "Jugos, gaseosas, maltas, licores, vinos, cerveza, cigarrillos y encendedores.",
@@ -945,6 +979,13 @@ const categoryDescriptions = {
   "Electrodomésticos y Ferretería": "Licuadoras, ventiladores, herramientas manuales, bombillos, extensiones y artículos eléctricos básicos.",
   Mascotas: "Alimentos balanceados y artículos de cuidado para mascotas.",
   Congelados: "Alimentos congelados listos para cocinar.",
+};
+const departmentFilterAliases = {
+  "viveres y alacena": ["viveres"],
+  "lacteos y huevos": ["lacteos", "huevos"],
+  "carnes, aves y charcuteria": ["carnes y aves", "charcuteria"],
+  "bebidas, licores y tabaco": ["bebidas", "bebidas alcoholicas", "bebidas y licores"],
+  "cuidado del hogar y limpieza": ["cuidado del hogar", "detergentes", "papel higienico"],
 };
 const legacyCategoryAliases = {
   "Bebidas y Licores": "Bebidas, Licores y Tabaco",
@@ -1055,6 +1096,7 @@ function showCategoryView(category, { pushHistory = true } = {}) {
   profileView.hidden = true;
   ordersView.hidden = true;
   categoryView.hidden = false;
+  observeRevealElements(categoryView);
   setActiveFilter(category, { clearSearch: true });
   setCurrentNavigation("category", category);
   categoryViewTitle.textContent = category;
@@ -1080,6 +1122,7 @@ function showHomeView({ pushHistory = true } = {}) {
   profileView.hidden = true;
   ordersView.hidden = true;
   homeView.hidden = false;
+  observeRevealElements(homeView);
   locationView.hidden = true;
   setActiveFilter("Todos", { clearSearch: true });
   setCurrentNavigation("home");
@@ -1089,9 +1132,10 @@ function showHomeView({ pushHistory = true } = {}) {
   window.scrollTo(0, 0);
 }
 
-function showCatalogView({ filter = "Todos", pushHistory = true, clearSearch = false } = {}) {
+function showCatalogView({ filter = "Todos", pushHistory = true, clearSearch = false, section = "" } = {}) {
   activeView = "catalog";
   activeCategory = "";
+  activeCatalogSection = section === "marcas" ? "brands" : "";
   homeView.hidden = true;
   categoryView.hidden = true;
   storeView.hidden = true;
@@ -1103,14 +1147,40 @@ function showCatalogView({ filter = "Todos", pushHistory = true, clearSearch = f
   profileView.hidden = true;
   ordersView.hidden = true;
   catalogView.hidden = false;
+  observeRevealElements(catalogView);
   productPages.set(productGrid.id, 1);
+  const catalogHeading = document.querySelector("#products-heading");
+  const catalogDescription = document.querySelector("#productos .section-heading > div > p");
+  if (catalogHeading) {
+    catalogHeading.textContent = activeCatalogSection === "brands"
+      ? "Productos de marcas destacadas"
+      : "Explora nuestros productos";
+  }
+  if (catalogDescription && activeCatalogSection === "brands") {
+    catalogDescription.textContent = "Explora productos de marcas identificadas en nuestro catálogo. Usa el filtro de marcas para elegir cuáles ver.";
+  } else if (catalogDescription) {
+    catalogDescription.textContent = "Consulta precios en USD o su referencia en bolívares con la tasa BCV. Agrega productos al carrito y elige cómo pagar y recibir tu pedido.";
+  }
   setActiveFilter(filter, { clearSearch });
   setCurrentNavigation("catalog");
   renderProducts(productGrid, filter);
   closeMobileCategoryMenu();
   const isOffers = filter === "Ofertas";
-  document.title = isOffers ? "Ofertas | Hipermercado Kristal" : "Catálogo | Hipermercado Kristal";
-  if (pushHistory) history.pushState({ view: "catalog", filter }, "", isOffers ? "/catalogo?filtro=ofertas" : filter === "Destacados" ? "/catalogo?filtro=destacados" : "/catalogo");
+  document.title = isOffers
+    ? "Ofertas | Hipermercado Kristal"
+    : activeCatalogSection === "brands"
+      ? "Marcas destacadas | Hipermercado Kristal"
+      : "Catálogo | Hipermercado Kristal";
+  if (pushHistory) {
+    const route = isOffers
+      ? "/catalogo?filtro=ofertas"
+      : filter === "Destacados"
+        ? "/catalogo?filtro=destacados"
+        : activeCatalogSection === "brands"
+          ? "/catalogo?seccion=marcas"
+          : "/catalogo";
+    history.pushState({ view: "catalog", filter, section: activeCatalogSection === "brands" ? "marcas" : "" }, "", route);
+  }
   window.scrollTo(0, 0);
 }
 
@@ -1286,14 +1356,16 @@ function restoreRoute(state = history.state) {
   }
   if (path === "/catalogo" || path === "/client/products" || state?.view === "catalog" || hash === "#catalogo" || hash === "#productos" || hash === "#ofertas") {
     const routeFilter = new URLSearchParams(location.search).get("filtro");
+    const routeSection = new URLSearchParams(location.search).get("seccion");
     const filter = routeFilter === "ofertas" || hash === "#ofertas"
       ? "Ofertas"
       : routeFilter === "destacados"
         ? "Destacados"
         : state?.filter || "Todos";
-    showCatalogView({ filter, pushHistory: false });
-    if (new URLSearchParams(location.search).get("seccion") === "marcas") {
-      window.requestAnimationFrame(() => document.querySelector("#catalog-brand-filter")?.scrollIntoView({ behavior: "smooth", block: "center" }));
+    const section = routeSection === "marcas" || state?.section === "marcas" ? "marcas" : "";
+    showCatalogView({ filter, section, pushHistory: false });
+    if (section === "marcas") {
+      document.querySelector("#catalog-brand-filter").open = true;
     }
     return;
   }
@@ -1381,7 +1453,7 @@ function renderCart() {
 function observeRevealElements(root = document) {
   if (!revealObserver) return;
   root.querySelectorAll("[data-reveal]").forEach((element) => {
-    if (element.dataset.revealObserved) return;
+    if (element.dataset.revealObserved || element.closest("[hidden]")) return;
     element.dataset.revealObserved = "true";
     revealObserver.observe(element);
   });
