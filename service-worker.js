@@ -1,9 +1,9 @@
-const CACHE_NAME = "hipermercado-kristal-v75";
+const CACHE_NAME = "hipermercado-kristal-v79";
 const APP_SHELL = [
   "/",
   "/index.html",
   "/styles.css?v=storefront-audit-v1",
-  "/app.js?v=milk-department-fix-v1",
+  "/app.js?v=pending-product-photo-v2",
   "/product-image-fallbacks.js?v=product-department-rules-v1",
   "/chat-widget.js?v=kristal-chat-v2",
   "/client/app-orders.js?v=delivery-fee-courier-pay-v1-20261017",
@@ -39,7 +39,7 @@ const APP_SHELL = [
   "/caja/manifest.webmanifest",
   "/admin/manifest.webmanifest",
   "/admin/staff-pwa.js?v=staff-no-install-v1-20261017",
-  "/admin/inventory-import.js?v=chrystal-columns-v2",
+  "/admin/inventory-import.js?v=chrystal-photo-repair-v3",
   "/admin/marketing.js?v=marketing-flash-import-v2",
   "/admin/admin.css?v=marketing-flash-import-v2",
   "/admin/admin.js?v=trash-purge-v1",

@@ -457,9 +457,9 @@ function mapDatabaseProduct(row) {
   const salePrice = dailyDealIsExpired ? null : row.precio_oferta;
   const fallbackImageUrl = window.getKristalProductFallbackImage(department);
   const storedImageUrl = String(row.imagen_url || "");
-  const imageUrl = !storedImageUrl || storedImageUrl.includes("imported-product-placeholder.svg")
-    ? fallbackImageUrl
-    : storedImageUrl;
+  const hasPendingPhoto = !storedImageUrl || storedImageUrl.includes("imported-product-placeholder.svg");
+  const pendingPhotoUrl = "/assets/products/imported-product-placeholder.svg";
+  const imageUrl = hasPendingPhoto ? pendingPhotoUrl : storedImageUrl;
   return {
     id: row.id,
     name: row.nombre,
@@ -470,7 +470,7 @@ function mapDatabaseProduct(row) {
     price: Number(salePrice ?? row.precio),
     oldPrice: salePrice === null ? null : Number(row.precio),
     image_url: imageUrl,
-    fallback_image_url: fallbackImageUrl,
+    fallback_image_url: hasPendingPhoto ? pendingPhotoUrl : fallbackImageUrl,
     alt: `Imagen de ${row.nombre}`,
     esDestacado: row.es_destacado,
     esOfertaDia: Boolean(row.es_oferta_dia),
@@ -1537,8 +1537,12 @@ function updateProductCardControls(productId) {
 }
 
 function renderActiveProducts() {
-  if (activeView === "category") renderProducts(categoryProductGrid, activeCategory);
-  else renderProducts(productGrid, activeFilter);
+  if (activeView === "category") {
+    renderProducts(categoryProductGrid, activeCategory);
+  } else {
+    renderProducts(productGrid, activeFilter);
+    categoryProductGrid.replaceChildren();
+  }
   renderFeaturedProducts();
   renderDailyOffers();
 }
