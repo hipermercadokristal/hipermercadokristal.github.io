@@ -26,7 +26,7 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=commerce-marketplace-v9" />
+    <link rel="stylesheet" href="styles.css?v=marketing-flash-import-v1" />
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
@@ -34,7 +34,7 @@
     <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/staff-store-navigation.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
-    <script src="app.js?v=commerce-marketplace-v7" defer></script>
+    <script src="app.js?v=marketing-flash-import-v1" defer></script>
     <script src="chat-widget.js?v=kristal-chat-v2" defer></script>
     <script src="/client/app-orders.js?v=delivery-fee-courier-pay-v1-20261017" defer></script>
     <script src="pwa.js?v=commerce-redesign-v2" defer></script>
@@ -65,7 +65,7 @@
     </header>
     <header class="site-header">
       <div class="announcement">
-        <p class="announcement-message"><strong>¡Envío gratis en compras desde USD 50!</strong><span>Servicio en Villa Bruzual y Turén</span></p>
+        <p class="announcement-message" id="announcement-message"><strong>¡Envío gratis en compras desde USD 50!</strong><span>Servicio en Villa Bruzual y Turén</span></p>
         <div class="header-bcv-rate" aria-label="Tasa oficial BCV">
           <span>BCV USD/VES</span>
           <strong id="header-bcv-rate" aria-live="polite">Consultando…</strong>
@@ -212,6 +212,7 @@
       </section>
       <div class="home-view" id="home-view">
       <section class="welcome-hero" data-slide="0" aria-roledescription="carrusel" aria-label="Promociones y novedades" aria-labelledby="welcome-title">
+        <div class="marketing-hero-background" id="marketing-hero-background" aria-hidden="true" hidden><img id="marketing-hero-image" alt="" /></div>
         <div class="welcome-background welcome-background-facade" aria-hidden="true">
           <img class="welcome-background-photo" src="assets/hipermercado-fachada.png" alt="" />
         </div>

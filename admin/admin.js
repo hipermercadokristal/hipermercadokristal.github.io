@@ -72,6 +72,7 @@ let missingDepartments = [];
 let deliveryCouriers = [];
 let adminOrdersChannel = null;
 let staffRole = "";
+let dailyDealColumnsAvailable = true;
 if (imageInput) imageInput.required = true;
 
 function escapeHtml(value) {
@@ -87,6 +88,11 @@ function escapeHtml(value) {
 function setMessage(element, message, success = false) {
   element.textContent = message;
   element.classList.toggle("success", success);
+}
+
+function isMissingDailyDealColumns(error) {
+  return ["42703", "PGRST204"].includes(error?.code)
+    && /es_oferta_dia|oferta_dia_hasta/i.test(error.message || "");
 }
 
 function setAuthenticatedView(isAuthenticated) {
@@ -143,15 +149,28 @@ async function loadCategories() {
 
 async function loadInventory() {
   setMessage(dashboardStatus, "Cargando inventario…");
-  const { data, error } = await supabaseClient
+  let request = supabaseClient
     .from("productos")
-    .select("id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
+    .select("id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,es_oferta_dia,oferta_dia_hasta,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
     .is("deleted_at", null)
     .order("updated_at", { ascending: false });
+  let { data, error } = await request;
+  if (error && isMissingDailyDealColumns(error)) {
+    dailyDealColumnsAvailable = false;
+    request = supabaseClient
+      .from("productos")
+      .select("id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false });
+    ({ data, error } = await request);
+  }
   if (error) throw error;
 
   inventoryRows.innerHTML = data.map((product) => {
     const category = Array.isArray(product.categorias) ? product.categorias[0] : product.categorias;
+    const dailyDealActive = product.es_oferta_dia
+      && product.oferta_dia_hasta
+      && new Date(product.oferta_dia_hasta) > new Date();
     return `<tr>
       <td data-label="Producto"><div class="inventory-product"><img src="${escapeHtml(getInventoryImageUrl(product.imagen_url))}" alt="" loading="lazy" /><span>${escapeHtml(product.nombre)}${product.es_destacado ? " · Destacado" : ""}</span></div></td>
       <td data-label="Código">${escapeHtml(product.codigo_barras || "—")}</td>
@@ -159,7 +178,7 @@ async function loadInventory() {
       <td data-label="Precio">${currency.format(Number(product.precio))}</td>
       <td data-label="Precio VES">${product.precio_ves === null ? "—" : `Bs. ${bolivares.format(Number(product.precio_ves))}`}</td>
       <td data-label="Stock interno">${product.stock_tracked && product.stock !== null ? stockNumber.format(Number(product.stock)) : "Sin control"}</td>
-      <td data-label="Oferta">${product.precio_oferta === null ? "—" : currency.format(Number(product.precio_oferta))}</td>
+      <td data-label="Oferta">${product.precio_oferta === null ? "—" : `${currency.format(Number(product.precio_oferta))}${product.es_oferta_dia ? dailyDealActive ? " · Del día" : " · Vencida" : ""}`}</td>
       <td data-label="Visibilidad"><span class="stock-label${product.disponible ? "" : " unavailable"}">${product.disponible ? "Publicado" : "Oculto"}</span></td>
       <td data-label="Acciones"><div class="row-actions">
         <button type="button" data-action="edit" data-id="${escapeHtml(product.id)}">Editar</button>
@@ -691,6 +710,7 @@ async function enterStaffDashboard(session) {
       console.error("No se pudieron cargar las métricas de ventas.", error);
       setMessage(dashboardStatus, `No se pudieron cargar las métricas: ${error.message || "error de conexión"}`);
     });
+    window.dispatchEvent(new CustomEvent("kristal:admin-ready"));
   }
   if (staffPage === "cashier") await initializeAdminOrders();
 }
@@ -719,6 +739,11 @@ function beginEditing(product) {
   productForm.elements.precio.value = product.precio;
   productForm.elements.precio_ves.value = product.precio_ves ?? "";
   productForm.elements.precio_oferta.value = product.precio_oferta ?? "";
+  productForm.elements.es_oferta_dia.checked = Boolean(product.es_oferta_dia);
+  const dailyDealEnd = product.oferta_dia_hasta ? new Date(product.oferta_dia_hasta) : null;
+  productForm.elements.oferta_dia_hasta.value = dailyDealEnd && Number.isFinite(dailyDealEnd.getTime())
+    ? new Date(dailyDealEnd.getTime() - dailyDealEnd.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+    : "";
   productForm.elements.es_destacado.checked = product.es_destacado;
   productForm.elements.disponible.checked = product.disponible;
   imageInput.value = "";
@@ -772,6 +797,9 @@ async function saveProduct(event) {
     const regularPrice = Number(formData.get("precio"));
     const salePriceText = String(formData.get("precio_oferta") || "").trim();
     const salePrice = salePriceText ? Number(salePriceText) : null;
+    const isDailyDeal = formData.has("es_oferta_dia");
+    const dailyDealEndText = String(formData.get("oferta_dia_hasta") || "").trim();
+    const dailyDealEnd = dailyDealEndText ? new Date(dailyDealEndText) : null;
     const stockText = String(formData.get("stock") || "").trim();
     const inventoryStock = stockText ? Number(stockText) : null;
     const vesPriceText = String(formData.get("precio_ves") || "").trim();
@@ -782,6 +810,12 @@ async function saveProduct(event) {
     }
     if (!Number.isFinite(regularPrice) || regularPrice <= 0 || (salePrice !== null && (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= regularPrice))) {
       throw new Error("El precio de oferta debe ser mayor que cero y menor que el precio regular.");
+    }
+    if (isDailyDeal && (salePrice === null || !dailyDealEnd || !Number.isFinite(dailyDealEnd.getTime()) || dailyDealEnd <= new Date())) {
+      throw new Error("Una Oferta del Día necesita un precio de descuento y una fecha/hora futura de finalización.");
+    }
+    if (isDailyDeal && !dailyDealColumnsAvailable) {
+      throw new Error("Ejecuta supabase-marketing.sql en Supabase para habilitar las Ofertas del Día.");
     }
 
     const product = {
@@ -794,6 +828,10 @@ async function saveProduct(event) {
       precio: regularPrice,
       precio_ves: vesPrice,
       precio_oferta: salePrice,
+      ...(dailyDealColumnsAvailable ? {
+        es_oferta_dia: isDailyDeal,
+        oferta_dia_hasta: isDailyDeal ? dailyDealEnd.toISOString() : null,
+      } : {}),
       es_destacado: formData.has("es_destacado"),
       disponible: formData.has("disponible"),
       imagen_url: imageUrl,
@@ -853,11 +891,21 @@ async function handleInventoryAction(event) {
   const productId = button.dataset.id;
 
   try {
-    const { data, error } = await supabaseClient
+    let request = supabaseClient
       .from("productos")
-      .select("id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
+      .select("id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,es_oferta_dia,oferta_dia_hasta,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
       .eq("id", productId)
       .single();
+    let { data, error } = await request;
+    if (error && isMissingDailyDealColumns(error)) {
+      dailyDealColumnsAvailable = false;
+      request = supabaseClient
+        .from("productos")
+        .select("id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
+        .eq("id", productId)
+        .single();
+      ({ data, error } = await request);
+    }
     if (error) throw error;
 
     if (button.dataset.action === "edit") {

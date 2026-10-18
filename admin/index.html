@@ -7,7 +7,7 @@
     <title>Administración | Hipermercado Kristal</title>
     <link rel="manifest" href="/admin/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="admin.css?v=smart-import-report-v1" />
+    <link rel="stylesheet" href="admin.css?v=marketing-flash-import-v1" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
@@ -16,8 +16,9 @@
     <script src="../assets/vendor/xlsx-0.20.3.min.js"></script>
     <script src="../admin/staff-pwa.js?v=staff-no-install-v1-20261017" defer></script>
     <script src="../staff-collapsible.js?v=staff-collapsible-v1-20261017" defer></script>
-    <script src="../admin/inventory-import.js?v=smart-import-report-v1" defer></script>
-    <script src="admin.js?v=smart-import-report-v1" defer></script>
+    <script src="../admin/inventory-import.js?v=marketing-flash-import-v1" defer></script>
+    <script src="marketing.js?v=marketing-flash-import-v1" defer></script>
+    <script src="admin.js?v=marketing-flash-import-v1" defer></script>
   </head>
   <body>
     <main class="admin-shell" data-staff-page="admin">
@@ -139,6 +140,14 @@
               <label class="field" for="product-sale-price">Precio de oferta (opcional)
                 <input id="product-sale-price" name="precio_oferta" type="number" min="0.01" step="0.01" />
               </label>
+              <label class="checkbox-field" for="product-daily-deal">
+                <input id="product-daily-deal" name="es_oferta_dia" type="checkbox" />
+                Publicar como “Oferta del Día”
+              </label>
+              <label class="field" for="product-daily-deal-until">La oferta del día termina
+                <input id="product-daily-deal-until" name="oferta_dia_hasta" type="datetime-local" />
+                <small>Requiere un precio de oferta. Al vencer, dejará de aparecer en la sección de ofertas del día.</small>
+              </label>
               <label class="field field-wide" for="product-image">Foto del producto
                 <input id="product-image" name="imagen" type="file" accept="image/png,image/jpeg,image/webp" />
                 <small>PNG, JPG o WebP; máximo 5 MB. Al editar, deja vacío para conservar la foto actual.</small>
@@ -161,7 +170,7 @@
           <div class="panel-heading">
             <div><p class="eyebrow">CRYSTAL SOFTWARE</p><h2 id="inventory-import-heading">Importar inventario</h2></div>
           </div>
-          <p class="intro">Carga Excel o CSV con nombre de producto, departamento/categoría y precios USD/VES. SKU o código de barras es opcional: se usa como identificador principal y, si falta, se busca por nombre y presentación normalizados. La columna “imagen” o “image_url” también es opcional; si está vacía se conserva la foto guardada o se asigna una imagen del departamento. Las filas repetidas se consolidan usando la última fila. Las filas con formato inválido se omiten sin detener las válidas; al terminar se muestra un reporte JSON con resultados y filas omitidas. Revisa la vista previa antes de importar.</p>
+          <p class="intro">Carga Excel o CSV con nombre de producto, departamento/categoría y precios USD/VES. SKU o código de barras es opcional: se usa como identificador principal y, si falta, se busca por nombre/presentación y similitud difusa dentro del mismo departamento. Las variantes de presentación no se fusionan, pero pueden heredar una foto de su producto o marca más parecida. La columna “imagen” o “image_url” también es opcional; si está vacía se conserva la foto guardada o se asigna una imagen del departamento. Las filas repetidas se consolidan usando la última fila. Las filas con formato inválido se omiten sin detener las válidas; al terminar se muestra un reporte JSON con resultados y filas omitidas. Revisa la vista previa antes de importar.</p>
           <form id="inventory-import-form">
             <label class="field" for="inventory-import-file">Archivo de inventario
               <input id="inventory-import-file" name="file" type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required />
@@ -176,6 +185,48 @@
           <div class="table-scroll" id="inventory-import-preview-wrap" hidden>
             <table><thead><tr><th>Fila</th><th>SKU / Código</th><th>Producto</th><th>Presentación</th><th>Departamento</th><th>Imagen</th><th>USD</th><th>VES del archivo</th><th>Stock</th><th>Resultado</th></tr></thead><tbody id="inventory-import-preview-rows"></tbody></table>
           </div>
+        </section>
+
+        <section class="panel marketing-panel" id="marketing-panel" aria-labelledby="marketing-heading">
+          <div class="panel-heading">
+            <div><p class="eyebrow">PROMOCIONES</p><h2 id="marketing-heading">Banners y avisos</h2></div>
+            <button class="secondary-button" id="refresh-marketing-button" type="button">Actualizar</button>
+          </div>
+          <p class="intro">Administra las imágenes promocionales de la portada, su orden y el aviso global que aparece en la barra superior de la tienda. Para habilitar este módulo y las Ofertas del Día, ejecuta primero <code>supabase-marketing.sql</code> en el SQL Editor de Supabase.</p>
+          <section class="marketing-announcement" aria-labelledby="announcement-heading">
+            <h3 id="announcement-heading">Aviso de la barra superior</h3>
+            <form id="announcement-form">
+              <label class="field" for="announcement-message">Mensaje global
+                <textarea id="announcement-message" name="message" maxlength="180" rows="2" placeholder="Ej.: Promoción especial válida hasta agotar existencias"></textarea>
+              </label>
+              <label class="checkbox-field" for="announcement-active">
+                <input id="announcement-active" name="active" type="checkbox" />
+                Activar aviso en la tienda
+              </label>
+              <button class="primary-button" type="submit">Guardar aviso</button>
+            </form>
+            <p class="status-message" id="announcement-status" role="status" aria-live="polite"></p>
+          </section>
+          <section class="marketing-banners" aria-labelledby="banners-heading">
+            <div class="panel-heading">
+              <div><h3 id="banners-heading">Banners principales</h3><p class="marketing-help">Imágenes JPG, PNG o WebP de hasta 8 MB. Se muestran en el carrusel de portada.</p></div>
+            </div>
+            <form id="banner-form" class="banner-form">
+              <label class="field" for="banner-title">Título del banner
+                <input id="banner-title" name="title" type="text" maxlength="100" required />
+              </label>
+              <label class="field" for="banner-link">Enlace al hacer clic
+                <input id="banner-link" name="link_url" type="text" maxlength="300" value="/catalogo" placeholder="/catalogo" />
+              </label>
+              <label class="field" for="banner-image">Imagen promocional
+                <input id="banner-image" name="image" type="file" accept="image/png,image/jpeg,image/webp" required />
+              </label>
+              <button class="primary-button" id="save-banner-button" type="submit">Subir banner</button>
+            </form>
+            <p class="status-message" id="banner-status" role="status" aria-live="polite"></p>
+            <div class="marketing-banner-list" id="marketing-banner-list"></div>
+            <p class="empty-inventory" id="empty-marketing-banners" hidden>Aún no hay banners. La portada mostrará sus promociones predeterminadas.</p>
+          </section>
         </section>
 
         <section class="panel staff-management-panel" id="staff-management-panel" aria-labelledby="staff-management-heading">

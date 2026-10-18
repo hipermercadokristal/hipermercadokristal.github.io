@@ -180,6 +180,9 @@ main { min-height: 55vh; padding-bottom: 40px; overscroll-behavior-y: none; }
 .review-form-status { margin-top: 14px !important; color: #41604a !important; font-size: 12px !important; }
 
 .welcome-hero { position: relative; min-height: max(500px, calc(100svh - 192px)); display: grid; place-items: center; overflow: hidden; isolation: isolate; background: #0f3822; color: #fff; text-align: center; }
+.welcome-hero.has-marketing-banner .welcome-background { display: none; }
+.marketing-hero-background { position: absolute; z-index: -2; inset: 0; overflow: hidden; }
+.marketing-hero-background img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .welcome-background { position: absolute; z-index: -2; inset: 0; background-position: center; background-size: cover; background-repeat: no-repeat; animation: welcome-background-cycle 18s ease-in-out infinite; }
 .welcome-background::before { position: absolute; inset: -14px; background-image: var(--welcome-photo); background-position: center; background-size: cover; background-repeat: no-repeat; content: ""; filter: blur(14px); transform: scale(1.04); }
 .welcome-background-facade { --welcome-photo: url("assets/hipermercado-fachada.png"); animation-delay: -12s; }

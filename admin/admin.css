@@ -24,8 +24,9 @@ h1 { margin-bottom: 8px; color: #153b25; font-size: clamp(25px, 4vw, 34px); }
 h2 { margin-bottom: 0; color: #1c3d2a; font-size: 20px; }
 .intro { margin-bottom: 23px; color: #718078; font-size: 14px; line-height: 1.6; }
 form label:not(.checkbox-field) { display: grid; gap: 7px; margin-bottom: 16px; color: #344b3c; font-size: 13px; font-weight: 700; }
-input, select { width: 100%; min-height: 43px; padding: 10px 12px; border: 1px solid #dbe4dd; border-radius: 7px; background: white; color: #20382a; }
-input:focus, select:focus { outline: 3px solid #3ca7602b; border-color: #4c9e63; }
+input, select, textarea { width: 100%; min-height: 43px; padding: 10px 12px; border: 1px solid #dbe4dd; border-radius: 7px; background: white; color: #20382a; }
+textarea { resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: 3px solid #3ca7602b; border-color: #4c9e63; }
 input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .primary-button, .secondary-button { min-height: 42px; padding: 0 16px; border: 0; border-radius: 7px; font-weight: 800; }
 .primary-button { background: #14552e; color: #fff; }
@@ -149,6 +150,28 @@ td:first-child { min-width: 210px; font-weight: 700; }
 .delivery-assignment button:disabled { opacity: .55; cursor: not-allowed; }
 .delivery-assignment > span { flex-basis: 100%; color: #53635a; font-size: 11px; }
 .order-whatsapp-link { display: inline-block; margin-top: 13px; font-size: 12px; }
+.marketing-announcement, .marketing-banners { padding: 18px; border: 1px solid #e3eae4; border-radius: 11px; background: #fbfdfb; }
+.marketing-announcement h3, .marketing-banners h3 { margin: 0 0 13px; color: #1c3d2a; font-size: 16px; }
+.marketing-announcement form { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: end; gap: 12px; }
+.marketing-announcement .field { margin: 0; }
+.marketing-announcement .checkbox-field { margin: 0 0 12px; }
+.marketing-banners { margin-top: 16px; }
+.marketing-banners > .panel-heading { margin-bottom: 12px; }
+.marketing-help { margin: 5px 0 0; color: #748179; font-size: 12px; }
+.banner-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; gap: 12px; }
+.banner-form .field { margin: 0; }
+.banner-form .field:nth-child(3) { grid-column: 1 / -1; }
+.banner-form button { min-height: 42px; }
+.marketing-banner-list { display: grid; gap: 10px; margin-top: 16px; }
+.marketing-banner-card { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; align-items: center; gap: 13px; padding: 10px; border: 1px solid #e4ebe5; border-radius: 9px; background: #fff; }
+.marketing-banner-card > img { width: 120px; height: 72px; border-radius: 6px; background: #f2f5f2; object-fit: cover; }
+.marketing-banner-details { display: grid; gap: 5px; min-width: 0; }
+.marketing-banner-details strong { color: #274332; font-size: 13px; }
+.marketing-banner-details span, .marketing-banner-details a { overflow: hidden; color: #748179; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.marketing-banner-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.marketing-banner-actions button { min-height: 34px; padding: 5px 8px; border: 1px solid #dce6dd; border-radius: 6px; background: #fff; color: #345441; font-size: 11px; font-weight: 700; }
+.marketing-banner-actions button:disabled { opacity: .5; cursor: not-allowed; }
+.marketing-banner-actions .delete-button { border-color: #f0d9d6; color: #a13d34; }
 @media (max-width: 640px) {
   .admin-shell { width: calc(100% - 24px); padding-top: 16px; }
   .back-link { margin-bottom: 14px; font-size: 13px; }
@@ -158,6 +181,12 @@ td:first-child { min-width: 210px; font-weight: 700; }
   .dashboard-header { flex-wrap: wrap; gap: 10px; }
   .dashboard-header .secondary-button { min-height: 40px; }
   .staff-role-form { grid-template-columns: 1fr; }
+  .marketing-announcement form, .banner-form { grid-template-columns: 1fr; }
+  .marketing-announcement form .field, .banner-form .field:nth-child(3) { grid-column: auto; }
+  .marketing-announcement .checkbox-field { margin-bottom: 0; }
+  .marketing-banner-card { grid-template-columns: 76px minmax(0, 1fr); }
+  .marketing-banner-card > img { width: 76px; height: 58px; }
+  .marketing-banner-actions { grid-column: 1 / -1; justify-content: flex-start; }
   .dashboard-header h1 { font-size: 26px; }
   .panel { margin-top: 14px; padding: 17px; }
   .panel-heading { gap: 10px; margin-bottom: 17px; }

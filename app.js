@@ -63,6 +63,9 @@ const infoDialog = document.querySelector("#info-dialog");
 const shippingProgressMessage = document.querySelector("#shipping-progress-message");
 const headerBCVRate = document.querySelector("#header-bcv-rate");
 const headerBCVDate = document.querySelector("#header-bcv-date");
+const announcementBarMessage = document.querySelector("#announcement-message");
+const marketingHeroBackground = document.querySelector("#marketing-hero-background");
+const marketingHeroImage = document.querySelector("#marketing-hero-image");
 const storeOpenStatus = document.querySelector("#store-open-status");
 const storeOpenStatusText = document.querySelector("#store-open-status-text");
 const storeHoursFormatter = new Intl.DateTimeFormat("en-US", {
@@ -104,7 +107,8 @@ let catalogLoadError = "";
 let heroSlideIndex = 0;
 let heroAutoplayTimer = 0;
 let dailyOfferClockTimer = 0;
-const heroSlides = [
+let dailyOfferExpiryTimeout = 0;
+const defaultHeroSlides = [
   {
     eyebrow: "COMPRA LOCAL · VILLA BRUZUAL",
     title: "Tu mercado de cada día, más cerca",
@@ -124,6 +128,7 @@ const heroSlides = [
     route: "/catalogo?filtro=ofertas",
   },
 ];
+let heroSlides = defaultHeroSlides;
 try {
   displayCurrency = localStorage.getItem("kristal-display-currency") === "VES" ? "VES" : "USD";
 } catch (error) {
@@ -279,13 +284,23 @@ function updateDailyOfferTimer() {
     return;
   }
   const now = new Date();
-  const nextRefresh = new Date(now);
-  nextRefresh.setHours(24, 0, 0, 0);
+  const timedOfferEnds = products
+    .filter((product) => product.esOfertaDia
+      && product.ofertaDiaHasta
+      && Number.isFinite(new Date(product.ofertaDiaHasta).getTime())
+      && Number.isFinite(product.oldPrice)
+      && product.oldPrice > product.price)
+    .map((product) => new Date(product.ofertaDiaHasta))
+    .filter((end) => end > now);
+  const nextRefresh = timedOfferEnds.sort((left, right) => left - right)[0] || new Date(now);
+  if (!timedOfferEnds.length) nextRefresh.setHours(24, 0, 0, 0);
   const secondsRemaining = Math.max(0, Math.floor((nextRefresh - now) / 1000));
   const hours = String(Math.floor(secondsRemaining / 3600)).padStart(2, "0");
   const minutes = String(Math.floor((secondsRemaining % 3600) / 60)).padStart(2, "0");
   const seconds = String(secondsRemaining % 60).padStart(2, "0");
-  dailyOffersTimer.textContent = `Cierre del día en ${hours}:${minutes}:${seconds}`;
+  dailyOffersTimer.textContent = timedOfferEnds.length
+    ? `La Oferta del Día termina en ${hours}:${minutes}:${seconds}`
+    : `Cierre del día en ${hours}:${minutes}:${seconds}`;
 }
 
 function setHeroSlide(index) {
@@ -295,10 +310,60 @@ function setHeroSlide(index) {
   welcomeHero.dataset.slide = String(heroSlideIndex);
   welcomeEyebrow.textContent = slide.eyebrow;
   welcomeTitle.textContent = slide.title;
-  welcomeDescription.textContent = slide.description;
+  welcomeDescription.textContent = slide.description || "";
+  welcomeDescription.hidden = !slide.description;
   const bannerLink = document.querySelector("#welcome-banner-link");
-  bannerLink.href = slide.route;
+  let destination = String(slide.route || "/catalogo");
+  let isLocalDestination = destination.startsWith("/") && !destination.startsWith("//");
+  if (!isLocalDestination) {
+    try {
+      const parsedDestination = new URL(destination);
+      isLocalDestination = parsedDestination.origin === window.location.origin;
+      if (!["http:", "https:"].includes(parsedDestination.protocol)) {
+        destination = "/catalogo";
+        isLocalDestination = true;
+      } else if (isLocalDestination) {
+        destination = `${parsedDestination.pathname}${parsedDestination.search}${parsedDestination.hash}`;
+      }
+    } catch {
+      destination = "/catalogo";
+      isLocalDestination = true;
+    }
+  }
+  bannerLink.href = destination;
+  if (isLocalDestination) {
+    bannerLink.dataset.route = "";
+    bannerLink.removeAttribute("target");
+    bannerLink.removeAttribute("rel");
+  } else {
+    bannerLink.removeAttribute("data-route");
+    bannerLink.target = "_blank";
+    bannerLink.rel = "noopener noreferrer";
+  }
   bannerLink.setAttribute("aria-label", `${slide.title}. ${slide.description}`);
+  let safeImage = "";
+  if (slide.image) {
+    try {
+      const parsedImage = new URL(slide.image, window.location.href);
+      if (["http:", "https:"].includes(parsedImage.protocol)) safeImage = parsedImage.href;
+    } catch (error) {
+      console.error("El banner activo contiene una URL de imagen inválida.", error);
+    }
+  }
+  if (safeImage) {
+    marketingHeroImage.src = safeImage;
+    marketingHeroBackground.hidden = false;
+    welcomeHero.classList.add("has-marketing-banner");
+  } else {
+    marketingHeroImage.removeAttribute("src");
+    marketingHeroBackground.hidden = true;
+    welcomeHero.classList.remove("has-marketing-banner");
+  }
+  const dots = welcomeHero.querySelector(".hero-carousel-dots");
+  if (dots.children.length !== heroSlides.length) {
+    dots.innerHTML = heroSlides.map((_item, itemIndex) =>
+      `<button type="button" data-hero-slide="${itemIndex}" aria-label="Promoción ${itemIndex + 1}"></button>`).join("");
+  }
   welcomeHero.querySelectorAll("[data-hero-slide]").forEach((button) => {
     const current = Number(button.dataset.heroSlide) === heroSlideIndex;
     if (current) button.setAttribute("aria-current", "true");
@@ -383,6 +448,11 @@ function findProductBrand(name) {
   return recognizedBrands.find((brand) => normalizedName.includes(normalizeText(brand))) || "";
 }
 
+function isMissingDailyDealColumns(error) {
+  return ["42703", "PGRST204"].includes(error?.code)
+    && /es_oferta_dia|oferta_dia_hasta/i.test(error.message || "");
+}
+
 function renderCatalogBrandFilters() {
   if (!catalogBrandFilters) return;
   const brands = [...new Set(products.map((product) => product.brand).filter(Boolean))]
@@ -395,6 +465,10 @@ function renderCatalogBrandFilters() {
 function mapDatabaseProduct(row) {
   const category = Array.isArray(row.categorias) ? row.categorias[0] : row.categorias;
   if (!category) throw new Error(`El producto ${row.id} no tiene una categoría válida.`);
+  const dailyDealEnd = row.oferta_dia_hasta ? new Date(row.oferta_dia_hasta) : null;
+  const dailyDealIsExpired = Boolean(row.es_oferta_dia)
+    && (!dailyDealEnd || !Number.isFinite(dailyDealEnd.getTime()) || dailyDealEnd <= new Date());
+  const salePrice = dailyDealIsExpired ? null : row.precio_oferta;
   const fallbackImageUrl = window.getKristalProductFallbackImage(category.departamento || category.nombre);
   const storedImageUrl = String(row.imagen_url || "");
   const imageUrl = !storedImageUrl || storedImageUrl.includes("imported-product-placeholder.svg")
@@ -407,24 +481,37 @@ function mapDatabaseProduct(row) {
     category: category.nombre,
     group: category.departamento,
     detail: row.presentacion || "Presentación por confirmar",
-    price: Number(row.precio_oferta ?? row.precio),
-    oldPrice: row.precio_oferta === null ? null : Number(row.precio),
+    price: Number(salePrice ?? row.precio),
+    oldPrice: salePrice === null ? null : Number(row.precio),
     image_url: imageUrl,
     fallback_image_url: fallbackImageUrl,
     alt: `Imagen de ${row.nombre}`,
     esDestacado: row.es_destacado,
+    esOfertaDia: Boolean(row.es_oferta_dia),
+    ofertaDiaHasta: row.oferta_dia_hasta || null,
     consultarWhatsApp: false,
     disponible: row.disponible,
   };
 }
 
 async function refreshProducts() {
-  const { data, error } = await window.kristalSupabase
+  let request = window.kristalSupabase
     .from("productos")
-    .select("id,nombre,precio,precio_oferta,es_destacado,disponible,imagen_url,presentacion,categorias(nombre,departamento)")
+    .select("id,nombre,precio,precio_oferta,es_destacado,es_oferta_dia,oferta_dia_hasta,disponible,imagen_url,presentacion,categorias(nombre,departamento)")
     .eq("disponible", true)
     .is("deleted_at", null)
     .order("nombre");
+  let { data, error } = await request;
+  if (error && isMissingDailyDealColumns(error)) {
+    console.error("Las Ofertas del Día requieren la migración supabase-marketing.sql; se cargará el catálogo sin ese módulo.");
+    request = window.kristalSupabase
+      .from("productos")
+      .select("id,nombre,precio,precio_oferta,es_destacado,disponible,imagen_url,presentacion,categorias(nombre,departamento)")
+      .eq("disponible", true)
+      .is("deleted_at", null)
+      .order("nombre");
+    ({ data, error } = await request);
+  }
   if (error) throw error;
 
   products = data.map(mapDatabaseProduct);
@@ -434,6 +521,7 @@ async function refreshProducts() {
     if (!productIds.has(productId)) cartItems.delete(productId);
   }
   catalogLoadError = "";
+  renderDailyOffers();
   updateCart();
   renderActiveProducts();
 }
@@ -450,6 +538,7 @@ function initializeCatalog() {
     catalogLoadError = "No se pudo conectar con el catálogo. Intenta recargar la página más tarde.";
     renderActiveProducts();
   });
+  loadMarketingContent();
 
   window.kristalSupabase
     .channel("productos-en-tiempo-real")
@@ -465,6 +554,54 @@ function initializeCatalog() {
         console.error("Falló la suscripción en tiempo real de productos.", error);
       }
     });
+  window.kristalSupabase
+    .channel("store-marketing-in-realtime")
+    .on("postgres_changes", { event: "*", schema: "public", table: "store_banners" }, loadMarketingContent)
+    .on("postgres_changes", { event: "*", schema: "public", table: "store_announcement" }, loadMarketingContent)
+    .subscribe((status, error) => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.error("Falló la suscripción en tiempo real de marketing.", error);
+      }
+    });
+}
+
+async function loadMarketingContent() {
+  const [bannerResult, announcementResult] = await Promise.all([
+    window.kristalSupabase.from("store_banners")
+      .select("title,image_url,link_url,sort_order").eq("active", true).order("sort_order"),
+    window.kristalSupabase.from("store_announcement")
+      .select("message,active").eq("id", 1).maybeSingle(),
+  ]);
+  if (bannerResult.error) {
+    console.error("No se pudieron cargar los banners de marketing.", bannerResult.error);
+  } else if (bannerResult.data?.length) {
+    heroSlides = bannerResult.data.map((banner) => ({
+      eyebrow: "PROMOCIÓN DE HIPERMERCADO KRISTAL",
+      title: banner.title,
+      description: "",
+      route: banner.link_url || "/catalogo",
+      image: banner.image_url,
+    }));
+    heroSlideIndex = 0;
+    setHeroSlide(0);
+    startHeroCarousel();
+  } else if (!bannerResult.error) {
+    heroSlides = defaultHeroSlides;
+    heroSlideIndex = 0;
+    setHeroSlide(0);
+    startHeroCarousel();
+  }
+  if (announcementResult.error) {
+    console.error("No se pudo cargar el aviso global de la tienda.", announcementResult.error);
+  } else if (announcementResult.data?.active && announcementResult.data.message) {
+    const message = document.createElement("strong");
+    message.textContent = announcementResult.data.message;
+    announcementBarMessage.replaceChildren(message);
+    announcementBarMessage.hidden = false;
+  } else {
+    announcementBarMessage.replaceChildren();
+    announcementBarMessage.hidden = true;
+  }
 }
 
 function normalizeText(value) {
@@ -668,8 +805,12 @@ function renderFeaturedProducts() {
 
 function renderDailyOffers() {
   if (!dailyOffersGrid) return;
+  window.clearTimeout(dailyOfferExpiryTimeout);
+  const now = Date.now();
   const offers = products
-    .filter((product) => Number.isFinite(product.oldPrice) && product.oldPrice > product.price)
+    .filter((product) => Number.isFinite(product.oldPrice)
+      && product.oldPrice > product.price
+      && (!product.esOfertaDia || (product.ofertaDiaHasta && new Date(product.ofertaDiaHasta).getTime() > now)))
     .slice(0, 12);
   if (catalogLoadError) {
     dailyOffersGrid.innerHTML = `<p class="empty-state">${escapeHtml(catalogLoadError)}</p>`;
@@ -684,6 +825,18 @@ function renderDailyOffers() {
   dailyOffersGrid.innerHTML = offers.map((product) => renderProductCard(product, { featured: true, dailyOffer: true })).join("");
   observeRevealElements(dailyOffersGrid);
   updateDailyOfferTimer();
+  const nextExpiry = offers
+    .filter((product) => product.esOfertaDia)
+    .map((product) => new Date(product.ofertaDiaHasta).getTime())
+    .filter((end) => end > now)
+    .sort((left, right) => left - right)[0];
+  if (nextExpiry) {
+    dailyOfferExpiryTimeout = window.setTimeout(() => {
+      refreshProducts().catch((error) => {
+        console.error("No se pudo retirar una Oferta del Día vencida.", error);
+      });
+    }, Math.min(nextExpiry - now, 2147483647));
+  }
 }
 
 function featuredCarouselStep() {

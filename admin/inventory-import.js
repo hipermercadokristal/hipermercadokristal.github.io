@@ -12,6 +12,7 @@
   let skippedRows = [];
   let sourceRowCount = 0;
   let consolidatedInputRows = 0;
+  let dailyDealColumnsAvailable = true;
 
   const aliases = {
     barcode: ["codigosku", "sku", "codigodebarras", "codigo", "ean", "barcode", "codigoproducto", "plu"],
@@ -24,11 +25,21 @@
     stock: ["stockactual", "stock", "existencia", "existencias", "inventario", "cantidad"],
   };
   const presentationPattern = /(?:\d+(?:[.,]\d+)?\s*(?:kgs?|g|gr|gramos?|mg|lts?|litros?|l|ml|cc|cl|oz|lbs?|unidades?|unds?|u|piezas?|packs?|paquetes?))$/i;
+  const fuzzyIgnoredWords = new Set([
+    "aceite", "arroz", "azucar", "bebida", "detergente", "harina", "jabon", "leche",
+    "liquido", "liquida", "polvo", "producto", "refresco", "vegetal", "en", "de", "del",
+    "la", "las", "el", "los", "para", "con",
+  ]);
 
   function setStatus(message, isError = false, isSuccess = false) {
     status.textContent = message;
     status.classList.toggle("import-row-error", isError);
     status.classList.toggle("success", isSuccess);
+  }
+
+  function isMissingDailyDealColumns(error) {
+    return ["42703", "PGRST204"].includes(error?.code)
+      && /es_oferta_dia|oferta_dia_hasta/i.test(error.message || "");
   }
 
   function normalize(value) {
@@ -130,12 +141,27 @@
   }
 
   function getNameSimilarity(left, right) {
-    const a = normalize(left);
-    const b = normalize(right);
+    const words = (value) => String(getNameOnly(value) || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter((word) => word && !fuzzyIgnoredWords.has(word));
+    const leftWords = words(left);
+    const rightWords = words(right);
+    const a = leftWords.join("");
+    const b = rightWords.join("");
     if (!a || !b) return 0;
     if (a === b) return 1;
-    if (Math.abs(a.length - b.length) > 2) return 0;
-    let twoRowsBack = null;
+    const hasComparableToken = leftWords.some((leftWord) => rightWords.some((rightWord) =>
+      leftWord === rightWord
+      || (leftWord.length >= 4
+        && rightWord.length >= 4
+        && leftWord.slice(0, 3) === rightWord.slice(0, 3)
+        && Math.abs(leftWord.length - rightWord.length) <= 2)));
+    if (!hasComparableToken) return 0;
     let previous = Array.from({ length: b.length + 1 }, (_, index) => index);
     for (let i = 1; i <= a.length; i += 1) {
       const current = [i];
@@ -145,16 +171,15 @@
           previous[j] + 1,
           previous[j - 1] + Number(a[i - 1] !== b[j - 1]),
         );
-        if (twoRowsBack && i > 1 && j > 1
-          && a[i - 1] === b[j - 2]
-          && a[i - 2] === b[j - 1]) {
-          current[j] = Math.min(current[j], twoRowsBack[j - 2] + 1);
-        }
       }
-      twoRowsBack = previous;
       previous = current;
     }
-    return 1 - previous[b.length] / Math.max(a.length, b.length);
+    const editSimilarity = 1 - previous[b.length] / Math.max(a.length, b.length);
+    const leftSet = new Set(leftWords);
+    const rightSet = new Set(rightWords);
+    const commonWords = [...leftSet].filter((word) => rightSet.has(word));
+    const tokenSimilarity = 2 * commonWords.length / (leftSet.size + rightSet.size);
+    return Math.max(editSimilarity, tokenSimilarity * 0.88);
   }
 
   function getNameOnly(name) {
@@ -165,11 +190,21 @@
     const pageSize = 1000;
     const products = [];
     for (let offset = 0; ; offset += pageSize) {
-      const { data, error } = await supabase
+      let query = supabase
         .from("productos")
-        .select("id,nombre,codigo_barras,categoria_id,imagen_url,imagen_path,presentacion,precio_oferta,es_destacado,disponible,stock,stock_tracked,created_at,deleted_at,deleted_by")
+        .select("id,nombre,codigo_barras,categoria_id,imagen_url,imagen_path,presentacion,precio_oferta,es_destacado,es_oferta_dia,oferta_dia_hasta,disponible,stock,stock_tracked,created_at,deleted_at,deleted_by")
         .order("id")
         .range(offset, offset + pageSize - 1);
+      let { data, error } = await query;
+      if (error && isMissingDailyDealColumns(error)) {
+        dailyDealColumnsAvailable = false;
+        query = supabase
+          .from("productos")
+          .select("id,nombre,codigo_barras,categoria_id,imagen_url,imagen_path,presentacion,precio_oferta,es_destacado,disponible,stock,stock_tracked,created_at,deleted_at,deleted_by")
+          .order("id")
+          .range(offset, offset + pageSize - 1);
+        ({ data, error } = await query);
+      }
       if (error) throw error;
       products.push(...data);
       if (data.length < pageSize) return products;
@@ -328,12 +363,33 @@
           existingIndex = rowsWithoutSkuByName.get(nameKey);
         }
       }
+      if (existingIndex === undefined && !row.error && nameKey) {
+        const fuzzyCandidates = consolidatedRows
+          .map((candidate, index) => ({
+            candidate,
+            index,
+            similarity: getNameSimilarity(candidate.name, row.name),
+          }))
+          .filter(({ candidate, similarity }) => !candidate.error
+            && candidate.departmentKey === row.departmentKey
+            && isSamePresentation(candidate, row)
+            && similarity >= 0.74
+            && !(skuKey && candidate.barcode && normalizeSku(candidate.barcode) !== normalizeSku(row.barcode)))
+          .sort((left, right) => right.similarity - left.similarity);
+        if (fuzzyCandidates.length === 1
+          || (fuzzyCandidates[0]?.similarity >= 0.84
+            && fuzzyCandidates[0].similarity - (fuzzyCandidates[1]?.similarity || 0) >= 0.12)) {
+          existingIndex = fuzzyCandidates[0].index;
+        }
+      }
 
       if (existingIndex !== undefined) {
         const existingRow = consolidatedRows[existingIndex];
-        consolidatedRows[existingIndex] = row.barcode || !existingRow.barcode
-          ? row
-          : { ...row, barcode: existingRow.barcode };
+        consolidatedRows[existingIndex] = {
+          ...row,
+          barcode: row.barcode || existingRow.barcode,
+          imageUrl: row.imageUrl || existingRow.imageUrl,
+        };
         if (nameKey && !rowsByName.has(nameKey)) rowsByName.set(nameKey, new Set());
         if (nameKey) rowsByName.get(nameKey).add(existingIndex);
         if (skuKey) rowsBySku.set(skuKey, existingIndex);
@@ -377,7 +433,7 @@
       reportElement.hidden = true;
       reportElement.textContent = "";
     }
-    setStatus(`${inputRows.length} filas revisadas; ${consolidatedInputRows} repetidas consolidadas usando la última fila por SKU o nombre/presentación; ${validRows} listas para importar y ${skippedRows.length} se omitirán por errores de formato.${preparedRows.length > 100 ? " La vista previa muestra hasta 100 productos y filas adicionales con errores." : ""}`, skippedRows.length > 0);
+    setStatus(`${inputRows.length} filas revisadas; ${consolidatedInputRows} repetidas consolidadas por SKU, coincidencia difusa o nombre/presentación; ${validRows} listas para importar y ${skippedRows.length} se omitirán por errores de formato.${preparedRows.length > 100 ? " La vista previa muestra hasta 100 productos y filas adicionales con errores." : ""}`, skippedRows.length > 0);
   }
 
   async function importInventory(event) {
@@ -473,7 +529,7 @@
             similarity: getNameSimilarity(getNameOnly(product.nombre), row.name),
             sameFamily: Boolean(familyIdentity && getProductFamilyIdentity(product.nombre) === familyIdentity),
           }))
-          .filter(({ similarity, sameFamily }) => sameFamily || similarity >= 0.92);
+          .filter(({ similarity, sameFamily }) => sameFamily || similarity >= 0.68);
         const categoryImageSources = findImageSources(categoryProducts);
         const imageSources = (categoryImageSources.length
           ? categoryImageSources
@@ -485,7 +541,8 @@
         const imageIsUnambiguous = bestImage && (
           imageSources.length === 1
           || bestImage.sameFamily
-          || bestImage.similarity - imageSources[1].similarity >= 0.08
+          || bestImage.similarity === 1
+          || bestImage.similarity - imageSources[1].similarity >= 0.12
         );
         imageSourceByRow[index] = bestImage && imageIsUnambiguous ? bestImage.product : null;
         const exactMatches = (existingByIdentity.get(identity) || [])
@@ -503,14 +560,15 @@
             product,
             similarity: getNameSimilarity(getNameOnly(product.nombre), row.name),
           }))
-          .filter(({ similarity }) => similarity >= 0.92)
+          .filter(({ similarity }) => similarity >= 0.74)
           .sort((left, right) => right.similarity - left.similarity
             || preferExistingProduct(left.product, right.product, categoryId));
         const barcodeMatch = matchedProducts[index];
         let preferredVariant = exactMatches[0] || sameVariantMatches[0] || null;
         if (!preferredVariant && fuzzyMatches.length) {
           const hasUnambiguousBestMatch = fuzzyMatches.length === 1
-            || fuzzyMatches[0].similarity - fuzzyMatches[1].similarity >= 0.08;
+            || (fuzzyMatches[0].similarity >= 0.84
+              && fuzzyMatches[0].similarity - (fuzzyMatches[1]?.similarity || 0) >= 0.12);
           if (hasUnambiguousBestMatch) preferredVariant = fuzzyMatches[0].product;
         }
         if (barcodeMatch && isPlaceholder(barcodeMatch) && preferredVariant && !isPlaceholder(preferredVariant)) {
@@ -564,6 +622,21 @@
         const existing = matchedProducts[index];
         const imageSource = imageSourceByRow[index];
         const imageProduct = existing && !isPlaceholder(existing) ? existing : imageSource;
+        const retainedDealEnd = existing?.oferta_dia_hasta
+          ? new Date(existing.oferta_dia_hasta)
+          : null;
+        const existingDealExpired = Boolean(existing?.es_oferta_dia)
+          && (!retainedDealEnd || retainedDealEnd <= new Date());
+        const retainedSalePrice = existing?.precio_oferta !== null
+          && existing?.precio_oferta !== undefined
+          && !existingDealExpired
+          && Number(existing.precio_oferta) < row.priceUsd
+          ? existing.precio_oferta
+          : null;
+        const retainsActiveDeal = Boolean(existing?.es_oferta_dia
+          && retainedSalePrice !== null
+          && retainedDealEnd
+          && retainedDealEnd > new Date());
         return {
           ...(existing ? { id: existing.id } : {}),
           codigo_barras: row.barcode || existing?.codigo_barras || null,
@@ -577,11 +650,11 @@
           stock_tracked: row.stockColumnPresent ? row.stockTracked : existing?.stock_tracked ?? false,
           disponible: existing?.disponible ?? true,
           es_destacado: existing?.es_destacado || false,
-          precio_oferta: existing?.precio_oferta !== null
-            && existing?.precio_oferta !== undefined
-            && Number(existing.precio_oferta) < row.priceUsd
-            ? existing.precio_oferta
-            : null,
+          ...(dailyDealColumnsAvailable ? {
+            es_oferta_dia: retainsActiveDeal,
+            oferta_dia_hasta: retainsActiveDeal ? existing.oferta_dia_hasta : null,
+          } : {}),
+          precio_oferta: retainedSalePrice,
           presentacion: row.presentation || existing?.presentacion || null,
           imagen_url: row.imageUrl || imageProduct?.imagen_url || row.fallbackImageUrl,
           imagen_path: row.imageUrl ? null : imageProduct?.imagen_path || null,
