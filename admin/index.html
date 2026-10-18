@@ -7,7 +7,7 @@
     <title>Administración | Hipermercado Kristal</title>
     <link rel="manifest" href="/admin/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="admin.css?v=marketing-flash-import-v2" />
+    <link rel="stylesheet" href="admin.css?v=inventory-search-v1" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
@@ -18,7 +18,7 @@
     <script src="../staff-collapsible.js?v=staff-collapsible-v1-20261017" defer></script>
     <script src="../admin/inventory-import.js?v=chrystal-category-resolution-v4" defer></script>
     <script src="marketing.js?v=marketing-flash-import-v2" defer></script>
-    <script src="admin.js?v=trash-purge-v1" defer></script>
+    <script src="admin.js?v=inventory-search-v1" defer></script>
   </head>
   <body>
     <main class="admin-shell" data-staff-page="admin">
@@ -300,6 +300,12 @@
             </div>
           </div>
           <p class="intro">La acción masiva archiva los productos activos y los quita de la tienda. No borra fotos ni pedidos; podrás restaurarlos desde “Productos eliminados”.</p>
+          <label class="inventory-search-field" for="inventory-search">
+            <span>Buscar en el inventario</span>
+            <input id="inventory-search" type="search" placeholder="Nombre, código o departamento" autocomplete="off" />
+          </label>
+          <p class="inventory-search-summary" id="inventory-search-summary" aria-live="polite" hidden></p>
+          <p class="empty-inventory" id="inventory-search-empty" role="status" hidden>No hay productos que coincidan con la búsqueda.</p>
           <div class="table-scroll">
             <table>
               <thead>

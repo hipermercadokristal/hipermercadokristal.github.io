@@ -92,6 +92,9 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .inventory-archive-all-button:hover { background: #fff5f3; }
 .inventory-archive-all-button:disabled { opacity: .55; cursor: not-allowed; }
 .inventory-panel .intro { margin-bottom: 14px; }
+.inventory-search-field { display: grid; gap: 7px; max-width: 520px; margin: 0 0 8px; color: #344b3c; font-size: 13px; font-weight: 700; }
+.inventory-search-field input { min-height: 46px; }
+.inventory-search-summary { margin: 0 0 10px; color: #748179; font-size: 12px; }
 .text-button { padding: 8px 0; border: 0; background: transparent; color: #27633b; font-size: 13px; font-weight: 800; }
 .product-form-compact { margin-top: 18px; border: 1px solid #dfe9e1; border-radius: 12px; background: #f9fcf9; }
 .product-form-compact > summary { min-height: 54px; display: flex; align-items: center; padding: 0 18px; color: #205a34; font-size: 14px; font-weight: 800; cursor: pointer; list-style: none; }

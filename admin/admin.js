@@ -7,6 +7,9 @@ const productForm = document.querySelector("#product-form");
 const categorySelect = document.querySelector("#product-category");
 const inventoryRows = document.querySelector("#inventory-rows");
 const emptyInventory = document.querySelector("#empty-inventory");
+const inventorySearch = document.querySelector("#inventory-search");
+const inventorySearchSummary = document.querySelector("#inventory-search-summary");
+const inventorySearchEmpty = document.querySelector("#inventory-search-empty");
 const imageInput = document.querySelector("#product-image");
 const saveButton = document.querySelector("#save-product-button");
 const formHeading = document.querySelector("#product-form-heading");
@@ -70,6 +73,7 @@ const departmentNames = [
 ];
 let editingProduct = null;
 let categories = [];
+let inventoryProducts = [];
 let missingDepartments = [];
 let deliveryCouriers = [];
 let adminOrdersChannel = null;
@@ -149,26 +153,30 @@ async function loadCategories() {
     .join("");
 }
 
-async function loadInventory() {
-  setMessage(dashboardStatus, "Cargando inventario…");
-  let request = supabaseClient
-    .from("productos")
-    .select("id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,es_oferta_dia,oferta_dia_hasta,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false });
-  let { data, error } = await request;
-  if (error && isMissingDailyDealColumns(error)) {
-    dailyDealColumnsAvailable = false;
-    request = supabaseClient
-      .from("productos")
-      .select("id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
-      .is("deleted_at", null)
-      .order("updated_at", { ascending: false });
-    ({ data, error } = await request);
-  }
-  if (error) throw error;
+function normalizeInventorySearch(value) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("es-VE")
+    .trim();
+}
 
-  inventoryRows.innerHTML = data.map((product) => {
+function renderInventory() {
+  const query = normalizeInventorySearch(inventorySearch?.value);
+  const filteredProducts = query
+    ? inventoryProducts.filter((product) => {
+      const category = Array.isArray(product.categorias) ? product.categorias[0] : product.categorias;
+      return normalizeInventorySearch([
+        product.nombre,
+        product.codigo_barras,
+        product.presentacion,
+        category?.nombre,
+        category?.departamento,
+      ].join(" ")).includes(query);
+    })
+    : inventoryProducts;
+
+  inventoryRows.innerHTML = filteredProducts.map((product) => {
     const category = Array.isArray(product.categorias) ? product.categorias[0] : product.categorias;
     const department = window.getKristalProductDepartment(product.nombre, category?.departamento || "");
     const dailyDealActive = product.es_oferta_dia
@@ -190,8 +198,42 @@ async function loadInventory() {
       </div></td>
     </tr>`;
   }).join("");
-  emptyInventory.hidden = data.length > 0;
-  const inventoryMessage = `${data.length} ${data.length === 1 ? "producto" : "productos"} en inventario.`;
+
+  emptyInventory.hidden = inventoryProducts.length > 0;
+  inventorySearchEmpty.hidden = !query || filteredProducts.length > 0 || inventoryProducts.length === 0;
+  inventorySearchSummary.hidden = !query;
+  if (query) {
+    inventorySearchSummary.textContent = `Se encontraron ${filteredProducts.length} de ${inventoryProducts.length} productos.`;
+  }
+}
+
+async function loadInventory() {
+  setMessage(dashboardStatus, "Cargando inventario…");
+  const pageSize = 1000;
+  const products = [];
+  for (let offset = 0; ; offset += pageSize) {
+    const loadPage = (includeDailyDealColumns) => supabaseClient
+      .from("productos")
+      .select(includeDailyDealColumns
+        ? "id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,es_oferta_dia,oferta_dia_hasta,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)"
+        : "id,nombre,codigo_barras,stock,stock_tracked,precio_ves,categoria_id,precio,precio_oferta,es_destacado,disponible,imagen_url,imagen_path,presentacion,categorias(nombre,departamento)")
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false })
+      .order("id", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    let { data, error } = await loadPage(dailyDealColumnsAvailable);
+    if (error && dailyDealColumnsAvailable && isMissingDailyDealColumns(error)) {
+      dailyDealColumnsAvailable = false;
+      ({ data, error } = await loadPage(false));
+    }
+    if (error) throw error;
+    products.push(...(data || []));
+    if (!data || data.length < pageSize) break;
+  }
+
+  inventoryProducts = products;
+  renderInventory();
+  const inventoryMessage = `${products.length} ${products.length === 1 ? "producto" : "productos"} en inventario.`;
   setMessage(
     dashboardStatus,
     missingDepartments.length
@@ -199,7 +241,7 @@ async function loadInventory() {
       : inventoryMessage,
     missingDepartments.length === 0,
   );
-  return data;
+  return products;
 }
 
 async function loadDailyStock() {
@@ -1112,6 +1154,7 @@ window.addEventListener("kristal:inventory-imported", () => {
   });
 });
 inventoryRows?.addEventListener("click", handleInventoryAction);
+inventorySearch?.addEventListener("input", renderInventory);
 archiveAllProductsButton?.addEventListener("click", archiveAllInventory);
 deletedProductRows?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-restore-product]");
