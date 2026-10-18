@@ -26,14 +26,15 @@
       href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="styles.css?v=commerce-marketplace-v4" />
+    <link rel="stylesheet" href="styles.css?v=commerce-marketplace-v8" />
     <script src="supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="supabase-client.js"></script>
     <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/staff-store-navigation.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="/assets/vendor/qrcode-generator-2.0.4.min.js"></script>
-    <script src="app.js?v=commerce-marketplace-v4" defer></script>
+    <script src="app.js?v=commerce-marketplace-v6" defer></script>
+    <script src="chat-widget.js?v=kristal-chat-v2" defer></script>
     <script src="/client/app-orders.js?v=delivery-fee-courier-pay-v1-20261017" defer></script>
     <script src="pwa.js?v=commerce-redesign-v2" defer></script>
   </head>
@@ -54,18 +55,12 @@
         <img src="/assets/app-icons/icon-192.png" alt="" />
         <span><strong>Hipermercado Kristal</strong><small>⌖ Villa Bruzual · Turén</small></span>
       </a>
-      <button class="mobile-menu-button app-menu-toggle" type="button" aria-expanded="false" aria-controls="category-links" aria-label="Abrir menú">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
-      </button>
       <button class="mobile-install-button" id="mobile-install-app-button" type="button" data-install-app aria-label="Instalar app" title="Instalar app">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3" /></svg>
       </button>
       <a class="mobile-apk-download" href="/downloads/hipermercado-kristal.apk" download="hipermercado-kristal.apk" data-apk-download aria-label="Descargar APK Android" title="Descargar APK Android" hidden>
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3" /><path d="M7 3 5 5m12-2 2 2" /></svg>
       </a>
-      <button class="mobile-profile-button" type="button" data-app-route="profile" aria-label="Abrir mi perfil">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
-      </button>
     </header>
     <header class="site-header">
       <div class="announcement">
@@ -91,10 +86,8 @@
 
         <form class="search-form" id="search-form" role="search">
           <label class="sr-only" for="search-input">Buscar productos</label>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16 16 4 4" /></svg>
-          <input id="search-input" type="search" placeholder="¿Qué estás buscando hoy?" autocomplete="off" />
-          <label class="sr-only" for="product-department-filter">Filtrar por departamento</label>
-          <select id="product-department-filter" class="department-filter" aria-label="Filtrar búsqueda por departamento">
+          <input id="search-input" type="search" placeholder="Buscar en Hipermercado Kristal..." autocomplete="off" />
+          <select id="product-department-filter" hidden aria-label="Filtrar búsqueda por departamento">
             <option value="Todos">Categorías</option>
             <option value="Víveres y Alacena">Víveres</option>
             <option value="Frutas y Verduras">Frutas y verduras</option>
@@ -108,6 +101,9 @@
             <option value="Mascotas">Mascotas</option>
             <option value="Congelados">Congelados</option>
           </select>
+          <button class="department-filter-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="category-drawer" data-open-category-drawer aria-label="Abrir categorías">
+            Categorías <span aria-hidden="true">⌄</span>
+          </button>
           <button type="submit" aria-label="Buscar productos"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16 16 4 4" /></svg><span class="sr-only">Buscar</span></button>
         </form>
 
@@ -141,9 +137,6 @@
 
       <nav class="category-nav" aria-label="Navegación principal">
         <div class="page-container nav-inner">
-          <button class="mobile-menu-button" type="button" aria-expanded="false" aria-controls="category-links">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg> Menú
-          </button>
           <div class="category-links" id="category-links">
             <div class="category-links-primary" aria-label="Explorar productos">
               <a href="/catalogo?filtro=ofertas" data-route>Ofertas</a>
@@ -161,6 +154,20 @@
         </div>
       </nav>
     </header>
+    <div class="category-drawer-backdrop" id="category-drawer-backdrop" hidden></div>
+    <aside class="category-drawer" id="category-drawer" role="dialog" aria-modal="true" aria-labelledby="category-drawer-title" tabindex="-1" hidden>
+      <header class="category-drawer-header">
+        <h2 id="category-drawer-title">Todos los productos</h2>
+        <button class="category-drawer-close" id="category-drawer-close" type="button" aria-label="Cerrar categorías">×</button>
+      </header>
+      <div class="category-drawer-content">
+        <a class="category-drawer-promo" href="/catalogo?filtro=ofertas" data-route>
+          <span>Ofertas Kristal</span><strong>Descubre promociones y productos destacados</strong><b>Ver ofertas <span aria-hidden="true">→</span></b>
+        </a>
+        <h3>Descubre nuestras categorías</h3>
+        <nav class="category-drawer-list" id="category-drawer-list" aria-label="Categorías de productos"></nav>
+      </div>
+    </aside>
 
     <main>
       <section class="category-view page-container" id="category-view" aria-labelledby="category-view-title" hidden>
@@ -213,18 +220,11 @@
         <div class="welcome-background welcome-background-drinks" aria-hidden="true">
           <img class="welcome-background-photo" src="assets/area-bebidas.png" alt="" />
         </div>
+        <a class="welcome-banner-link" id="welcome-banner-link" href="/catalogo" data-route aria-label="Explorar el catálogo de Hipermercado Kristal"></a>
         <div class="welcome-content">
           <span class="welcome-eyebrow" id="welcome-eyebrow">COMPRA LOCAL · VILLA BRUZUAL</span>
           <h1 id="welcome-title">Tu mercado de cada día, más cerca</h1>
           <p id="welcome-description">Explora el catálogo de Hipermercado Kristal, revisa precios y arma tu compra desde donde estés.</p>
-          <div class="welcome-actions">
-            <a class="welcome-button welcome-button-primary" id="welcome-catalog-cta" href="/catalogo" data-route>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="21" r="1" /><circle cx="18" cy="21" r="1" /></svg><span id="welcome-catalog-cta-label">Explorar Catálogo</span>
-            </a>
-            <a class="welcome-button welcome-button-secondary" href="/nosotros" data-route>
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" /><circle cx="12" cy="10" r="2.5" /></svg> Conoce Nuestras Instalaciones
-            </a>
-          </div>
         </div>
         <div class="hero-carousel-controls" aria-label="Controles de promociones">
           <button type="button" data-hero-direction="-1" aria-label="Promoción anterior">‹</button>
@@ -544,28 +544,20 @@
 
         <section class="institutional-card review-section" aria-labelledby="review-score-heading">
           <div class="review-score">
-            <span class="eyebrow">INDICADOR DE DEMOSTRACIÓN</span>
-            <h2 id="review-score-heading"><span>4.9</span> / 5</h2>
-            <p aria-label="Cinco estrellas de demostración">★★★★★</p>
-            <small>Ejemplo visual solicitado; no representa una calificación real ni verificada.</small>
+            <span class="eyebrow">OPINIONES DE CLIENTES</span>
+            <h2 id="review-score-heading"><span id="review-average">—</span> / 5</h2>
+            <p class="review-stars" id="review-average-stars" aria-label="Sin calificaciones">☆☆☆☆☆</p>
+            <small id="review-count">Aún no hay opiniones publicadas.</small>
           </div>
           <div class="review-wall">
-            <h2>Así se mostrarían las opiniones</h2>
-            <article class="review-example">
-              <span class="review-stars" aria-label="Ejemplo de cinco estrellas">★★★★★</span>
-              <p>“Ejemplo de comentario sobre la atención recibida.”</p>
-              <small>Contenido ficticio de demostración; no corresponde a un cliente real.</small>
-            </article>
-            <article class="review-example">
-              <span class="review-stars" aria-label="Ejemplo de cinco estrellas">★★★★★</span>
-              <p>“Ejemplo de opinión sobre la experiencia de compra.”</p>
-              <small>Contenido ficticio de demostración; no corresponde a un cliente real.</small>
-            </article>
+            <h2>Opiniones y preguntas recientes</h2>
+            <p id="review-publications-status" class="review-form-status" role="status" aria-live="polite">Cargando publicaciones…</p>
+            <div id="review-publications" aria-live="polite"></div>
           </div>
         </section>
         <section class="institutional-card review-form-card" aria-labelledby="review-form-heading">
           <h2 id="review-form-heading">Enviar una reseña o pregunta</h2>
-          <p>Tu mensaje se enviará por WhatsApp para que nuestro equipo lo revise. No se publicará automáticamente ni se mostrará como verificado.</p>
+          <p>Tu opinión o pregunta se publicará inmediatamente en esta página junto con el nombre que indiques. No incluyas datos personales, contraseñas ni información de pago.</p>
           <form id="review-form">
             <label for="review-name">Nombre</label>
             <input id="review-name" name="name" type="text" autocomplete="name" maxlength="80" required />
@@ -587,7 +579,6 @@
             <label for="review-message">Comentario o pregunta</label>
             <textarea id="review-message" name="message" rows="4" maxlength="1200" required></textarea>
             <button class="institutional-action" type="submit">Enviar reseña / pregunta</button>
-            <a class="review-whatsapp-fallback" id="review-whatsapp-fallback" href="https://wa.me/584128867088" target="_blank" rel="noopener noreferrer" hidden>Continuar el envío por WhatsApp</a>
             <p id="review-form-status" class="review-form-status" role="status" aria-live="polite"></p>
           </form>
         </section>
@@ -712,6 +703,45 @@
       <span>Ver carrito</span>
       <span class="mobile-cart-fab-count" id="mobile-cart-count">0</span>
     </button>
+    <div class="kristal-chat" id="kristal-chat">
+      <section class="kristal-chat-panel" id="kristal-chat-panel" role="dialog" aria-labelledby="kristal-chat-title" aria-hidden="true" hidden>
+        <header class="kristal-chat-header">
+          <img class="kristal-chat-avatar" src="/assets/kristal-assistant.svg" alt="" />
+          <div>
+            <h2 id="kristal-chat-title">Kristal · Asesora Virtual</h2>
+            <p><span class="kristal-chat-online-dot" aria-hidden="true"></span>En línea · Respuestas automáticas</p>
+          </div>
+          <button class="kristal-chat-close" id="kristal-chat-close" type="button" aria-label="Cerrar asistente">×</button>
+        </header>
+        <div class="kristal-chat-content">
+          <div class="kristal-chat-messages" id="kristal-chat-messages" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversación con el asistente">
+            <article class="kristal-chat-message is-assistant">
+              <p>👋 ¡Bienvenido a Hipermercado Kristal! Soy tu asesora virtual. ¿En qué puedo ayudarte hoy?</p>
+            </article>
+          </div>
+          <div class="kristal-chat-quick-replies" id="kristal-chat-quick-replies" aria-label="Temas de ayuda">
+            <button type="button" data-chat-topic="pagos">💳 Métodos de pago</button>
+            <button type="button" data-chat-topic="ubicacion">🕒 Horario y ubicación</button>
+            <button type="button" data-chat-topic="delivery">🛵 Tarifas de Delivery</button>
+            <button type="button" data-chat-topic="pedido">📦 Consultar Pedido</button>
+            <button type="button" data-chat-topic="asesor">💬 Hablar con un Asesor (WhatsApp)</button>
+          </div>
+        </div>
+        <form class="kristal-chat-form" id="kristal-chat-form">
+          <label class="sr-only" for="kristal-chat-input">Escribe tu consulta</label>
+          <input id="kristal-chat-input" name="message" type="text" maxlength="300" autocomplete="off" placeholder="Elige un tema o escribe tu consulta…" />
+          <button type="submit" aria-label="Enviar mensaje">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m4 4 17 8-17 8 3-8-3-8Z" /><path d="M7 12h14" /></svg>
+          </button>
+        </form>
+        <p class="kristal-chat-disclaimer">Asistente automático. No compartas claves, documentos ni datos de pago.</p>
+      </section>
+      <button class="kristal-chat-toggle" id="kristal-chat-toggle" type="button" aria-expanded="false" aria-controls="kristal-chat-panel">
+        <img src="/assets/kristal-assistant.svg" alt="" />
+        <span class="kristal-chat-toggle-label">Kristal</span>
+        <span class="sr-only">Abrir chat con Kristal, asesora virtual</span>
+      </button>
+    </div>
     <div class="cart-backdrop" id="cart-backdrop" hidden></div>
     <aside class="cart-drawer" id="cart-drawer" role="dialog" aria-modal="true" aria-labelledby="cart-title" aria-hidden="true">
       <div class="cart-drawer-header">
@@ -752,17 +782,17 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z" /></svg>
         <span>Inicio</span>
       </a>
-      <a href="/catalogo" data-app-route="catalog">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM14 4h6v4h-6zM14 11h6v9h-6zM4 14h7v6H4z" /></svg>
+      <button type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="category-drawer" data-open-category-drawer>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM4 10h16M10 10v9" /></svg>
         <span>Categorías</span>
-      </a>
+      </button>
       <button type="button" data-app-route="cart" aria-label="Abrir carrito">
         <span class="mobile-nav-cart-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 11.2a2 2 0 0 0 2 1.6h8.6a2 2 0 0 0 2-1.6L21 8H6" /><circle cx="10" cy="21" r="1" /><circle cx="18" cy="21" r="1" /></svg><span id="mobile-nav-cart-count">0</span></span>
         <span>Carrito</span>
       </button>
       <a href="/perfil" data-app-route="profile">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M5 20a7 7 0 0 1 14 0" /></svg>
-        <span>Perfil</span>
+        <span>Mi Perfil</span>
       </a>
     </nav>
     <aside class="pwa-install-banner" id="pwa-install-banner" aria-label="Instalar Hipermercado Kristal" hidden>

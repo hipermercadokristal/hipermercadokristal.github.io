@@ -31,6 +31,11 @@ const dailyOffersTimer = document.querySelector("#daily-offers-timer");
 const featuredPreviousButton = document.querySelector("#featured-previous");
 const featuredNextButton = document.querySelector("#featured-next");
 const departmentFilter = document.querySelector("#product-department-filter");
+const categoryDrawer = document.querySelector("#category-drawer");
+const categoryDrawerBackdrop = document.querySelector("#category-drawer-backdrop");
+const categoryDrawerCloseButton = document.querySelector("#category-drawer-close");
+const categoryDrawerList = document.querySelector("#category-drawer-list");
+const categoryDrawerTriggers = [...document.querySelectorAll("[data-open-category-drawer]")];
 const homeView = document.querySelector("#home-view");
 const catalogView = document.querySelector("#catalog-view");
 const storeView = document.querySelector("#store-view");
@@ -104,21 +109,18 @@ const heroSlides = [
     eyebrow: "COMPRA LOCAL · VILLA BRUZUAL",
     title: "Tu mercado de cada día, más cerca",
     description: "Explora el catálogo de Hipermercado Kristal, revisa precios y arma tu compra desde donde estés.",
-    action: "Explorar catálogo",
     route: "/catalogo",
   },
   {
     eyebrow: "DESPENSA PARA CADA DÍA",
     title: "Arma tu compra de despensa",
     description: "Encuentra harinas, aceites, pastas y más productos de alacena para combinarlos en tu carrito.",
-    action: "Ver víveres",
     route: "/departamento/viveres-y-alacena",
   },
   {
     eyebrow: "PROMOCIONES PUBLICADAS POR KRISTAL",
     title: "Explora las ofertas disponibles",
     description: "Los descuentos se muestran cuando tienen un precio de oferta publicado por la tienda.",
-    action: "Ver ofertas",
     route: "/catalogo?filtro=ofertas",
   },
 ];
@@ -278,9 +280,9 @@ function setHeroSlide(index) {
   welcomeEyebrow.textContent = slide.eyebrow;
   welcomeTitle.textContent = slide.title;
   welcomeDescription.textContent = slide.description;
-  const callToAction = document.querySelector("#welcome-catalog-cta");
-  callToAction.href = slide.route;
-  document.querySelector("#welcome-catalog-cta-label").textContent = slide.action;
+  const bannerLink = document.querySelector("#welcome-banner-link");
+  bannerLink.href = slide.route;
+  bannerLink.setAttribute("aria-label", `${slide.title}. ${slide.description}`);
   welcomeHero.querySelectorAll("[data-hero-slide]").forEach((button) => {
     const current = Number(button.dataset.heroSlide) === heroSlideIndex;
     if (current) button.setAttribute("aria-current", "true");
@@ -781,13 +783,88 @@ function categoryPath(category) {
   return `/departamento/${categorySlug(category)}`;
 }
 
+let lastCategoryDrawerTrigger = null;
+
+function renderCategoryDrawer() {
+  const allProductsLink = document.createElement("a");
+  allProductsLink.className = "category-drawer-link";
+  allProductsLink.href = "/catalogo";
+  allProductsLink.dataset.route = "";
+  allProductsLink.innerHTML = "<span>Ver todos</span><b aria-hidden=\"true\">›</b>";
+  categoryDrawerList.append(allProductsLink);
+
+  Object.keys(categoryDescriptions).forEach((category) => {
+    const link = document.createElement("a");
+    link.className = "category-drawer-link";
+    link.href = categoryPath(category);
+    link.dataset.route = "";
+    link.dataset.category = category;
+    const label = document.createElement("span");
+    label.textContent = category;
+    const arrow = document.createElement("b");
+    arrow.setAttribute("aria-hidden", "true");
+    arrow.textContent = "›";
+    link.append(label, arrow);
+    categoryDrawerList.append(link);
+  });
+}
+
+function openCategoryDrawer(trigger) {
+  if (!categoryDrawer.hidden) return;
+  lastCategoryDrawerTrigger = trigger instanceof HTMLElement ? trigger : document.activeElement;
+  categoryDrawer.hidden = false;
+  categoryDrawerBackdrop.hidden = false;
+  document.body.classList.add("category-drawer-open");
+  categoryDrawerTriggers.forEach((button) => button.setAttribute("aria-expanded", "true"));
+  categoryDrawerList.querySelector("a")?.focus();
+}
+
+function closeCategoryDrawer({ restoreFocus = true } = {}) {
+  if (categoryDrawer.hidden) return;
+  categoryDrawer.hidden = true;
+  categoryDrawerBackdrop.hidden = true;
+  document.body.classList.remove("category-drawer-open");
+  categoryDrawerTriggers.forEach((button) => button.setAttribute("aria-expanded", "false"));
+  if (restoreFocus && lastCategoryDrawerTrigger instanceof HTMLElement) lastCategoryDrawerTrigger.focus();
+  lastCategoryDrawerTrigger = null;
+}
+
 function closeMobileCategoryMenu() {
   document.querySelector("#category-links").classList.remove("open");
   document.querySelectorAll(".mobile-menu-button").forEach((button) => button.setAttribute("aria-expanded", "false"));
   document.body.classList.remove("mobile-menu-open");
-  const departmentsMenu = document.querySelector(".departments-menu");
-  if (departmentsMenu) departmentsMenu.open = false;
+  closeCategoryDrawer({ restoreFocus: false });
 }
+
+renderCategoryDrawer();
+categoryDrawerTriggers.forEach((button) => {
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    openCategoryDrawer(button);
+  });
+});
+categoryDrawerCloseButton.addEventListener("click", () => closeCategoryDrawer());
+categoryDrawerBackdrop.addEventListener("click", () => closeCategoryDrawer());
+
+document.addEventListener("keydown", (event) => {
+  if (categoryDrawer.hidden) return;
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeCategoryDrawer();
+    return;
+  }
+  if (event.key !== "Tab") return;
+  const focusable = [...categoryDrawer.querySelectorAll('a[href], button:not(:disabled), [tabindex]:not([tabindex="-1"])')];
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+});
 
 function showCategoryView(category, { pushHistory = true } = {}) {
   activeView = "category";
@@ -1191,7 +1268,10 @@ function updateCart() {
   cartButton.setAttribute("aria-label", `Carrito, ${cartTotal} ${cartTotal === 1 ? "artículo" : "artículos"}`);
   mobileCartCount.textContent = String(cartTotal);
   const appCartCount = document.querySelector("#mobile-nav-cart-count");
-  if (appCartCount) appCartCount.textContent = String(cartTotal);
+  if (appCartCount) {
+    appCartCount.textContent = String(cartTotal);
+    appCartCount.hidden = cartTotal === 0;
+  }
   mobileCartButton.setAttribute("aria-label", `Abrir carrito, ${cartTotal} ${cartTotal === 1 ? "artículo" : "artículos"}`);
   mobileCartButton.hidden = cartTotal === 0;
   document.body.classList.toggle("has-cart-items", cartTotal > 0);
@@ -1358,12 +1438,6 @@ dailyOffersGrid?.addEventListener("click", handleProductGridClick);
 document.querySelector("#category-back-button").addEventListener("click", () => showCatalogView({ clearSearch: true }));
 window.addEventListener("popstate", (event) => restoreRoute(event.state));
 
-document.querySelector("#welcome-catalog-cta").addEventListener("click", (event) => {
-  event.preventDefault();
-  const destination = new URL(event.currentTarget.href);
-  navigateToPath(destination.pathname + destination.search);
-});
-
 cartButton.addEventListener("click", () => setCartOpen(true));
 mobileCartButton.addEventListener("click", () => setCartOpen(true));
 document.addEventListener("kristal:open-cart", () => setCartOpen(true));
@@ -1444,30 +1518,6 @@ document.addEventListener("kristal:order-completed", (event) => {
   completedProducts.forEach(updateProductCardControls);
 });
 
-document.querySelectorAll(".mobile-menu-button").forEach((button) => button.addEventListener("click", (event) => {
-  const menu = document.querySelector("#category-links");
-  const isOpen = menu.classList.toggle("open");
-  document.querySelectorAll(".mobile-menu-button").forEach((menuButton) => {
-    menuButton.setAttribute("aria-expanded", String(isOpen));
-    menuButton.setAttribute("aria-label", isOpen ? "Cerrar menú" : "Abrir menú");
-  });
-  document.body.classList.toggle("mobile-menu-open", isOpen);
-  const departmentsMenu = document.querySelector(".departments-menu");
-  if (!isOpen && departmentsMenu) departmentsMenu.open = false;
-}));
-document.addEventListener("click", (event) => {
-  if (!document.body.classList.contains("mobile-menu-open")) return;
-  if (event.target.closest(".category-nav, .app-menu-toggle")) return;
-  closeMobileCategoryMenu();
-});
-document.addEventListener("keydown", (event) => {
-  if (event.key !== "Escape" || !document.body.classList.contains("mobile-menu-open")) return;
-  closeMobileCategoryMenu();
-  [...document.querySelectorAll(".mobile-menu-button")]
-    .find((button) => button.getClientRects().length > 0)
-    ?.focus();
-});
-
 const faqSearch = document.querySelector("#faq-search");
 const faqItems = [...document.querySelectorAll("[data-faq-item]")];
 const faqEmpty = document.querySelector("#faq-empty");
@@ -1486,7 +1536,12 @@ const reviewForm = document.querySelector("#review-form");
 const reviewKind = document.querySelector("#review-kind");
 const reviewRatingField = document.querySelector("#review-rating-field");
 const reviewStatus = document.querySelector("#review-form-status");
-const reviewWhatsappFallback = document.querySelector("#review-whatsapp-fallback");
+const reviewPublications = document.querySelector("#review-publications");
+const reviewPublicationsStatus = document.querySelector("#review-publications-status");
+const reviewAverage = document.querySelector("#review-average");
+const reviewAverageStars = document.querySelector("#review-average-stars");
+const reviewCount = document.querySelector("#review-count");
+let publishedFeedback = [];
 
 reviewKind.addEventListener("change", () => {
   const needsRating = reviewKind.value === "opinion";
@@ -1497,30 +1552,144 @@ reviewKind.addEventListener("change", () => {
   });
 });
 
-reviewForm.addEventListener("submit", (event) => {
+function renderPublishedFeedback() {
+  const fragment = document.createDocumentFragment();
+  const opinions = publishedFeedback.filter((item) => item.kind === "opinion" && Number.isInteger(item.rating));
+  const average = opinions.length
+    ? opinions.reduce((sum, item) => sum + item.rating, 0) / opinions.length
+    : null;
+  reviewAverage.textContent = average === null ? "—" : average.toFixed(1);
+  reviewAverageStars.textContent = average === null
+    ? "☆☆☆☆☆"
+    : `${"★".repeat(Math.round(average))}${"☆".repeat(5 - Math.round(average))}`;
+  reviewAverageStars.setAttribute(
+    "aria-label",
+    average === null ? "Sin calificaciones" : `Promedio reciente: ${average.toFixed(1)} de 5`,
+  );
+  reviewCount.textContent = opinions.length
+    ? `${opinions.length} ${opinions.length === 1 ? "opinión reciente" : "opiniones recientes"}`
+    : "Aún no hay opiniones publicadas.";
+  reviewPublications.replaceChildren();
+
+  publishedFeedback.forEach((item) => {
+    const article = document.createElement("article");
+    article.className = "review-example";
+    const heading = document.createElement("header");
+    const kind = document.createElement("span");
+    kind.className = "review-publication-kind";
+    kind.textContent = item.kind === "opinion" ? "Opinión" : "Pregunta";
+    const author = document.createElement("strong");
+    author.textContent = item.display_name;
+    const date = document.createElement("time");
+    const createdAt = new Date(item.created_at);
+    date.dateTime = item.created_at;
+    date.textContent = Number.isNaN(createdAt.getTime())
+      ? ""
+      : createdAt.toLocaleDateString("es-VE", { year: "numeric", month: "short", day: "numeric" });
+    heading.append(kind, author, date);
+    article.append(heading);
+
+    if (item.kind === "opinion" && Number.isInteger(item.rating)) {
+      const rating = document.createElement("span");
+      rating.className = "review-stars";
+      rating.textContent = `${"★".repeat(item.rating)}${"☆".repeat(5 - item.rating)}`;
+      rating.setAttribute("aria-label", `${item.rating} de 5 estrellas`);
+      article.append(rating);
+    }
+
+    const message = document.createElement("p");
+    message.textContent = item.message;
+    article.append(message);
+    fragment.append(article);
+  });
+  reviewPublications.append(fragment);
+}
+
+async function loadPublishedFeedback() {
+  if (!window.kristalSupabase) {
+    reviewPublicationsStatus.textContent = "Las publicaciones no están disponibles porque falta configurar Supabase.";
+    return;
+  }
+
+  reviewPublicationsStatus.textContent = "Cargando publicaciones…";
+  const { data, error } = await window.kristalSupabase
+    .from("store_feedback")
+    .select("id,display_name,kind,rating,message,created_at")
+    .order("created_at", { ascending: false })
+    .limit(50);
+  if (error) {
+    console.error("No se pudieron cargar las opiniones y preguntas publicadas.", error);
+    reviewPublicationsStatus.textContent = "No se pudieron cargar las publicaciones. Inténtalo de nuevo más tarde.";
+    return;
+  }
+
+  publishedFeedback = data || [];
+  renderPublishedFeedback();
+  reviewPublicationsStatus.textContent = publishedFeedback.length
+    ? `Mostrando ${publishedFeedback.length} publicaciones recientes.`
+    : "Aún no hay publicaciones. ¡Puedes compartir la primera!";
+}
+
+reviewForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!reviewForm.reportValidity()) return;
+  if (!window.kristalSupabase) {
+    reviewStatus.textContent = "No se pudo publicar porque el servicio de reseñas no está configurado. Inténtalo más tarde.";
+    return;
+  }
 
   const formData = new FormData(reviewForm);
   const kind = formData.get("kind");
   const rating = kind === "opinion" ? formData.get("rating") : null;
-  const message = [
-    `Hola, soy ${formData.get("name")}.`,
-    `Quiero enviar una ${kind === "opinion" ? "opinión" : "pregunta"} sobre Hipermercado Kristal.`,
-    ...(rating ? [`Calificación: ${rating}/5 estrellas.`] : []),
-    "",
-    String(formData.get("message")).trim(),
-  ].join("\n");
-  const whatsappUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
-  const whatsappWindow = window.open(whatsappUrl, "_blank");
-  if (whatsappWindow) whatsappWindow.opener = null;
+  const submitButton = reviewForm.querySelector('button[type="submit"]');
+  submitButton.disabled = true;
+  reviewStatus.textContent = "Publicando…";
+  try {
+    const { data, error } = await window.kristalSupabase
+      .from("store_feedback")
+      .insert({
+        display_name: String(formData.get("name")).trim(),
+        kind,
+        rating: rating ? Number(rating) : null,
+        message: String(formData.get("message")).trim(),
+      })
+      .select("id,display_name,kind,rating,message,created_at")
+      .single();
+    if (error) throw error;
 
-  reviewWhatsappFallback.href = whatsappUrl;
-  reviewWhatsappFallback.hidden = Boolean(whatsappWindow);
-  reviewStatus.textContent = whatsappWindow
-    ? "WhatsApp se abrió con tu mensaje. El equipo revisará el contenido antes de considerar su publicación."
-    : "El navegador bloqueó la ventana de WhatsApp. Usa el enlace de continuación para enviar tu mensaje.";
+    publishedFeedback = [data, ...publishedFeedback.filter((item) => item.id !== data.id)].slice(0, 50);
+    renderPublishedFeedback();
+    reviewPublicationsStatus.textContent = "Publicación añadida.";
+    reviewForm.reset();
+    reviewKind.dispatchEvent(new Event("change"));
+    reviewStatus.textContent = "Publicado. Tu publicación ya está visible en la página.";
+  } catch (error) {
+    console.error("No se pudo publicar la opinión o pregunta.", error);
+    reviewStatus.textContent = "No se pudo publicar. Revisa tu conexión e inténtalo de nuevo.";
+  } finally {
+    submitButton.disabled = false;
+  }
 });
+
+loadPublishedFeedback().catch((error) => {
+  console.error("No se pudieron cargar las opiniones y preguntas publicadas.", error);
+  reviewPublicationsStatus.textContent = "No se pudieron cargar las publicaciones. Inténtalo de nuevo más tarde.";
+});
+if (window.kristalSupabase) {
+  window.kristalSupabase
+    .channel("publicaciones-clientes")
+    .on("postgres_changes", { event: "*", schema: "public", table: "store_feedback" }, () => {
+      loadPublishedFeedback().catch((error) => {
+        console.error("No se pudieron actualizar las publicaciones en tiempo real.", error);
+        reviewPublicationsStatus.textContent = "No se pudieron actualizar las publicaciones. Recarga la página para volver a intentarlo.";
+      });
+    })
+    .subscribe((status, error) => {
+      if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        console.error("Falló la actualización en tiempo real de las publicaciones.", error);
+      }
+    });
+}
 
 const infoMessages = {
   redes: ["Redes sociales", "Los enlaces oficiales de Instagram, Facebook y TikTok aún no están configurados. Contáctanos por WhatsApp para confirmar nuestros perfiles oficiales."],
