@@ -49,6 +49,7 @@ const courierPayoutHistoryRows = document.querySelector("#courier-payout-history
 const emptyCourierPayoutHistory = document.querySelector("#empty-courier-payout-history");
 const courierPaymentsStatus = document.querySelector("#courier-payments-status");
 const refreshCourierPaymentsButton = document.querySelector("#refresh-courier-payments-button");
+const archiveAllProductsButton = document.querySelector("#archive-all-products-button");
 const currency = new Intl.NumberFormat("es-VE", { style: "currency", currency: "USD" });
 const bolivares = new Intl.NumberFormat("es-VE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const stockNumber = new Intl.NumberFormat("es-VE", { maximumFractionDigits: 3 });
@@ -885,6 +886,86 @@ async function handleInventoryAction(event) {
   }
 }
 
+async function archiveAllInventory() {
+  if (!archiveAllProductsButton || archiveAllProductsButton.disabled) return;
+  archiveAllProductsButton.disabled = true;
+  let archivedCount = 0;
+
+  try {
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    if (userError) throw userError;
+    if (!user) throw new Error("La sesión de administración expiró. Inicia sesión de nuevo.");
+
+    const productIds = [];
+    const pageSize = 500;
+    for (let offset = 0; ; offset += pageSize) {
+      const { data, error } = await supabaseClient
+        .from("productos")
+        .select("id")
+        .is("deleted_at", null)
+        .order("id")
+        .range(offset, offset + pageSize - 1);
+      if (error) throw error;
+      productIds.push(...data.map((product) => product.id));
+      if (data.length < pageSize) break;
+    }
+
+    if (!productIds.length) {
+      setMessage(dashboardStatus, "No hay productos activos para archivar.", true);
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Vas a archivar ${productIds.length} productos del inventario. Dejarán de aparecer en la tienda, pero podrás restaurarlos desde “Productos eliminados”. Los pedidos e imágenes se conservarán. ¿Deseas continuar?`,
+    );
+    if (!confirmed) return;
+
+    const archivedAt = new Date().toISOString();
+    const batchSize = 200;
+    for (let offset = 0; offset < productIds.length; offset += batchSize) {
+      const batch = productIds.slice(offset, offset + batchSize);
+      const { data, error } = await supabaseClient
+        .from("productos")
+        .update({
+          deleted_at: archivedAt,
+          deleted_by: user.id,
+          disponible: false,
+          es_destacado: false,
+          updated_at: archivedAt,
+        })
+        .in("id", batch)
+        .is("deleted_at", null)
+        .select("id");
+      if (error) throw error;
+      archivedCount += data.length;
+      if (data.length !== batch.length) {
+        throw new Error(`Supabase solo confirmó ${archivedCount} de ${productIds.length} productos. Actualiza las listas antes de continuar.`);
+      }
+      setMessage(dashboardStatus, `Archivando inventario: ${archivedCount} de ${productIds.length} productos…`);
+    }
+
+    await Promise.all([loadInventory(), loadDeletedProducts()]);
+    setMessage(dashboardStatus, `Se archivaron ${archivedCount} productos. Puedes restaurarlos desde “Productos eliminados”.`, true);
+  } catch (error) {
+    console.error("No se pudo archivar todo el inventario.", error);
+    let refreshMessage = "";
+    if (archivedCount) {
+      try {
+        await Promise.all([loadInventory(), loadDeletedProducts()]);
+      } catch (refreshError) {
+        console.error("No se pudieron actualizar las listas después del archivado parcial.", refreshError);
+        refreshMessage = " No se pudieron actualizar las listas; usa los botones de actualización.";
+      }
+    }
+    const partialMessage = archivedCount
+      ? `Se archivaron ${archivedCount} productos antes del error. `
+      : "";
+    setMessage(dashboardStatus, `${partialMessage}${error.message || "No se pudo archivar el inventario."}${refreshMessage}`);
+  } finally {
+    archiveAllProductsButton.disabled = false;
+  }
+}
+
 async function restoreDeletedProduct(productId, button) {
   if (!productId) {
     setMessage(dashboardStatus, "No se pudo identificar el producto que quieres restaurar.");
@@ -947,6 +1028,7 @@ window.addEventListener("kristal:inventory-imported", () => {
   });
 });
 inventoryRows?.addEventListener("click", handleInventoryAction);
+archiveAllProductsButton?.addEventListener("click", archiveAllInventory);
 deletedProductRows?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-restore-product]");
   if (button) restoreDeletedProduct(button.dataset.restoreProduct, button);

@@ -7,14 +7,18 @@
   const status = document.querySelector("#inventory-import-status");
   const previewWrap = document.querySelector("#inventory-import-preview-wrap");
   const previewRows = document.querySelector("#inventory-import-preview-rows");
+  const reportElement = document.querySelector("#inventory-import-report");
   let preparedRows = [];
+  let skippedRows = [];
+  let sourceRowCount = 0;
   let consolidatedInputRows = 0;
 
   const aliases = {
-    barcode: ["codigodebarras", "codigo", "ean", "barcode", "codigoproducto", "plu"],
-    name: ["descripcion", "descripciondelproducto", "producto", "nombre", "articulo", "item"],
+    barcode: ["codigosku", "sku", "codigodebarras", "codigo", "ean", "barcode", "codigoproducto", "plu"],
+    name: ["nombreproducto", "descripcion", "descripciondelproducto", "producto", "nombre", "articulo", "item"],
     presentation: ["presentacion", "presentacionproducto", "empaque", "contenido", "tamano", "unidadmedida", "size", "presentation"],
     department: ["departamento", "categoria", "departamentocategoria", "category", "department", "rubro"],
+    image: ["imagen", "imagenurl", "urlimagen", "image", "imageurl", "foto", "fotourl"],
     usd: ["precioenusd", "preciodolares", "precioendolares", "preciodolar", "priceusd", "usd", "preciousd", "preciosd"],
     ves: ["precioenves", "precioves", "precioenbs", "preciobs", "preciobsf", "bolivares", "priceves", "ves"],
     stock: ["stockactual", "stock", "existencia", "existencias", "inventario", "cantidad"],
@@ -33,6 +37,19 @@
       .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "");
+  }
+
+  function normalizeSku(value) {
+    return String(value ?? "").trim().toLocaleLowerCase("es-VE");
+  }
+
+  function isValidImageUrl(value) {
+    try {
+      const url = new URL(value, window.location.href);
+      return ["http:", "https:"].includes(url.protocol) && !url.username && !url.password;
+    } catch {
+      return false;
+    }
   }
 
   function formatDepartmentName(value) {
@@ -150,8 +167,7 @@
     for (let offset = 0; ; offset += pageSize) {
       const { data, error } = await supabase
         .from("productos")
-        .select("id,nombre,codigo_barras,categoria_id,imagen_url,imagen_path,presentacion,precio_oferta,es_destacado,disponible,stock,stock_tracked,created_at")
-        .is("deleted_at", null)
+        .select("id,nombre,codigo_barras,categoria_id,imagen_url,imagen_path,presentacion,precio_oferta,es_destacado,disponible,stock,stock_tracked,created_at,deleted_at,deleted_by")
         .order("id")
         .range(offset, offset + pageSize - 1);
       if (error) throw error;
@@ -165,8 +181,8 @@
   }
 
   function preferExistingProduct(left, right, categoryId) {
-    const leftScore = Number(!isPlaceholder(left)) * 2 + Number(left.categoria_id === categoryId);
-    const rightScore = Number(!isPlaceholder(right)) * 2 + Number(right.categoria_id === categoryId);
+    const leftScore = Number(!left.deleted_at) * 4 + Number(!isPlaceholder(left)) * 2 + Number(left.categoria_id === categoryId);
+    const rightScore = Number(!right.deleted_at) * 4 + Number(!isPlaceholder(right)) * 2 + Number(right.categoria_id === categoryId);
     if (leftScore !== rightScore) return rightScore - leftScore;
     return String(left.created_at || "").localeCompare(String(right.created_at || ""));
   }
@@ -183,8 +199,14 @@
   async function prepareImport() {
     submitButton.disabled = true;
     preparedRows = [];
+    skippedRows = [];
+    sourceRowCount = 0;
     previewRows.replaceChildren();
     previewWrap.hidden = true;
+    if (reportElement) {
+      reportElement.hidden = true;
+      reportElement.textContent = "";
+    }
     if (!window.XLSX) throw new Error("No se cargó el lector Excel. Recarga Administración e inténtalo de nuevo.");
     if (!supabase) throw new Error("No hay conexión con Supabase.");
     const file = fileInput.files[0];
@@ -202,21 +224,25 @@
       const candidate = Object.fromEntries(
         Object.entries(aliases).map(([key, values]) => [key, findFieldIndex(sheetRows[rowIndex], values)]),
       );
-      if (Object.entries(candidate).every(([key, index]) => ["stock", "presentation"].includes(key) || index >= 0)) {
+      if (Object.entries(candidate).every(([key, index]) => ["barcode", "stock", "presentation", "image"].includes(key) || index >= 0)) {
         headerRow = rowIndex;
         fields = candidate;
         break;
       }
     }
-    if (headerRow < 0) throw new Error("No se encontraron encabezados compatibles para código de barras, descripción, departamento y precios USD/VES en las primeras 20 filas.");
+    if (headerRow < 0) throw new Error("No se encontraron encabezados compatibles para nombre, departamento y precios USD/VES en las primeras 20 filas.");
     const inputRows = sheetRows.slice(headerRow + 1)
       .map((cells, index) => ({ cells, rowNumber: headerRow + index + 2 }))
       .filter(({ cells }) => cells.some((cell) => String(cell ?? "").trim() !== ""));
     if (!inputRows.length) throw new Error("La hoja no contiene productos debajo de los encabezados.");
     if (inputRows.length > 10000) throw new Error("El archivo supera el límite de 10.000 filas por importación.");
+    sourceRowCount = inputRows.length;
 
     const { data: categories, error } = await supabase.from("categorias").select("id,nombre,departamento");
     if (error) throw error;
+    if (typeof window.getKristalProductFallbackImage !== "function") {
+      throw new Error("No se cargó el mapeo de imágenes por departamento. Recarga Administración e inténtalo de nuevo.");
+    }
     const categoryByName = new Map();
     for (const category of categories) {
       const name = normalize(category.nombre);
@@ -228,9 +254,8 @@
         categoryByName.set(department, category);
       }
     }
-    const seenBarcodes = new Set();
     const parsedRows = inputRows.map(({ cells, rowNumber }) => {
-      const barcode = String(cells[fields.barcode] ?? "").trim();
+      const barcode = fields.barcode >= 0 ? String(cells[fields.barcode] ?? "").trim() : "";
       const sourceName = String(cells[fields.name] ?? "").trim();
       const explicitPresentation = fields.presentation >= 0
         ? String(cells[fields.presentation] ?? "").trim()
@@ -243,17 +268,17 @@
       const existingCategory = categoryByName.get(departmentKey);
       const departmentName = existingCategory?.departamento
         || (departmentKey ? formatDepartmentName(departmentInput) : "");
+      const imageUrl = fields.image >= 0 ? String(cells[fields.image] ?? "").trim() : "";
       const priceUsd = parseNumber(cells[fields.usd]);
       const priceVes = parseNumber(cells[fields.ves]);
       const stockText = fields.stock >= 0 ? String(cells[fields.stock] ?? "").trim() : "";
       const stock = stockText ? parseNumber(stockText) : null;
       const errors = [];
-      if (!barcode || barcode.length > 80) errors.push("código");
-      else if (seenBarcodes.has(barcode)) errors.push("código duplicado");
-      else seenBarcodes.add(barcode);
+      if (barcode.length > 80) errors.push("código supera 80 caracteres");
       if (!name || name.length > 140) errors.push("descripción");
       if (!departmentKey) errors.push("departamento vacío");
       else if (!existingCategory && departmentName.length > 120) errors.push("departamento supera 120 caracteres");
+      if (imageUrl && !isValidImageUrl(imageUrl)) errors.push("URL de imagen");
       if (!Number.isFinite(priceUsd) || priceUsd <= 0) errors.push("precio USD");
       if (!Number.isFinite(priceVes) || priceVes < 0) errors.push("precio VES");
       if (stockText && (!Number.isFinite(stock) || stock < 0 || stock > 100000000)) errors.push("stock");
@@ -265,6 +290,8 @@
         barcode,
         name,
         departmentName,
+        imageUrl,
+        fallbackImageUrl: window.getKristalProductFallbackImage(departmentName || departmentInput),
         categoryId: existingCategory?.id || null,
         departmentKey,
         priceUsd,
@@ -276,45 +303,88 @@
         error: errors.join(", "),
       };
     });
-    const rowsByIdentity = new Map();
+    const consolidatedRows = [];
+    const rowsBySku = new Map();
+    const rowsByName = new Map();
+    const rowsWithoutSkuByName = new Map();
     consolidatedInputRows = 0;
     parsedRows.forEach((row) => {
-      const key = `${row.departmentKey}|${row.productIdentity}`;
-      if (row.productIdentity && rowsByIdentity.has(key)) {
-        rowsByIdentity.set(key, row);
+      const nameKey = row.productIdentity ? `name:${getProductIdentity(row.name, row.presentation)}` : "";
+      const skuKey = row.barcode ? `sku:${normalizeSku(row.barcode)}` : "";
+      let existingIndex = skuKey ? rowsBySku.get(skuKey) : undefined;
+
+      if (existingIndex === undefined && skuKey && nameKey) {
+        const nameOnlyIndex = rowsWithoutSkuByName.get(nameKey);
+        if (nameOnlyIndex !== undefined && !consolidatedRows[nameOnlyIndex].barcode) {
+          existingIndex = nameOnlyIndex;
+        }
+      }
+      if (existingIndex === undefined && !skuKey && nameKey) {
+        const matchingSkuRows = [...(rowsByName.get(nameKey) || [])]
+          .filter((index) => `name:${getProductIdentity(consolidatedRows[index].name, consolidatedRows[index].presentation)}` === nameKey);
+        if (matchingSkuRows.length === 1) {
+          existingIndex = matchingSkuRows[0];
+        } else {
+          existingIndex = rowsWithoutSkuByName.get(nameKey);
+        }
+      }
+
+      if (existingIndex !== undefined) {
+        const existingRow = consolidatedRows[existingIndex];
+        consolidatedRows[existingIndex] = row.barcode || !existingRow.barcode
+          ? row
+          : { ...row, barcode: existingRow.barcode };
+        if (nameKey && !rowsByName.has(nameKey)) rowsByName.set(nameKey, new Set());
+        if (nameKey) rowsByName.get(nameKey).add(existingIndex);
+        if (skuKey) rowsBySku.set(skuKey, existingIndex);
+        if (nameKey && rowsWithoutSkuByName.get(nameKey) === existingIndex) rowsWithoutSkuByName.delete(nameKey);
         consolidatedInputRows += 1;
       } else {
-        rowsByIdentity.set(row.productIdentity ? key : `row-${row.rowNumber}`, row);
+        existingIndex = consolidatedRows.push(row) - 1;
+        if (skuKey) rowsBySku.set(skuKey, existingIndex);
+        if (nameKey) {
+          const matchingRows = rowsByName.get(nameKey) || new Set();
+          matchingRows.add(existingIndex);
+          rowsByName.set(nameKey, matchingRows);
+          if (!skuKey) rowsWithoutSkuByName.set(nameKey, existingIndex);
+        }
       }
     });
-    preparedRows = [...rowsByIdentity.values()];
+    preparedRows = consolidatedRows;
 
-    const invalidRows = preparedRows.filter((row) => row.error);
+    skippedRows = preparedRows
+      .filter((row) => row.error)
+      .map((row) => ({ row: row.rowNumber, sku: row.barcode || null, name: row.name, error: row.error }));
     const rowsToShow = preparedRows.length <= 100
       ? preparedRows
-      : [...preparedRows.slice(0, 100), ...invalidRows.filter((row) => row.rowNumber > (preparedRows[99]?.rowNumber || 0)).slice(0, 200)];
+      : [...preparedRows.slice(0, 100), ...preparedRows.filter((row) => row.error && row.rowNumber > (preparedRows[99]?.rowNumber || 0)).slice(0, 200)];
     previewRows.innerHTML = rowsToShow.map((row) => `<tr>
       <td data-label="Fila">${row.rowNumber}</td>
       <td data-label="Código">${escapeHtml(row.barcode)}</td>
       <td data-label="Producto">${escapeHtml(row.name)}</td>
       <td data-label="Presentación">${escapeHtml(row.presentation || "—")}</td>
       <td data-label="Departamento">${escapeHtml(row.departmentName)}</td>
+      <td data-label="Imagen">${row.imageUrl ? "URL del archivo" : "Conservar foto o asignar por departamento"}</td>
       <td data-label="USD">${Number.isFinite(row.priceUsd) ? row.priceUsd.toFixed(2) : "—"}</td>
       <td data-label="VES">${Number.isFinite(row.priceVes) ? row.priceVes.toFixed(2) : "—"}</td>
       <td data-label="Stock">${!row.stockColumnPresent ? "Se conserva" : row.stockTracked ? row.stock : "Sin control"}</td>
       <td data-label="Resultado" class="${row.error ? "import-row-error" : ""}">${escapeHtml(row.error || (row.categoryId ? "Listo" : "Se creará el departamento"))}</td>
     </tr>`).join("");
     previewWrap.hidden = false;
-    const invalidCount = preparedRows.filter((row) => row.error).length;
-    submitButton.disabled = invalidCount > 0;
-    setStatus(`${inputRows.length} filas revisadas; ${consolidatedInputRows} repetidas consolidadas, se usará la última fila por producto y presentación; ${preparedRows.length} productos únicos y ${invalidCount} con errores.${preparedRows.length > 100 ? ` La vista previa muestra las primeras 100 y hasta 200 filas con error.${invalidCount > 300 ? " Corrige también las demás filas marcadas en el archivo." : ""}` : ""}`, invalidCount > 0);
+    const validRows = preparedRows.length - skippedRows.length;
+    submitButton.disabled = validRows === 0;
+    if (reportElement) {
+      reportElement.hidden = true;
+      reportElement.textContent = "";
+    }
+    setStatus(`${inputRows.length} filas revisadas; ${consolidatedInputRows} repetidas consolidadas usando la última fila por SKU o nombre/presentación; ${validRows} listas para importar y ${skippedRows.length} se omitirán por errores de formato.${preparedRows.length > 100 ? " La vista previa muestra hasta 100 productos y filas adicionales con errores." : ""}`, skippedRows.length > 0);
   }
 
   async function importInventory(event) {
     event.preventDefault();
-    const invalidRows = preparedRows.filter((row) => row.error);
-    if (!preparedRows.length || invalidRows.length) {
-      setStatus("Primero corrige y vuelve a revisar las filas marcadas.", true);
+    const validRows = preparedRows.filter((row) => !row.error);
+    if (!validRows.length) {
+      setStatus("No hay filas válidas para importar. Corrige los errores de la vista previa e inténtalo de nuevo.", true);
       return;
     }
 
@@ -323,15 +393,17 @@
     setStatus("Preparando actualización del inventario…");
     let importedCount = 0;
     let consolidatedDuplicateCount = 0;
+    let updatedCount = 0;
+    let createdCount = 0;
     try {
       const missingDepartments = new Map();
-      preparedRows.forEach((row) => {
+      validRows.forEach((row) => {
         if (!row.categoryId && row.departmentKey && !missingDepartments.has(row.departmentKey)) {
           missingDepartments.set(row.departmentKey, row.departmentName);
         }
       });
       const categoryIdByDepartment = new Map(
-        preparedRows
+        validRows
           .filter((row) => row.categoryId)
           .map((row) => [row.departmentKey, row.categoryId]),
       );
@@ -351,7 +423,7 @@
           throw new Error(`Supabase no devolvió la categoría creada para: ${unresolvedDepartments.map((key) => missingDepartments.get(key)).join(", ")}.`);
         }
       }
-      const unresolvedProducts = preparedRows
+      const unresolvedProducts = validRows
         .filter((row) => !categoryIdByDepartment.has(row.departmentKey));
       if (unresolvedProducts.length) {
         throw new Error(`No se encontró una categoría válida para: ${[...new Set(unresolvedProducts.map((row) => row.departmentName))].join(", ")}.`);
@@ -367,7 +439,7 @@
         const categoryProducts = existingByCategory.get(product.categoria_id) || [];
         categoryProducts.push(product);
         existingByCategory.set(product.categoria_id, categoryProducts);
-        if (product.codigo_barras) existingByBarcode.set(product.codigo_barras, product);
+        if (product.codigo_barras) existingByBarcode.set(normalizeSku(product.codigo_barras), product);
         const identity = getProductIdentity(product.nombre, product.presentacion);
         if (identity) {
           const matches = existingByIdentity.get(identity) || [];
@@ -382,11 +454,13 @@
         }
       });
 
-      const matchedProducts = preparedRows.map((row) => existingByBarcode.get(row.barcode) || null);
+      const matchedProducts = validRows.map((row) => row.barcode
+        ? existingByBarcode.get(normalizeSku(row.barcode)) || null
+        : null);
       const usedProductIds = new Set(matchedProducts.filter(Boolean).map((product) => product.id));
       const duplicateProducts = new Map();
       const imageSourceByRow = [];
-      preparedRows.forEach((row, index) => {
+      validRows.forEach((row, index) => {
         const identity = getProductIdentity(row.name, row.presentation);
         const categoryId = categoryIdByDepartment.get(row.departmentKey);
         const categoryProducts = existingByCategory.get(categoryId) || [];
@@ -415,7 +489,7 @@
         );
         imageSourceByRow[index] = bestImage && imageIsUnambiguous ? bestImage.product : null;
         const exactMatches = (existingByIdentity.get(identity) || [])
-          .filter((product) => !usedProductIds.has(product.id) && product.categoria_id === categoryId)
+          .filter((product) => !usedProductIds.has(product.id))
           .sort((left, right) => preferExistingProduct(left, right, categoryId));
         const sameVariantMatches = familyMatches
           .filter((product) => !usedProductIds.has(product.id)
@@ -461,9 +535,9 @@
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
         if (!user) throw new Error("La sesión de administración expiró. Inicia sesión de nuevo para consolidar duplicados.");
-        const importedBarcodes = new Set(preparedRows.map((row) => row.barcode));
+        const importedBarcodes = new Set(validRows.map((row) => normalizeSku(row.barcode)).filter(Boolean));
         const barcodeConflicts = duplicateUpdates
-          .filter((product) => importedBarcodes.has(product.codigo_barras))
+          .filter((product) => importedBarcodes.has(normalizeSku(product.codigo_barras)))
           .map((product) => product.id);
         if (barcodeConflicts.length) {
           const { error } = await supabase
@@ -486,13 +560,15 @@
         consolidatedDuplicateCount = duplicateIds.length;
       }
 
-      const products = preparedRows.map((row, index) => {
+      const products = validRows.map((row, index) => {
         const existing = matchedProducts[index];
         const imageSource = imageSourceByRow[index];
         const imageProduct = existing && !isPlaceholder(existing) ? existing : imageSource;
         return {
           ...(existing ? { id: existing.id } : {}),
-          codigo_barras: row.barcode,
+          codigo_barras: row.barcode || existing?.codigo_barras || null,
+          deleted_at: null,
+          deleted_by: null,
           nombre: row.name,
           categoria_id: categoryIdByDepartment.get(row.departmentKey),
           precio: row.priceUsd,
@@ -507,28 +583,43 @@
             ? existing.precio_oferta
             : null,
           presentacion: row.presentation || existing?.presentacion || null,
-          imagen_url: imageProduct?.imagen_url || "assets/products/imported-product-placeholder.svg",
-          imagen_path: imageProduct?.imagen_path || null,
+          imagen_url: row.imageUrl || imageProduct?.imagen_url || row.fallbackImageUrl,
+          imagen_path: row.imageUrl ? null : imageProduct?.imagen_path || null,
           updated_at: new Date().toISOString(),
         };
       });
-      const updatedCount = products.filter((product) => product.id).length;
-      const createdCount = products.length - updatedCount;
+      const totalUpdatedCount = products.filter((product) => product.id).length;
+      const totalCreatedCount = products.length - totalUpdatedCount;
       const productGroups = [
         products.filter((product) => product.id),
         products.filter((product) => !product.id),
       ];
 
-      for (const group of productGroups) {
+      for (const [groupIndex, group] of productGroups.entries()) {
         for (let index = 0; index < group.length; index += 200) {
           const batch = group.slice(index, index + 200);
           const { error } = await supabase.from("productos").upsert(batch, { onConflict: "id" });
           if (error) throw error;
           importedCount += batch.length;
+          if (groupIndex === 0) updatedCount += batch.length;
+          else createdCount += batch.length;
           setStatus(`Inventario actualizado: ${importedCount} de ${products.length} productos…`);
         }
       }
-      setStatus(`Importación completada: ${updatedCount} productos actualizados y ${createdCount} nuevos.${consolidatedInputRows ? ` Se consolidaron ${consolidatedInputRows} filas repetidas usando la última fila de cada producto/presentación.` : ""}${consolidatedDuplicateCount ? ` Se archivaron ${consolidatedDuplicateCount} duplicados; se conservó el historial de pedidos.` : ""} Los productos sin foto quedan listos para completar desde el inventario.`, false, true);
+      if (updatedCount !== totalUpdatedCount || createdCount !== totalCreatedCount) {
+        throw new Error("El resumen de importación no coincide con los productos confirmados por Supabase.");
+      }
+      const report = {
+        total_rows_received: sourceRowCount,
+        total_records_processed: importedCount + skippedRows.length + consolidatedInputRows,
+        unique_products_written: importedCount,
+        products_updated: updatedCount,
+        products_created: createdCount,
+        duplicate_rows_consolidated: consolidatedInputRows,
+        skipped_rows: skippedRows,
+      };
+      showImportReport(report);
+      setStatus(`Importación completada: ${importedCount} productos procesados, ${updatedCount} actualizados y ${createdCount} nuevos; ${skippedRows.length} filas omitidas.${consolidatedInputRows ? ` Se consolidaron ${consolidatedInputRows} filas repetidas usando la última fila por SKU o nombre/presentación.` : ""}${consolidatedDuplicateCount ? ` Se archivaron ${consolidatedDuplicateCount} duplicados; se conservó el historial de pedidos.` : ""} Las imágenes anteriores se conservaron cuando la URL de la fila estaba vacía.`, false, true);
       form.reset();
       preparedRows = [];
       previewRows.replaceChildren();
@@ -545,9 +636,27 @@
           : error.message || "No se pudo importar el inventario.",
         true,
       );
+      showImportReport({
+        total_rows_received: sourceRowCount,
+        total_records_processed: importedCount + skippedRows.length + consolidatedInputRows,
+        unique_products_written: importedCount,
+        products_updated: updatedCount,
+        products_created: createdCount,
+        duplicate_rows_consolidated: consolidatedInputRows,
+        skipped_rows: skippedRows,
+        import_error: error.message || "No se pudo completar la importación.",
+      });
       submitButton.disabled = false;
     } finally {
       previewButton.disabled = false;
+    }
+
+    function showImportReport(report) {
+      if (reportElement) {
+        reportElement.textContent = JSON.stringify(report, null, 2);
+        reportElement.hidden = false;
+      }
+      window.dispatchEvent(new CustomEvent("kristal:inventory-import-report", { detail: report }));
     }
   }
 
@@ -559,8 +668,14 @@
   });
   fileInput.addEventListener("change", () => {
     preparedRows = [];
+    skippedRows = [];
+    sourceRowCount = 0;
     previewWrap.hidden = true;
     submitButton.disabled = true;
+    if (reportElement) {
+      reportElement.hidden = true;
+      reportElement.textContent = "";
+    }
     setStatus("");
   });
   form.addEventListener("submit", importInventory);

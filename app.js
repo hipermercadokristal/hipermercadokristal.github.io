@@ -246,7 +246,7 @@ function renderProductCard(product, { featured = false, dailyOffer = false } = {
     ${badge ? `<span class="product-badge ${hasOffer ? "sale" : "popular"}">${badge}</span>` : ""}
     <button class="favorite-button${isFavorite ? " active" : ""}" type="button" aria-label="${isFavorite ? "Quitar" : "Añadir"} ${escapeHtml(product.name)} ${isFavorite ? "de" : "a"} favoritos" aria-pressed="${isFavorite}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.8c0 5.3-8.8 10-8.8 10s-8.8-4.7-8.8-10A4.8 4.8 0 0 1 12 6.1a4.8 4.8 0 0 1 8.8 2.7Z" /></svg></button>
     <div class="product-image-wrap">
-      <img class="product-image" src="${escapeHtml(product.image)}" alt="${escapeHtml(product.alt)}" loading="lazy" />
+      <img class="product-image" src="${escapeHtml(product.image_url)}" data-fallback-image="${escapeHtml(product.fallback_image_url)}" alt="${escapeHtml(product.alt)}" loading="lazy" />
     </div>
     ${product.brand ? `<span class="product-brand">${escapeHtml(product.brand)}</span>` : ""}
     <span class="product-category">${escapeHtml(product.category)}</span>
@@ -256,6 +256,22 @@ function renderProductCard(product, { featured = false, dailyOffer = false } = {
     <div class="product-cart-control">${productCartControl(product)}</div>
   </article>`;
 }
+
+document.addEventListener("error", (event) => {
+  const image = event.target;
+  if (!(image instanceof HTMLImageElement) || !image.classList.contains("product-image")) return;
+  if (image.dataset.fallbackAttempted) {
+    image.removeAttribute("src");
+    return;
+  }
+  image.dataset.fallbackAttempted = "true";
+  const fallbackImage = image.dataset.fallbackImage;
+  if (fallbackImage && image.src !== new URL(fallbackImage, document.baseURI).href) {
+    image.src = fallbackImage;
+  } else {
+    image.removeAttribute("src");
+  }
+}, true);
 
 function updateDailyOfferTimer() {
   if (!dailyOffersTimer || !dailyOffersGrid?.querySelector(".daily-offer-card")) {
@@ -379,6 +395,11 @@ function renderCatalogBrandFilters() {
 function mapDatabaseProduct(row) {
   const category = Array.isArray(row.categorias) ? row.categorias[0] : row.categorias;
   if (!category) throw new Error(`El producto ${row.id} no tiene una categoría válida.`);
+  const fallbackImageUrl = window.getKristalProductFallbackImage(category.departamento || category.nombre);
+  const storedImageUrl = String(row.imagen_url || "");
+  const imageUrl = !storedImageUrl || storedImageUrl.includes("imported-product-placeholder.svg")
+    ? fallbackImageUrl
+    : storedImageUrl;
   return {
     id: row.id,
     name: row.nombre,
@@ -388,7 +409,8 @@ function mapDatabaseProduct(row) {
     detail: row.presentacion || "Presentación por confirmar",
     price: Number(row.precio_oferta ?? row.precio),
     oldPrice: row.precio_oferta === null ? null : Number(row.precio),
-    image: row.imagen_url,
+    image_url: imageUrl,
+    fallback_image_url: fallbackImageUrl,
     alt: `Imagen de ${row.nombre}`,
     esDestacado: row.es_destacado,
     consultarWhatsApp: false,
@@ -1183,7 +1205,7 @@ function renderCart() {
       const lineTotal = product.price * quantity;
       return `
         <article class="cart-item">
-          <div class="cart-item-image"><img src="${escapeHtml(product.image)}" alt="" /></div>
+          <div class="cart-item-image"><img src="${escapeHtml(product.image_url)}" alt="" /></div>
           <div class="cart-item-details">
             <h3>${escapeHtml(product.name)}</h3>
             <span class="cart-item-presentation">${escapeHtml(product.detail)}</span>

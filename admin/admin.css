@@ -48,6 +48,7 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .courier-payout-history-heading { margin: 30px 0 12px; color: #1c3d2a; font-size: 16px; }
 .inventory-import-panel form { display: grid; gap: 12px; }
 .inventory-import-panel .field { margin-bottom: 0; }
+.inventory-import-report { max-height: 360px; overflow: auto; padding: 14px; border: 1px solid #dce6dd; border-radius: 9px; background: #f7faf7; color: #2f4938; font: 11px/1.5 Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
 .import-actions { display: flex; flex-wrap: wrap; gap: 9px; }
 .import-actions button { min-height: 42px; padding: 0 14px; border-radius: 7px; font-weight: 800; }
 .import-actions .secondary-button { border: 1px solid #dce6dd; background: #fff; color: #31543b; }
@@ -85,6 +86,11 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .staff-collapsible > .sales-summary { display: grid; padding: 14px; margin: 0; border: 0; border-radius: 0; box-shadow: none; }
 .panel { margin-top: 18px; padding: 24px; }
 .panel-heading { margin-bottom: 22px; }
+.inventory-panel-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.inventory-archive-all-button { min-height: 42px; padding: 0 14px; border: 1px solid #f0d9d6; border-radius: 7px; background: #fff; color: #a13d34; font-weight: 800; }
+.inventory-archive-all-button:hover { background: #fff5f3; }
+.inventory-archive-all-button:disabled { opacity: .55; cursor: not-allowed; }
+.inventory-panel .intro { margin-bottom: 14px; }
 .text-button { padding: 8px 0; border: 0; background: transparent; color: #27633b; font-size: 13px; font-weight: 800; }
 .product-form-compact { margin-top: 18px; border: 1px solid #dfe9e1; border-radius: 12px; background: #f9fcf9; }
 .product-form-compact > summary { min-height: 54px; display: flex; align-items: center; padding: 0 18px; color: #205a34; font-size: 14px; font-weight: 800; cursor: pointer; list-style: none; }
