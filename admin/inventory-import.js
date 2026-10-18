@@ -16,15 +16,16 @@
 
   const aliases = {
     id: ["id", "productid", "idproducto", "uuid"],
-    barcode: ["codigosku", "sku", "codigodebarras", "codigo", "ean", "barcode", "codigoproducto", "plu"],
-    name: ["nombreproducto", "descripcion", "descripciondelproducto", "producto", "nombre", "articulo", "item"],
+    barcode: ["codigosku", "sku", "codigodebarras", "codigo", "ean", "barcode", "codigoproducto", "codigoarticulo", "codarticulo", "codigointerno", "artcodigo", "plu"],
+    name: ["nombreproducto", "descripcion", "descripciondelproducto", "descripcionarticulo", "artdescripcion", "producto", "nombre", "articulo", "item"],
     presentation: ["presentacion", "presentacionproducto", "empaque", "contenido", "tamano", "unidadmedida", "size", "presentation"],
-    department: ["departamento", "categoria", "departamentocategoria", "category", "department", "rubro"],
+    department: ["departamento", "categoria", "departamentocategoria", "artcategoria", "category", "department", "rubro", "familia"],
     image: ["imagen", "imagenurl", "urlimagen", "image", "imageurl", "foto", "fotourl"],
     usd: ["precioenusd", "preciodolares", "precioendolares", "preciodolar", "priceusd", "usd", "preciousd", "preciosd"],
+    retailPrice: ["pvp", "artpreciopvp", "preciopublico", "preciodeventaalpublico", "precioventa", "preciodeventa", "precio"],
     sale: ["preciooferta", "precioespecial", "preciopromocion", "pricesale", "saleprice", "oferta"],
-    ves: ["precioenves", "precioves", "precioenbs", "preciobs", "preciobsf", "bolivares", "priceves", "ves"],
-    stock: ["stockactual", "stock", "existencia", "existencias", "inventario", "cantidad"],
+    ves: ["precioenves", "precioves", "precioenbs", "preciobs", "preciobsf", "bolivares", "priceves", "ves", "pvpves", "pvpbs", "pvpbolivares"],
+    stock: ["stockactual", "stock", "existencia", "existencias", "existenciaactual", "artexistencia", "inventario", "cantidad", "cantidadactual", "cant"],
   };
   const presentationPattern = /(?:\d+(?:[.,]\d+)?\s*(?:kgs?|g|gr|gramos?|mg|lts?|litros?|l|ml|cc|cl|oz|lbs?|unidades?|unds?|u|piezas?|packs?|paquetes?))$/i;
   const fuzzyIgnoredWords = new Set([
@@ -237,6 +238,26 @@
     return -1;
   }
 
+  async function fetchCurrentBcvRate() {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 10000);
+    try {
+      const response = await fetch("https://ve.dolarapi.com/v1/dolares/oficial", {
+        signal: controller.signal,
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`La consulta de la tasa BCV respondió ${response.status}.`);
+      const data = await response.json();
+      const rate = Number(data.promedio);
+      if (!Number.isFinite(rate) || rate <= 0) {
+        throw new TypeError("La tasa BCV recibida no es válida.");
+      }
+      return rate;
+    } finally {
+      window.clearTimeout(timeout);
+    }
+  }
+
   async function prepareImport() {
     submitButton.disabled = true;
     preparedRows = [];
@@ -265,19 +286,24 @@
       const candidate = Object.fromEntries(
         Object.entries(aliases).map(([key, values]) => [key, findFieldIndex(sheetRows[rowIndex], values)]),
       );
-      if (Object.entries(candidate).every(([key, index]) => ["id", "barcode", "stock", "presentation", "image"].includes(key) || index >= 0)) {
+      const hasRequiredFields = candidate.name >= 0
+        && candidate.department >= 0
+        && (candidate.usd >= 0 || candidate.ves >= 0 || candidate.retailPrice >= 0);
+      if (hasRequiredFields) {
         headerRow = rowIndex;
         fields = candidate;
         break;
       }
     }
-    if (headerRow < 0) throw new Error("No se encontraron encabezados compatibles para nombre, departamento y precios USD/VES en las primeras 20 filas.");
+    if (headerRow < 0) throw new Error("No se encontraron encabezados compatibles. Se requiere descripción/nombre, categoría/departamento y un precio USD, VES o PVP.");
     const inputRows = sheetRows.slice(headerRow + 1)
       .map((cells, index) => ({ cells, rowNumber: headerRow + index + 2 }))
       .filter(({ cells }) => cells.some((cell) => String(cell ?? "").trim() !== ""));
     if (!inputRows.length) throw new Error("La hoja no contiene productos debajo de los encabezados.");
     if (inputRows.length > 10000) throw new Error("El archivo supera el límite de 10.000 filas por importación.");
     sourceRowCount = inputRows.length;
+    const importsVesOnly = fields.usd < 0 && (fields.ves >= 0 || fields.retailPrice >= 0);
+    const bcvRate = importsVesOnly ? await fetchCurrentBcvRate() : null;
 
     const { data: categories, error } = await supabase.from("categorias").select("id,nombre,departamento");
     if (error) throw error;
@@ -312,10 +338,18 @@
       const departmentName = existingCategory?.departamento
         || (departmentKey ? formatDepartmentName(departmentNameOverride) : "");
       const imageUrl = fields.image >= 0 ? String(cells[fields.image] ?? "").trim() : "";
-      const priceUsd = parseNumber(cells[fields.usd]);
+      const usdText = fields.usd >= 0 ? String(cells[fields.usd] ?? "").trim() : "";
+      const vesText = fields.ves >= 0 ? String(cells[fields.ves] ?? "").trim() : "";
+      const retailPriceText = fields.retailPrice >= 0 ? String(cells[fields.retailPrice] ?? "").trim() : "";
+      const priceVesText = vesText || retailPriceText;
+      const priceVes = priceVesText ? parseNumber(priceVesText) : null;
+      const priceUsd = usdText
+        ? parseNumber(usdText)
+        : Number.isFinite(priceVes) && bcvRate
+          ? priceVes / bcvRate
+          : NaN;
       const saleText = fields.sale >= 0 ? String(cells[fields.sale] ?? "").trim() : "";
       const salePrice = saleText ? parseNumber(saleText) : null;
-      const priceVes = parseNumber(cells[fields.ves]);
       const stockText = fields.stock >= 0 ? String(cells[fields.stock] ?? "").trim() : "";
       const stock = stockText ? parseNumber(stockText) : null;
       const errors = [];
@@ -328,7 +362,7 @@
       if (saleText && (!Number.isFinite(salePrice) || salePrice <= 0 || salePrice >= priceUsd)) {
         errors.push("precio de oferta (debe ser menor al regular)");
       }
-      if (!Number.isFinite(priceVes) || priceVes < 0) errors.push("precio VES");
+      if (priceVesText && (!Number.isFinite(priceVes) || priceVes < 0)) errors.push("precio VES/PVP");
       if (stockText && (!Number.isFinite(stock) || stock < 0 || stock > 100000000)) errors.push("stock");
       return {
         rowNumber,
@@ -347,6 +381,8 @@
         salePrice,
         salePriceProvided: Boolean(saleText),
         priceVes,
+        priceVesProvided: Boolean(priceVesText),
+        bcvRateUsed: importsVesOnly ? bcvRate : null,
         stock,
         stockTracked: stockText !== "",
         stockColumnPresent: fields.stock >= 0,
@@ -411,6 +447,8 @@
           imageUrl: row.imageUrl || existingRow.imageUrl,
           salePrice: row.salePriceProvided ? row.salePrice : existingRow.salePrice,
           salePriceProvided: row.salePriceProvided || existingRow.salePriceProvided,
+          priceVes: row.priceVesProvided ? row.priceVes : existingRow.priceVes,
+          priceVesProvided: row.priceVesProvided || existingRow.priceVesProvided,
           stock: row.stockTracked ? row.stock : existingRow.stock,
           stockTracked: row.stockTracked || existingRow.stockTracked,
         };
@@ -459,7 +497,7 @@
       reportElement.hidden = true;
       reportElement.textContent = "";
     }
-    setStatus(`${inputRows.length} filas revisadas; ${consolidatedInputRows} repetidas consolidadas por ID, SKU, coincidencia difusa o nombre/presentación; ${validRows} listas para importar y ${skippedRows.length} se omitirán por errores de formato.${preparedRows.length > 100 ? " La vista previa muestra hasta 100 productos y filas adicionales con errores." : ""}`, skippedRows.length > 0);
+    setStatus(`${inputRows.length} filas revisadas; ${consolidatedInputRows} repetidas consolidadas por ID, SKU, coincidencia difusa o nombre/presentación; ${validRows} listas para importar y ${skippedRows.length} se omitirán por errores de formato.${importsVesOnly ? ` PVP en Bs. convertido a USD con BCV ${bcvRate.toFixed(2)}.` : ""}${preparedRows.length > 100 ? " La vista previa muestra hasta 100 productos y filas adicionales con errores." : ""}`, skippedRows.length > 0);
   }
 
   async function importInventory(event) {
@@ -596,7 +634,7 @@
               && fuzzyMatches[0].similarity - (fuzzyMatches[1]?.similarity || 0) >= 0.12);
           if (hasUnambiguousBestMatch) preferredVariant = fuzzyMatches[0].product;
         }
-        if (!identifierMatch && preferredVariant) {
+        if (!identifierMatch && !row.barcode && preferredVariant) {
           matchedProducts[index] = preferredVariant;
         }
         const canonical = matchedProducts[index];
@@ -616,7 +654,11 @@
             updated_at: new Date().toISOString(),
           };
           if (row.salePriceProvided) update.precio_oferta = row.salePrice;
-          if (row.stockTracked) update.stock = row.stock;
+          if (row.priceVesProvided) update.precio_ves = row.priceVes;
+          if (row.stockTracked) {
+            update.stock = row.stock;
+            update.stock_tracked = true;
+          }
           return update;
         }
 

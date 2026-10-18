@@ -1,4 +1,4 @@
-const CACHE_NAME = "hipermercado-kristal-v73";
+const CACHE_NAME = "hipermercado-kristal-v75";
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -39,7 +39,7 @@ const APP_SHELL = [
   "/caja/manifest.webmanifest",
   "/admin/manifest.webmanifest",
   "/admin/staff-pwa.js?v=staff-no-install-v1-20261017",
-  "/admin/inventory-import.js?v=partial-import-v1",
+  "/admin/inventory-import.js?v=chrystal-columns-v2",
   "/admin/marketing.js?v=marketing-flash-import-v2",
   "/admin/admin.css?v=marketing-flash-import-v2",
   "/admin/admin.js?v=trash-purge-v1",

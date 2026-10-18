@@ -16,7 +16,7 @@
     <script src="../assets/vendor/xlsx-0.20.3.min.js"></script>
     <script src="../admin/staff-pwa.js?v=staff-no-install-v1-20261017" defer></script>
     <script src="../staff-collapsible.js?v=staff-collapsible-v1-20261017" defer></script>
-    <script src="../admin/inventory-import.js?v=partial-import-v1" defer></script>
+    <script src="../admin/inventory-import.js?v=chrystal-columns-v2" defer></script>
     <script src="marketing.js?v=marketing-flash-import-v2" defer></script>
     <script src="admin.js?v=trash-purge-v1" defer></script>
   </head>
@@ -170,7 +170,7 @@
           <div class="panel-heading">
             <div><p class="eyebrow">CRYSTAL SOFTWARE</p><h2 id="inventory-import-heading">Importar inventario</h2></div>
           </div>
-          <p class="intro">Carga Excel o CSV con nombre de producto, departamento/categoría y precios USD/VES. SKU o código de barras es opcional: se usa como identificador principal y, si falta, se busca por nombre/presentación y similitud difusa dentro del mismo departamento. Las variantes de presentación no se fusionan, pero pueden heredar una foto de su producto o marca más parecida. La columna “imagen” o “image_url” también es opcional; si está vacía se conserva la foto guardada o se asigna una imagen del departamento. Las filas repetidas se consolidan usando la última fila. Las filas con formato inválido se omiten sin detener las válidas; al terminar se muestra un reporte JSON con resultados y filas omitidas. Revisa la vista previa antes de importar.</p>
+          <p class="intro">Importa CSV/Excel de Chrystal Software, incluyendo las columnas ART_CODIGO, ART_DESCRIPCION, ART_CATEGORIA, ART_PRECIO_PVP y ART_EXISTENCIA. También acepta archivos con columnas USD y VES. Si solo trae ART_PRECIO_PVP en Bs., el sistema consulta la tasa BCV vigente, calcula el precio base en USD y conserva el PVP original en VES. Al actualizar productos existentes se buscan por código exacto, se mantienen las fotos y solo se actualizan nombre, precio, stock y el PVP VES incluido en el archivo; los productos nuevos se crean con una imagen genérica/heredada para que luego puedas asignar su foto. Las filas repetidas se consolidan; las filas inválidas se reportan sin detener las válidas. Revisa la vista previa y la tasa de conversión antes de importar.</p>
           <form id="inventory-import-form">
             <label class="field" for="inventory-import-file">Archivo de inventario
               <input id="inventory-import-file" name="file" type="file" accept=".xlsx,.xls,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required />
