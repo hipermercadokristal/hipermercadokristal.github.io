@@ -1,9 +1,9 @@
-const CACHE_NAME = "hipermercado-kristal-v56";
+const CACHE_NAME = "hipermercado-kristal-v57";
 const APP_SHELL = [
   "/",
   "/index.html",
-  "/styles.css?v=commerce-marketplace-v3",
-  "/app.js?v=commerce-marketplace-v3",
+  "/styles.css?v=commerce-marketplace-v4",
+  "/app.js?v=commerce-marketplace-v4",
   "/client/app-orders.js?v=delivery-fee-courier-pay-v1-20261017",
   "/auth-routing.js?v=staff-navigation-v1-20261017",
   "/staff-store-navigation.js?v=staff-navigation-v1-20261017",

@@ -58,6 +58,15 @@ const infoDialog = document.querySelector("#info-dialog");
 const shippingProgressMessage = document.querySelector("#shipping-progress-message");
 const headerBCVRate = document.querySelector("#header-bcv-rate");
 const headerBCVDate = document.querySelector("#header-bcv-date");
+const storeOpenStatus = document.querySelector("#store-open-status");
+const storeOpenStatusText = document.querySelector("#store-open-status-text");
+const storeHoursFormatter = new Intl.DateTimeFormat("en-US", {
+  timeZone: "America/Caracas",
+  weekday: "long",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
 const currencySwitchButtons = [...document.querySelectorAll("[data-display-currency]")];
 const catalogSort = document.querySelector("#catalog-sort");
 const catalogResultCount = document.querySelector("#catalog-result-count");
@@ -145,6 +154,17 @@ function renderHeaderBCVRate() {
   headerBCVRate.closest(".header-bcv-rate").classList.toggle("is-stale", bcvRateIsStale);
 }
 
+function updateStoreOpenStatus(at = new Date()) {
+  if (!storeOpenStatus || !storeOpenStatusText) return;
+  const parts = Object.fromEntries(storeHoursFormatter.formatToParts(at).map(({ type, value }) => [type, value]));
+  const currentMinutes = Number(parts.hour) * 60 + Number(parts.minute);
+  const closingTime = parts.weekday === "Sunday" ? 12 * 60 : 21 * 60;
+  const isOpen = currentMinutes >= 7 * 60 && currentMinutes < closingTime;
+  storeOpenStatus.classList.toggle("is-open", isOpen);
+  storeOpenStatus.classList.toggle("is-closed", !isOpen);
+  storeOpenStatusText.textContent = isOpen ? "Abierto ahora" : "Cerrado ahora";
+}
+
 async function refreshHeaderBCVRate() {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), 10000);
@@ -175,6 +195,8 @@ async function refreshHeaderBCVRate() {
 }
 
 renderHeaderBCVRate();
+updateStoreOpenStatus();
+window.setInterval(updateStoreOpenStatus, 60000);
 
 function displayPriceInVES(price) {
   if (!Number.isFinite(bcvRate)) return '<small class="product-ves-price">Equivalente BCV no disponible</small>';
