@@ -10,6 +10,11 @@ const emptyInventory = document.querySelector("#empty-inventory");
 const inventorySearch = document.querySelector("#inventory-search");
 const inventorySearchSummary = document.querySelector("#inventory-search-summary");
 const inventorySearchEmpty = document.querySelector("#inventory-search-empty");
+const productImageRulesForm = document.querySelector("#product-image-rules-form");
+const productImageRuleFile = document.querySelector("#product-image-rule-file");
+const productImageRulesList = document.querySelector("#product-image-rules-list");
+const productImageRulesStatus = document.querySelector("#product-image-rules-status");
+const saveProductImageRuleButton = document.querySelector("#save-product-image-rule-button");
 const imageInput = document.querySelector("#product-image");
 const saveButton = document.querySelector("#save-product-button");
 const formHeading = document.querySelector("#product-form-heading");
@@ -74,6 +79,7 @@ const departmentNames = [
 let editingProduct = null;
 let categories = [];
 let inventoryProducts = [];
+let productImageRules = [];
 let missingDepartments = [];
 let deliveryCouriers = [];
 let adminOrdersChannel = null;
@@ -744,6 +750,10 @@ async function enterStaffDashboard(session) {
     await loadCategories();
     await loadInventory();
     await loadDeletedProducts();
+    loadProductImageRules().catch((error) => {
+      console.error("No se pudieron cargar las reglas de imagen.", error);
+      setMessage(productImageRulesStatus, `${error.message || "No se pudieron cargar las reglas."} Ejecuta supabase-product-image-rules.sql en SQL Editor.`);
+    });
     loadCourierCompensation().catch((error) => {
       console.error("No se pudieron cargar los saldos de delivery.", error);
       setMessage(courierPaymentsStatus, `${error.message || "No se pudieron cargar los saldos."} Ejecuta supabase-courier-payments.sql en Supabase SQL Editor.`);
@@ -816,6 +826,86 @@ async function uploadProductImage(file) {
   if (error) throw error;
   const { data } = supabaseClient.storage.from("product-images").getPublicUrl(path);
   return { path, url: data.publicUrl };
+}
+
+async function loadProductImageRules() {
+  const { data, error } = await supabaseClient
+    .from("product_image_rules")
+    .select("id,keywords,image_url,image_path")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  productImageRules = data || [];
+  productImageRulesList.innerHTML = productImageRules.map((rule) => `<article class="product-image-rule">
+    <img src="${escapeHtml(rule.image_url)}" alt="" loading="lazy" />
+    <div><strong>${escapeHtml((rule.keywords || []).join(" · "))}</strong><small>La frase más específica tiene prioridad al importar.</small></div>
+    <button class="delete-button" type="button" data-delete-image-rule="${escapeHtml(rule.id)}">Eliminar regla</button>
+  </article>`).join("");
+  if (productImageRulesStatus) productImageRulesStatus.textContent = "";
+}
+
+async function saveProductImageRule(event) {
+  event.preventDefault();
+  if (!productImageRulesForm || !productImageRuleFile || !saveProductImageRuleButton) return;
+  saveProductImageRuleButton.disabled = true;
+  setMessage(productImageRulesStatus, "Subiendo foto y guardando regla…");
+  let uploadedPath = null;
+  let ruleSaved = false;
+  try {
+    const formData = new FormData(productImageRulesForm);
+    const keywords = [...new Set(String(formData.get("keywords") || "")
+      .split(/\r?\n/)
+      .map((phrase) => phrase.trim())
+      .filter(Boolean))];
+    if (!keywords.length || keywords.some((phrase) => phrase.length > 80)) {
+      throw new Error("Escribe al menos una frase clave y limita cada frase a 80 caracteres.");
+    }
+    const imageFile = productImageRuleFile.files[0];
+    if (!imageFile) throw new Error("Selecciona la foto que corresponde a esas palabras clave.");
+    const uploadedImage = await uploadProductImage(imageFile);
+    uploadedPath = uploadedImage.path;
+    const { error } = await supabaseClient.from("product_image_rules").insert({
+      keywords,
+      image_url: uploadedImage.url,
+      image_path: uploadedImage.path,
+      updated_at: new Date().toISOString(),
+    });
+    if (error) throw error;
+    ruleSaved = true;
+    productImageRulesForm.reset();
+    await loadProductImageRules();
+    setMessage(productImageRulesStatus, "Foto y palabras clave guardadas. Se usarán en la próxima importación.", true);
+  } catch (error) {
+    if (uploadedPath && !ruleSaved) {
+      try {
+        const { error: cleanupError } = await supabaseClient.storage.from("product-images").remove([uploadedPath]);
+        if (cleanupError) throw cleanupError;
+      } catch (cleanupError) {
+        console.error("No se pudo limpiar la foto de una regla que no llegó a guardarse.", cleanupError);
+      }
+    }
+    console.error("No se pudo guardar la regla de imagen.", error);
+    setMessage(productImageRulesStatus, ruleSaved
+      ? `La regla se guardó, pero no se pudo actualizar la lista: ${error.message || "error desconocido"}. Pulsa “Actualizar reglas”.`
+      : error.message || "No se pudo guardar la regla de imagen.");
+  } finally {
+    saveProductImageRuleButton.disabled = false;
+  }
+}
+
+async function deleteProductImageRule(ruleId, button) {
+  if (!ruleId) return;
+  button.disabled = true;
+  setMessage(productImageRulesStatus, "Eliminando regla…");
+  try {
+    const { error } = await supabaseClient.from("product_image_rules").delete().eq("id", ruleId);
+    if (error) throw error;
+    await loadProductImageRules();
+    setMessage(productImageRulesStatus, "Regla eliminada. Las fotos ya asignadas a productos no cambian.", true);
+  } catch (error) {
+    console.error("No se pudo eliminar la regla de imagen.", error);
+    setMessage(productImageRulesStatus, error.message || "No se pudo eliminar la regla.");
+    button.disabled = false;
+  }
 }
 
 async function saveProduct(event) {
@@ -1155,6 +1245,17 @@ window.addEventListener("kristal:inventory-imported", () => {
 });
 inventoryRows?.addEventListener("click", handleInventoryAction);
 inventorySearch?.addEventListener("input", renderInventory);
+productImageRulesForm?.addEventListener("submit", saveProductImageRule);
+productImageRulesList?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-delete-image-rule]");
+  if (button) deleteProductImageRule(button.dataset.deleteImageRule, button);
+});
+document.querySelector("#refresh-product-image-rules-button")?.addEventListener("click", () => {
+  loadProductImageRules().catch((error) => {
+    console.error("No se pudieron actualizar las reglas de imagen.", error);
+    setMessage(productImageRulesStatus, `${error.message || "No se pudieron actualizar las reglas."} Ejecuta supabase-product-image-rules.sql en SQL Editor.`);
+  });
+});
 archiveAllProductsButton?.addEventListener("click", archiveAllInventory);
 deletedProductRows?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-restore-product]");

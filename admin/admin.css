@@ -102,6 +102,15 @@ input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: #176332; }
 .product-form-compact > summary::after { margin-left: auto; content: "+"; font-size: 20px; }
 .product-form-compact[open] > summary::after { content: "−"; }
 .product-form-compact > .product-form-panel { margin-top: 0; border: 0; border-top: 1px solid #e6eee7; border-radius: 0 0 12px 12px; box-shadow: none; }
+.product-image-rules-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, .8fr); align-items: end; gap: 0 16px; }
+.product-image-rules-form .field { margin-bottom: 12px; }
+.product-image-rules-form > button { grid-column: 1 / -1; justify-self: start; margin-bottom: 10px; }
+.product-image-rules-list { display: grid; gap: 9px; }
+.product-image-rule { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px; border: 1px solid #e5ece6; border-radius: 9px; }
+.product-image-rule img { width: 58px; height: 58px; border: 1px solid #edf0ed; border-radius: 7px; background: #f7faf7; object-fit: contain; }
+.product-image-rule strong, .product-image-rule small { display: block; }
+.product-image-rule strong { color: #284a34; font-size: 12px; }
+.product-image-rule small { margin-top: 4px; color: #748179; font-size: 10px; }
 .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 18px; }
 .field { display: grid; align-content: start; gap: 7px; margin-bottom: 16px; color: #344b3c; font-size: 13px; font-weight: 700; }
 .field-wide { grid-column: 1 / -1; }
@@ -192,6 +201,11 @@ td:first-child { min-width: 210px; font-weight: 700; }
   .dashboard-header .secondary-button { min-height: 40px; }
   .staff-role-form { grid-template-columns: 1fr; }
   .marketing-announcement form, .banner-form { grid-template-columns: 1fr; }
+  .product-image-rules-form { grid-template-columns: 1fr; }
+  .product-image-rules-form > button { grid-column: auto; justify-self: stretch; }
+  .product-image-rule { grid-template-columns: 48px minmax(0, 1fr); }
+  .product-image-rule img { width: 48px; height: 48px; }
+  .product-image-rule > button { grid-column: 1 / -1; }
   .daily-deal-form { grid-template-columns: 1fr; }
   .daily-deal-form > button { width: 100%; }
   .marketing-announcement form .field, .banner-form .field:nth-child(3) { grid-column: auto; }

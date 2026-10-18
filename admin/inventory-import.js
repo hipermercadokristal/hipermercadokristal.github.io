@@ -54,6 +54,48 @@
       .replace(/[^a-z0-9]/g, "");
   }
 
+  function normalizePhrase(value) {
+    return String(value ?? "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("es-VE")
+      .replace(/[^a-z0-9]+/g, " ")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+  }
+
+  function findImageRule(productName, rules) {
+    const productWords = normalizePhrase(productName);
+    const matches = [];
+    rules.forEach((rule) => {
+      (rule.keywords || []).forEach((keyword) => {
+        const keywordWords = normalizePhrase(keyword);
+        if (!keywordWords.length) return;
+        const matched = productWords.some((_, index) =>
+          keywordWords.every((word, wordIndex) => productWords[index + wordIndex] === word));
+        if (matched) {
+          matches.push({
+            imageUrl: rule.image_url,
+            keyword,
+            wordCount: keywordWords.length,
+            characterCount: normalize(keyword).length,
+          });
+        }
+      });
+    });
+    if (!matches.length) return null;
+    matches.sort((left, right) => right.wordCount - left.wordCount
+      || right.characterCount - left.characterCount);
+    const bestMatches = matches.filter((match) =>
+      match.wordCount === matches[0].wordCount
+      && match.characterCount === matches[0].characterCount);
+    if (new Set(bestMatches.map((match) => match.imageUrl)).size > 1) {
+      return { ambiguous: true, keyword: bestMatches.map((match) => match.keyword).join(" / ") };
+    }
+    return { imageUrl: bestMatches[0].imageUrl, keyword: bestMatches[0].keyword };
+  }
+
   function normalizeSku(value) {
     return String(value ?? "").trim().toLocaleLowerCase("es-VE");
   }
@@ -308,6 +350,15 @@
 
     const { data: categories, error } = await supabase.from("categorias").select("id,nombre,departamento");
     if (error) throw error;
+    const { data: imageRules, error: imageRulesError } = await supabase
+      .from("product_image_rules")
+      .select("id,keywords,image_url");
+    if (imageRulesError) {
+      if (["PGRST205", "42P01"].includes(imageRulesError.code)) {
+        throw new Error("Para usar las fotos por palabras clave, ejecuta supabase-product-image-rules.sql en SQL Editor y vuelve a revisar el archivo.");
+      }
+      throw imageRulesError;
+    }
     const categoryByName = new Map();
     for (const category of categories) {
       const name = normalize(category.nombre);
@@ -336,6 +387,7 @@
       const departmentName = existingCategory?.departamento
         || (departmentKey ? formatDepartmentName(departmentNameOverride) : "");
       const imageUrl = fields.image >= 0 ? String(cells[fields.image] ?? "").trim() : "";
+      const imageRule = imageUrl ? null : findImageRule(name, imageRules || []);
       const usdText = fields.usd >= 0 ? String(cells[fields.usd] ?? "").trim() : "";
       const vesText = fields.ves >= 0 ? String(cells[fields.ves] ?? "").trim() : "";
       const retailPriceText = fields.retailPrice >= 0 ? String(cells[fields.retailPrice] ?? "").trim() : "";
@@ -376,6 +428,9 @@
         name,
         departmentName,
         imageUrl,
+        matchedImageUrl: imageRule?.ambiguous ? "" : imageRule?.imageUrl || "",
+        matchedImageKeyword: imageRule?.keyword || "",
+        imageRuleAmbiguous: Boolean(imageRule?.ambiguous),
         categoryId: existingCategory?.id || null,
         departmentKey,
         priceUsd,
@@ -485,7 +540,7 @@
       <td data-label="Producto">${escapeHtml(row.name)}</td>
       <td data-label="Presentación">${escapeHtml(row.presentation || "—")}</td>
       <td data-label="Departamento">${escapeHtml(row.departmentName)}</td>
-      <td data-label="Imagen">${row.imageUrl ? "URL del archivo" : "Se conserva existente o se asigna marcador neutro"}</td>
+      <td data-label="Imagen">${row.imageUrl ? "URL del archivo" : row.matchedImageUrl ? `Regla: ${escapeHtml(row.matchedImageKeyword)}` : row.imageRuleAmbiguous ? `Reglas ambiguas: ${escapeHtml(row.matchedImageKeyword)}` : "Se conserva existente o se asigna marcador neutro"}</td>
       <td data-label="USD">${Number.isFinite(row.priceUsd) ? row.priceUsd.toFixed(2) : "—"}</td>
       <td data-label="VES">${Number.isFinite(row.priceVes) ? row.priceVes.toFixed(2) : "—"}</td>
       <td data-label="Stock">${!row.stockColumnPresent ? "Se conserva" : row.stockTracked ? row.stock : "Sin control"}</td>
@@ -498,7 +553,9 @@
       reportElement.hidden = true;
       reportElement.textContent = "";
     }
-    setStatus(`${inputRows.length} filas revisadas; ${consolidatedInputRows} repetidas consolidadas por ID, SKU, coincidencia difusa o nombre/presentación; ${validRows} listas para importar y ${skippedRows.length} se omitirán por errores de formato.${importsVesOnly ? ` PVP en Bs. convertido a USD con BCV ${bcvRate.toFixed(2)}.` : ""}${preparedRows.length > 100 ? " La vista previa muestra hasta 100 productos y filas adicionales con errores." : ""}`, skippedRows.length > 0);
+    const matchedImageRules = preparedRows.filter((row) => row.matchedImageUrl).length;
+    const ambiguousImageRules = preparedRows.filter((row) => row.imageRuleAmbiguous).length;
+    setStatus(`${inputRows.length} filas revisadas; ${consolidatedInputRows} repetidas consolidadas por ID, SKU, coincidencia difusa o nombre/presentación; ${validRows} listas para importar y ${skippedRows.length} se omitirán por errores de formato.${matchedImageRules ? ` ${matchedImageRules} productos coinciden con regla de foto.` : ""}${ambiguousImageRules ? ` ${ambiguousImageRules} tienen reglas de foto ambiguas y conservarán su foto actual o marcador.` : ""}${importsVesOnly ? ` PVP en Bs. convertido a USD con BCV ${bcvRate.toFixed(2)}.` : ""}${preparedRows.length > 100 ? " La vista previa muestra hasta 100 productos y filas adicionales con errores." : ""}`, skippedRows.length > 0);
   }
 
   async function importInventory(event) {
@@ -623,14 +680,20 @@
             || preferExistingProduct(left.product, right.product, categoryId));
         const identifierMatch = matchedProducts[index];
         let preferredVariant = exactMatches[0] || sameVariantMatches[0] || null;
+        const exactNameMatchesInCategory = exactMatches
+          .filter((product) => product.categoria_id === categoryId);
         if (!preferredVariant && fuzzyMatches.length) {
           const hasUnambiguousBestMatch = fuzzyMatches.length === 1
             || (fuzzyMatches[0].similarity >= 0.84
               && fuzzyMatches[0].similarity - (fuzzyMatches[1]?.similarity || 0) >= 0.12);
           if (hasUnambiguousBestMatch) preferredVariant = fuzzyMatches[0].product;
         }
-        if (!identifierMatch && !row.barcode && preferredVariant) {
-          matchedProducts[index] = preferredVariant;
+        if (!identifierMatch) {
+          if (!row.barcode && preferredVariant) {
+            matchedProducts[index] = preferredVariant;
+          } else if (row.barcode && exactNameMatchesInCategory.length === 1) {
+            matchedProducts[index] = exactNameMatchesInCategory[0];
+          }
         }
         const canonical = matchedProducts[index];
         if (!canonical) return;
@@ -638,6 +701,7 @@
       });
 
       const existingUpdates = [];
+      const existingImageUpdates = [];
       const newProducts = [];
       validRows.forEach((row, index) => {
         const existing = matchedProducts[index];
@@ -655,6 +719,8 @@
             reset_image: Boolean(resetExistingImagesInput?.checked && !row.imageUrl),
           };
           existingUpdates.push(update);
+          const imageUrl = row.imageUrl || row.matchedImageUrl;
+          if (imageUrl) existingImageUpdates.push({ id: existing.id, image_url: imageUrl });
           return;
         }
 
@@ -672,7 +738,7 @@
           ...(dailyDealColumnsAvailable ? { es_oferta_dia: false, oferta_dia_hasta: null } : {}),
           precio_oferta: row.salePriceProvided ? row.salePrice : null,
           presentacion: row.presentation || null,
-          imagen_url: row.imageUrl || "/assets/products/imported-product-placeholder.svg",
+          imagen_url: row.imageUrl || row.matchedImageUrl || "/assets/products/imported-product-placeholder.svg",
           imagen_path: null,
           updated_at: new Date().toISOString(),
         });
@@ -691,6 +757,13 @@
         importedCount += data;
         updatedCount += data;
         setStatus(`Actualizando productos existentes: ${importedCount} de ${validRows.length}…`);
+      }
+      for (let index = 0; index < existingImageUpdates.length; index += batchSize) {
+        const batch = existingImageUpdates.slice(index, index + batchSize);
+        const { error } = await supabase.rpc("apply_inventory_product_images", {
+          p_products: batch,
+        });
+        if (error) throw error;
       }
       for (let index = 0; index < newProducts.length; index += batchSize) {
         const batch = newProducts.slice(index, index + batchSize);

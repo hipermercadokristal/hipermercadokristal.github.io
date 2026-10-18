@@ -7,7 +7,7 @@
     <title>Administración | Hipermercado Kristal</title>
     <link rel="manifest" href="/admin/manifest.webmanifest" />
     <link rel="icon" type="image/png" href="../assets/kristal-favicon.png" />
-    <link rel="stylesheet" href="admin.css?v=inventory-search-v1" />
+    <link rel="stylesheet" href="admin.css?v=product-image-keywords-v1" />
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
@@ -16,9 +16,9 @@
     <script src="../assets/vendor/xlsx-0.20.3.min.js"></script>
     <script src="../admin/staff-pwa.js?v=staff-no-install-v1-20261017" defer></script>
     <script src="../staff-collapsible.js?v=staff-collapsible-v1-20261017" defer></script>
-    <script src="../admin/inventory-import.js?v=chrystal-category-resolution-v4" defer></script>
+    <script src="../admin/inventory-import.js?v=product-image-keywords-v1" defer></script>
     <script src="marketing.js?v=marketing-flash-import-v2" defer></script>
-    <script src="admin.js?v=inventory-search-v1" defer></script>
+    <script src="admin.js?v=product-image-keywords-v1" defer></script>
   </head>
   <body>
     <main class="admin-shell" data-staff-page="admin">
@@ -166,11 +166,32 @@
           </section>
         </details>
 
+        <section class="panel product-image-rules-panel" aria-labelledby="product-image-rules-heading">
+          <div class="panel-heading">
+            <div><p class="eyebrow">IMÁGENES AUTOMÁTICAS</p><h2 id="product-image-rules-heading">Fotos por palabras clave</h2></div>
+            <button class="secondary-button" id="refresh-product-image-rules-button" type="button">Actualizar reglas</button>
+          </div>
+          <p class="intro">Ejecuta primero <code>supabase-product-image-rules.sql</code> en Supabase. Luego sube una foto y escribe una o varias frases clave, una por línea. Al importar, si el nombre del producto contiene la frase, se asigna esa foto. Si coinciden varias reglas, se prioriza la frase más específica. Las fotos ya asignadas manualmente se conservan.</p>
+          <form id="product-image-rules-form" class="product-image-rules-form">
+            <label class="field" for="product-image-rule-keywords">Palabras o frases clave
+              <textarea id="product-image-rule-keywords" name="keywords" rows="3" maxlength="1000" placeholder="Vatel vegetal&#10;Aceite vegetal Vatel" required></textarea>
+              <small>Una frase por línea; por ejemplo, “Vatel vegetal” o “Vatel soya”.</small>
+            </label>
+            <label class="field" for="product-image-rule-file">Foto asociada
+              <input id="product-image-rule-file" name="image" type="file" accept="image/png,image/jpeg,image/webp" required />
+              <small>PNG, JPG o WebP; máximo 5 MB.</small>
+            </label>
+            <button class="primary-button" id="save-product-image-rule-button" type="submit">Guardar foto y palabras clave</button>
+          </form>
+          <p class="status-message" id="product-image-rules-status" role="status" aria-live="polite"></p>
+          <div class="product-image-rules-list" id="product-image-rules-list"></div>
+        </section>
+
         <section class="panel inventory-import-panel" aria-labelledby="inventory-import-heading">
           <div class="panel-heading">
             <div><p class="eyebrow">CRYSTAL SOFTWARE</p><h2 id="inventory-import-heading">Importar inventario</h2></div>
           </div>
-          <p class="intro">Importa CSV/Excel de Chrystal Software, incluyendo ART_CODIGO, ART_DESCRIPCION, ART_CATEGORIA, ART_PRECIO_PVP y ART_EXISTENCIA. En este archivo, ART_PRECIO_PVP se guarda directamente como USD; la tienda calcula su equivalente en bolívares con BCV. Al actualizar por código exacto se conservan las fotos, salvo que actives la reparación puntual de imágenes heredadas. Los productos nuevos sin foto reciben un marcador neutro; nunca se copia la foto de otro producto por similitud. Revisa la vista previa antes de importar. Ejecuta o vuelve a ejecutar <code>supabase-inventory-import.sql</code> para habilitar las actualizaciones parciales seguras.</p>
+          <p class="intro">Importa CSV/Excel de Chrystal Software, incluyendo ART_CODIGO, ART_DESCRIPCION, ART_CATEGORIA, ART_PRECIO_PVP y ART_EXISTENCIA. En este archivo, ART_PRECIO_PVP se guarda directamente como USD; la tienda calcula su equivalente en bolívares con BCV. Se busca primero por ID/SKU; si no coincide, solo se reutiliza un producto por nombre y presentación exactos cuando hay una coincidencia única en el mismo departamento. Las fotos existentes se conservan; si el producto no tiene foto, se aplica la regla de palabras clave más específica. Los productos nuevos sin coincidencia reciben un marcador neutro; no se copian fotos por parecido difuso. Revisa la vista previa antes de importar. Ejecuta <code>supabase-inventory-import.sql</code> y <code>supabase-product-image-rules.sql</code> en Supabase para habilitar importaciones y reglas de fotos.</p>
           <label class="checkbox-field" for="inventory-import-reset-existing-images">
             <input id="inventory-import-reset-existing-images" type="checkbox" />
             Corregir fotos incorrectas de productos coincidentes sin imagen en el archivo
