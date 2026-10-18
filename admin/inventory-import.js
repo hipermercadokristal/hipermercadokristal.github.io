@@ -534,19 +534,37 @@
           { p_names: [...missingDepartments.values()] },
         );
         if (categoryError) throw categoryError;
-        (resolvedDepartments || []).forEach((department) => {
-          categoryIdByDepartment.set(department.normalized_department, department.category_id);
+        (Array.isArray(resolvedDepartments) ? resolvedDepartments : []).forEach((department) => {
+          if (department?.normalized_department && department?.category_id) {
+            categoryIdByDepartment.set(normalize(department.normalized_department), department.category_id);
+          }
         });
+
         const unresolvedDepartments = [...missingDepartments.keys()]
-          .filter((key) => !categoryIdByDepartment.has(key));
+          .filter((key) => !categoryIdByDepartment.get(key));
         if (unresolvedDepartments.length) {
-          throw new Error(`Supabase no devolvió la categoría creada para: ${unresolvedDepartments.map((key) => missingDepartments.get(key)).join(", ")}.`);
+          const { data: refreshedCategories, error: refreshError } = await supabase
+            .from("categorias")
+            .select("id,nombre,departamento");
+          if (refreshError) throw refreshError;
+          const availableCategories = Array.isArray(refreshedCategories) ? refreshedCategories : [];
+          unresolvedDepartments.forEach((key) => {
+            const category = availableCategories.find((item) => normalize(item.nombre) === key)
+              || availableCategories.find((item) => normalize(item.departamento) === key);
+            if (category?.id) categoryIdByDepartment.set(key, category.id);
+          });
+        }
+
+        const stillUnresolvedDepartments = [...missingDepartments.keys()]
+          .filter((key) => !categoryIdByDepartment.get(key));
+        if (stillUnresolvedDepartments.length) {
+          throw new Error(`No se pudo resolver la categoría de: ${stillUnresolvedDepartments.map((key) => missingDepartments.get(key)).join(", ")}. Ejecuta el archivo actualizado supabase-inventory-import.sql en Supabase y vuelve a importar.`);
         }
       }
       const unresolvedProducts = validRows
-        .filter((row) => !categoryIdByDepartment.has(row.departmentKey));
+        .filter((row) => !categoryIdByDepartment.get(row.departmentKey));
       if (unresolvedProducts.length) {
-        throw new Error(`No se encontró una categoría válida para: ${[...new Set(unresolvedProducts.map((row) => row.departmentName))].join(", ")}.`);
+        throw new Error(`No se encontró una categoría válida para: ${[...new Set(unresolvedProducts.map((row) => row.departmentName))].join(", ")}. No se guardó ningún producto.`);
       }
 
       setStatus("Buscando productos existentes por código, nombre y presentación…");
