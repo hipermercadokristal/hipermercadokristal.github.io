@@ -54,48 +54,6 @@
       .replace(/[^a-z0-9]/g, "");
   }
 
-  function normalizePhrase(value) {
-    return String(value ?? "")
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLocaleLowerCase("es-VE")
-      .replace(/[^a-z0-9]+/g, " ")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean);
-  }
-
-  function findImageRule(productName, rules) {
-    const productWords = normalizePhrase(productName);
-    const matches = [];
-    rules.forEach((rule) => {
-      (rule.keywords || []).forEach((keyword) => {
-        const keywordWords = normalizePhrase(keyword);
-        if (!keywordWords.length) return;
-        const matched = productWords.some((_, index) =>
-          keywordWords.every((word, wordIndex) => productWords[index + wordIndex] === word));
-        if (matched) {
-          matches.push({
-            imageUrl: rule.image_url,
-            keyword,
-            wordCount: keywordWords.length,
-            characterCount: normalize(keyword).length,
-          });
-        }
-      });
-    });
-    if (!matches.length) return null;
-    matches.sort((left, right) => right.wordCount - left.wordCount
-      || right.characterCount - left.characterCount);
-    const bestMatches = matches.filter((match) =>
-      match.wordCount === matches[0].wordCount
-      && match.characterCount === matches[0].characterCount);
-    if (new Set(bestMatches.map((match) => match.imageUrl)).size > 1) {
-      return { ambiguous: true, keyword: bestMatches.map((match) => match.keyword).join(" / ") };
-    }
-    return { imageUrl: bestMatches[0].imageUrl, keyword: bestMatches[0].keyword };
-  }
-
   function normalizeSku(value) {
     return String(value ?? "").trim().toLocaleLowerCase("es-VE");
   }
@@ -314,6 +272,9 @@
     }
     if (!window.XLSX) throw new Error("No se cargó el lector Excel. Recarga Administración e inténtalo de nuevo.");
     if (!supabase) throw new Error("No hay conexión con Supabase.");
+    if (typeof window.findKristalProductImageRule !== "function") {
+      throw new Error("No se cargó el buscador de fotos por palabras clave. Recarga Administración.");
+    }
     const file = fileInput.files[0];
     if (!file) throw new Error("Selecciona un archivo Excel o CSV.");
     if (file.size > 20 * 1024 * 1024) throw new Error("El archivo no puede superar 20 MB.");
@@ -387,7 +348,7 @@
       const departmentName = existingCategory?.departamento
         || (departmentKey ? formatDepartmentName(departmentNameOverride) : "");
       const imageUrl = fields.image >= 0 ? String(cells[fields.image] ?? "").trim() : "";
-      const imageRule = imageUrl ? null : findImageRule(name, imageRules || []);
+      const imageRule = imageUrl ? null : window.findKristalProductImageRule(name, imageRules || []);
       const usdText = fields.usd >= 0 ? String(cells[fields.usd] ?? "").trim() : "";
       const vesText = fields.ves >= 0 ? String(cells[fields.ves] ?? "").trim() : "";
       const retailPriceText = fields.retailPrice >= 0 ? String(cells[fields.retailPrice] ?? "").trim() : "";

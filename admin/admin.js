@@ -10,6 +10,7 @@ const emptyInventory = document.querySelector("#empty-inventory");
 const inventorySearch = document.querySelector("#inventory-search");
 const inventorySearchSummary = document.querySelector("#inventory-search-summary");
 const inventorySearchEmpty = document.querySelector("#inventory-search-empty");
+const inventoryRefreshButton = document.querySelector("#refresh-button");
 const productImageRulesForm = document.querySelector("#product-image-rules-form");
 const productImageRuleFile = document.querySelector("#product-image-rule-file");
 const productImageRulesList = document.querySelector("#product-image-rules-list");
@@ -837,10 +838,40 @@ async function loadProductImageRules() {
   productImageRules = data || [];
   productImageRulesList.innerHTML = productImageRules.map((rule) => `<article class="product-image-rule">
     <img src="${escapeHtml(rule.image_url)}" alt="" loading="lazy" />
-    <div><strong>${escapeHtml((rule.keywords || []).join(" · "))}</strong><small>La frase más específica tiene prioridad al importar.</small></div>
+    <div><strong>${escapeHtml((rule.keywords || []).join(" · "))}</strong><small>Busca todas las palabras, en cualquier orden; admite plurales, acentos y pequeños errores.</small></div>
     <button class="delete-button" type="button" data-delete-image-rule="${escapeHtml(rule.id)}">Eliminar regla</button>
   </article>`).join("");
   if (productImageRulesStatus) productImageRulesStatus.textContent = "";
+}
+
+async function applyProductImageRulesToInventory() {
+  if (typeof window.findKristalProductImageRule !== "function") {
+    throw new Error("No se cargó el buscador de fotos por palabras clave. Recarga Administración.");
+  }
+  const updates = inventoryProducts.flatMap((product) => {
+    const currentImage = String(product.imagen_url || "");
+    const hasRealImage = currentImage
+      && !currentImage.includes("imported-product-placeholder.svg");
+    if (hasRealImage) return [];
+    const match = window.findKristalProductImageRule(product.nombre, productImageRules);
+    return match?.imageUrl
+      ? [{ id: product.id, image_url: match.imageUrl }]
+      : [];
+  });
+  let assignedCount = 0;
+  for (let offset = 0; offset < updates.length; offset += 200) {
+    const { data, error } = await supabaseClient.rpc("apply_inventory_product_images", {
+      p_products: updates.slice(offset, offset + 200),
+    });
+    if (error) throw error;
+    const confirmedCount = Number(data);
+    if (!Number.isInteger(confirmedCount) || confirmedCount < 0 || confirmedCount > Math.min(200, updates.length - offset)) {
+      throw new Error("Supabase devolvió una cantidad inválida de fotos asignadas.");
+    }
+    assignedCount += confirmedCount;
+  }
+  if (assignedCount) await loadInventory();
+  return assignedCount;
 }
 
 async function saveProductImageRule(event) {
@@ -873,7 +904,12 @@ async function saveProductImageRule(event) {
     ruleSaved = true;
     productImageRulesForm.reset();
     await loadProductImageRules();
-    setMessage(productImageRulesStatus, "Foto y palabras clave guardadas. Se usarán en la próxima importación.", true);
+    const assignedCount = await applyProductImageRulesToInventory();
+    setMessage(
+      productImageRulesStatus,
+      `Foto y palabras clave guardadas.${assignedCount ? ` Se asignó la imagen a ${assignedCount} producto${assignedCount === 1 ? "" : "s"} ya publicado${assignedCount === 1 ? "" : "s"}.` : " No había productos pendientes que coincidieran."}`,
+      true,
+    );
   } catch (error) {
     if (uploadedPath && !ruleSaved) {
       try {
@@ -1250,11 +1286,20 @@ productImageRulesList?.addEventListener("click", (event) => {
   const button = event.target.closest("[data-delete-image-rule]");
   if (button) deleteProductImageRule(button.dataset.deleteImageRule, button);
 });
-document.querySelector("#refresh-product-image-rules-button")?.addEventListener("click", () => {
-  loadProductImageRules().catch((error) => {
-    console.error("No se pudieron actualizar las reglas de imagen.", error);
-    setMessage(productImageRulesStatus, `${error.message || "No se pudieron actualizar las reglas."} Ejecuta supabase-product-image-rules.sql en SQL Editor.`);
-  });
+document.querySelector("#refresh-product-image-rules-button")?.addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  setMessage(productImageRulesStatus, "Actualizando reglas y asignando fotos pendientes…");
+  try {
+    await loadProductImageRules();
+    const assignedCount = await applyProductImageRulesToInventory();
+    setMessage(productImageRulesStatus, `Reglas actualizadas. ${assignedCount} fotos asignadas a productos pendientes.`, true);
+  } catch (error) {
+    console.error("No se pudieron actualizar las reglas ni asignar las fotos pendientes.", error);
+    setMessage(productImageRulesStatus, `${error.message || "No se pudieron actualizar las reglas."} Si el problema continúa, verifica supabase-product-image-rules.sql en SQL Editor.`);
+  } finally {
+    button.disabled = false;
+  }
 });
 archiveAllProductsButton?.addEventListener("click", archiveAllInventory);
 deletedProductRows?.addEventListener("click", (event) => {
@@ -1268,11 +1313,20 @@ document.querySelector("#admin-dashboard-view-switcher")?.addEventListener("chan
   const destination = event.currentTarget.value;
   if (destination) window.location.assign(destination);
 });
-document.querySelector("#refresh-button")?.addEventListener("click", () => {
-  loadInventory().catch((error) => {
+inventoryRefreshButton?.addEventListener("click", async () => {
+  inventoryRefreshButton.disabled = true;
+  try {
+    await Promise.all([loadInventory(), loadProductImageRules()]);
+    const assignedCount = await applyProductImageRulesToInventory();
+    if (assignedCount) {
+      setMessage(dashboardStatus, `Inventario actualizado. Se asignaron fotos a ${assignedCount} productos según las palabras clave.`, true);
+    }
+  } catch (error) {
     console.error("No se pudo actualizar la lista del inventario.", error);
     setMessage(dashboardStatus, error.message || "No se pudo actualizar el inventario.");
-  });
+  } finally {
+    inventoryRefreshButton.disabled = false;
+  }
 });
 startStockDayButton?.addEventListener("click", startDailyStock);
 document.querySelector("#refresh-stock-day-button")?.addEventListener("click", () => {
