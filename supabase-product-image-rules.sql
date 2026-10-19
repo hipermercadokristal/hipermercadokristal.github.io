@@ -63,7 +63,14 @@ begin
       or nullif(v_product ->> 'id', '') is null
       or nullif(v_product ->> 'image_url', '') is null
       or (v_product ->> 'image_url') !~ '^https?://'
-      or length(v_product ->> 'image_url') > 2048 then
+      or length(v_product ->> 'image_url') > 2048
+      or (
+        nullif(v_product ->> 'current_image_url', '') is not null
+        and (
+          (v_product ->> 'current_image_url') !~ '^https?://'
+          or length(v_product ->> 'current_image_url') > 2048
+        )
+      ) then
       raise exception 'Cada imagen requiere un id y una URL HTTP(S) válida.';
     end if;
 
@@ -78,6 +85,15 @@ begin
         product.imagen_url is null
         or btrim(product.imagen_url) = ''
         or product.imagen_url like '%imported-product-placeholder.svg%'
+        or (
+          nullif(v_product ->> 'current_image_url', '') is not null
+          and product.imagen_url = v_product ->> 'current_image_url'
+          and exists (
+            select 1
+            from public.product_image_rules as rule
+            where rule.image_url = product.imagen_url
+          )
+        )
       );
 
     get diagnostics v_rows_updated = row_count;

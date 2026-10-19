@@ -852,11 +852,15 @@ async function applyProductImageRulesToInventory() {
     const currentImage = String(product.imagen_url || "");
     const hasRealImage = currentImage
       && !currentImage.includes("imported-product-placeholder.svg");
-    if (hasRealImage) return [];
+    const currentRuleImage = hasRealImage
+      && productImageRules.some((rule) => rule.image_url === currentImage);
     const match = window.findKristalProductImageRule(product.nombre, productImageRules);
-    return match?.imageUrl
-      ? [{ id: product.id, image_url: match.imageUrl }]
-      : [];
+    if (!match?.imageUrl || match.imageUrl === currentImage || (hasRealImage && !currentRuleImage)) return [];
+    return [{
+      id: product.id,
+      image_url: match.imageUrl,
+      ...(currentRuleImage ? { current_image_url: currentImage } : {}),
+    }];
   });
   let assignedCount = 0;
   for (let offset = 0; offset < updates.length; offset += 200) {
@@ -907,7 +911,7 @@ async function saveProductImageRule(event) {
     const assignedCount = await applyProductImageRulesToInventory();
     setMessage(
       productImageRulesStatus,
-      `Foto y palabras clave guardadas.${assignedCount ? ` Se asignó la imagen a ${assignedCount} producto${assignedCount === 1 ? "" : "s"} ya publicado${assignedCount === 1 ? "" : "s"}.` : " No había productos pendientes que coincidieran."}`,
+      `Foto y palabras clave guardadas.${assignedCount ? ` Se asignó o corrigió la imagen de ${assignedCount} producto${assignedCount === 1 ? "" : "s"} ya publicado${assignedCount === 1 ? "" : "s"}.` : " No había productos coincidentes que necesitaran una imagen distinta."}`,
       true,
     );
   } catch (error) {
@@ -1293,7 +1297,7 @@ document.querySelector("#refresh-product-image-rules-button")?.addEventListener(
   try {
     await loadProductImageRules();
     const assignedCount = await applyProductImageRulesToInventory();
-    setMessage(productImageRulesStatus, `Reglas actualizadas. ${assignedCount} fotos asignadas a productos pendientes.`, true);
+    setMessage(productImageRulesStatus, `Reglas actualizadas. ${assignedCount} fotos asignadas o corregidas según la coincidencia más específica.`, true);
   } catch (error) {
     console.error("No se pudieron actualizar las reglas ni asignar las fotos pendientes.", error);
     setMessage(productImageRulesStatus, `${error.message || "No se pudieron actualizar las reglas."} Si el problema continúa, verifica supabase-product-image-rules.sql en SQL Editor.`);
@@ -1319,7 +1323,7 @@ inventoryRefreshButton?.addEventListener("click", async () => {
     await Promise.all([loadInventory(), loadProductImageRules()]);
     const assignedCount = await applyProductImageRulesToInventory();
     if (assignedCount) {
-      setMessage(dashboardStatus, `Inventario actualizado. Se asignaron fotos a ${assignedCount} productos según las palabras clave.`, true);
+      setMessage(dashboardStatus, `Inventario actualizado. Se asignaron o corrigieron fotos de ${assignedCount} productos según las palabras clave.`, true);
     }
   } catch (error) {
     console.error("No se pudo actualizar la lista del inventario.", error);

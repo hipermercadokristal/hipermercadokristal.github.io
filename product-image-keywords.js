@@ -43,25 +43,58 @@
   }
 
   function matchesAllWords(keywordWords, productWords) {
-    const candidates = keywordWords.map((keywordWord) =>
-      productWords.flatMap((productWord, index) =>
-        isCloseWordMatch(keywordWord, productWord) ? [index] : []));
-    if (candidates.some((wordCandidates) => wordCandidates.length === 0)) return false;
-    candidates.sort((left, right) => left.length - right.length);
+    const usedKeywordWords = new Set();
     const usedProductWords = new Set();
 
-    function matchNextWord(index) {
-      if (index === candidates.length) return true;
-      for (const productIndex of candidates[index]) {
-        if (usedProductWords.has(productIndex)) continue;
-        usedProductWords.add(productIndex);
-        if (matchNextWord(index + 1)) return true;
-        usedProductWords.delete(productIndex);
+    function canMatchGroups(keywordStart, keywordEnd, productStart, productEnd) {
+      const keywordGroup = keywordWords.slice(keywordStart, keywordEnd).join("");
+      const productGroup = productWords.slice(productStart, productEnd).join("");
+      if (keywordEnd - keywordStart === 1 && productEnd - productStart === 1) {
+        return isCloseWordMatch(keywordGroup, productGroup);
+      }
+      return Math.min(keywordGroup.length, productGroup.length) >= 5
+        && singularize(keywordGroup) === singularize(productGroup);
+    }
+
+    function matchNextGroup() {
+      if (usedKeywordWords.size === keywordWords.length) return true;
+
+      const keywordStart = keywordWords.findIndex((_word, index) => !usedKeywordWords.has(index));
+      for (let keywordEnd = keywordStart + 1; keywordEnd <= keywordWords.length; keywordEnd += 1) {
+        let keywordGroupAvailable = true;
+        for (let index = keywordStart; index < keywordEnd; index += 1) {
+          if (usedKeywordWords.has(index)) {
+            keywordGroupAvailable = false;
+            break;
+          }
+        }
+        if (!keywordGroupAvailable) break;
+
+        for (let productStart = 0; productStart < productWords.length; productStart += 1) {
+          if (usedProductWords.has(productStart)) continue;
+          for (let productEnd = productStart + 1; productEnd <= productWords.length; productEnd += 1) {
+            let productGroupAvailable = true;
+            for (let index = productStart; index < productEnd; index += 1) {
+              if (usedProductWords.has(index)) {
+                productGroupAvailable = false;
+                break;
+              }
+            }
+            if (!productGroupAvailable) break;
+            if (!canMatchGroups(keywordStart, keywordEnd, productStart, productEnd)) continue;
+
+            for (let index = keywordStart; index < keywordEnd; index += 1) usedKeywordWords.add(index);
+            for (let index = productStart; index < productEnd; index += 1) usedProductWords.add(index);
+            if (matchNextGroup()) return true;
+            for (let index = keywordStart; index < keywordEnd; index += 1) usedKeywordWords.delete(index);
+            for (let index = productStart; index < productEnd; index += 1) usedProductWords.delete(index);
+          }
+        }
       }
       return false;
     }
 
-    return matchNextWord(0);
+    return matchNextGroup();
   }
 
   function findKristalProductImageRule(productName, rules) {

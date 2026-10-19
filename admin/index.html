@@ -12,14 +12,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../supabase-client.js"></script>
     <script src="../product-image-fallbacks.js?v=product-department-rules-v1"></script>
-    <script src="../product-image-keywords.js?v=product-image-keywords-v3"></script>
+    <script src="../product-image-keywords.js?v=product-image-keywords-v4"></script>
     <script src="/auth-routing.js?v=staff-navigation-v1-20261017" defer></script>
     <script src="../assets/vendor/xlsx-0.20.3.min.js"></script>
     <script src="../admin/staff-pwa.js?v=staff-no-install-v1-20261017" defer></script>
     <script src="../staff-collapsible.js?v=staff-collapsible-v1-20261017" defer></script>
     <script src="../admin/inventory-import.js?v=product-image-keywords-v3" defer></script>
     <script src="marketing.js?v=marketing-flash-import-v2" defer></script>
-    <script src="admin.js?v=product-image-keywords-v3" defer></script>
+    <script src="admin.js?v=product-image-keywords-v4" defer></script>
   </head>
   <body>
     <main class="admin-shell" data-staff-page="admin">
@@ -172,7 +172,7 @@
             <div><p class="eyebrow">IMÁGENES AUTOMÁTICAS</p><h2 id="product-image-rules-heading">Fotos por palabras clave</h2></div>
             <button class="secondary-button" id="refresh-product-image-rules-button" type="button">Actualizar reglas</button>
           </div>
-          <p class="intro">Ejecuta primero <code>supabase-product-image-rules.sql</code> en Supabase. Luego sube una foto y escribe una o varias palabras clave, una por línea. La coincidencia busca todas las palabras sin importar el orden, acepta acentos y plurales, y tolera un pequeño error de escritura en palabras largas. Si coinciden varias reglas, se prioriza la más específica. Al guardar una regla o actualizar la lista, también se asigna a productos ya publicados que no tengan foto. Las fotos reales ya asignadas se conservan.</p>
+          <p class="intro">Ejecuta o vuelve a ejecutar <code>supabase-product-image-rules.sql</code> en Supabase para habilitar la actualización de fotos según la regla más precisa. Luego sube una foto y escribe una o varias palabras clave, una por línea. La coincidencia busca todas las palabras sin importar el orden, acepta acentos y plurales, reconoce palabras que aparecen juntas (como “Mi Masa” y “MIMASA”), y tolera un pequeño error de escritura en palabras largas. Si coinciden varias reglas, se prioriza la más específica. Al guardar una regla o actualizar la lista, asigna la mejor foto a productos sin imagen y corrige fotos asignadas por reglas menos específicas. No reemplaza fotos que no pertenezcan a una regla.</p>
           <form id="product-image-rules-form" class="product-image-rules-form">
             <label class="field" for="product-image-rule-keywords">Palabras o frases clave
               <textarea id="product-image-rule-keywords" name="keywords" rows="3" maxlength="1000" placeholder="Vatel vegetal&#10;Aceite vegetal Vatel" required></textarea>
